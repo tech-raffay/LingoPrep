@@ -5,10 +5,11 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 const navLinks = [
-  { href: "/dashboard", label: "Dashboard", icon: "📊" },
-  { href: "/reading", label: "Reading", icon: "📖" },
-  { href: "/listening", label: "Listening", icon: "🎧" },
-  { href: "/writing", label: "Writing", icon: "✍️" },
+  { href: "/listening", label: "Listening" },
+  { href: "/reading", label: "Reading" },
+  { href: "/writing", label: "Writing" },
+  { href: "/speaking", label: "Speaking" },
+  { href: "/dashboard", label: "Results" },
 ];
 
 export default function Navbar() {
@@ -16,17 +17,16 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <nav className="sticky top-0 z-50 glass border-b border-border bg-surface/80">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
+    <nav className="sticky top-0 z-50 bg-white border-b border-[#e0e0e0]">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <div className="flex h-14 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group">
-            <span className="text-2xl font-bold gradient-text transition-transform group-hover:scale-105">
-              LingoPrep
-            </span>
-            <span className="hidden sm:inline-block text-xs font-medium bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-              BETA
-            </span>
+          <Link href="/" className="flex items-center gap-2">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c8102e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+            <span className="text-lg font-bold text-[#c8102e] tracking-tight">LingoPrep</span>
           </Link>
 
           {/* Desktop Nav */}
@@ -37,46 +37,49 @@ export default function Navbar() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  className={`px-3 py-1.5 text-[14px] font-semibold transition-colors ${
                     isActive
-                      ? "bg-primary text-white shadow-lg shadow-primary/25"
-                      : "text-text-muted hover:bg-surface-hover hover:text-foreground"
+                      ? "text-[#c8102e] border-b-2 border-[#c8102e]"
+                      : "text-[#333] hover:text-[#c8102e]"
                   }`}
                 >
-                  <span>{link.icon}</span>
                   {link.label}
                 </Link>
               );
             })}
           </div>
 
-          {/* Profile / Auth placeholder */}
-          <div className="hidden md:flex items-center gap-3">
+          {/* Right side actions */}
+          <div className="hidden md:flex items-center gap-4">
             <Link
               href="/auth/login"
-              className="text-sm font-medium text-text-muted hover:text-foreground transition-colors"
+              className="text-[13px] font-semibold text-[#333] hover:text-[#c8102e] flex items-center gap-1.5 transition-colors"
             >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
               Sign In
             </Link>
             <Link
               href="/auth/signup"
-              className="text-sm font-medium bg-primary text-white px-4 py-2 rounded-xl hover:bg-primary-dark transition-colors shadow-lg shadow-primary/25"
+              className="text-[13px] font-semibold bg-[#c8102e] text-white px-4 py-2 rounded-full hover:bg-[#a50d24] transition-colors"
             >
-              Get Started
+              Book your test
             </Link>
           </div>
 
           {/* Mobile menu button */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden p-2 rounded-lg text-text-muted hover:bg-surface-hover transition-colors"
+            className="md:hidden p-2 text-[#333]"
             aria-label="Toggle menu"
           >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               {mobileOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path d="M18 6 6 18M6 6l12 12" />
               ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                <path d="M3 12h18M3 6h18M3 18h18" />
               )}
             </svg>
           </button>
@@ -84,7 +87,7 @@ export default function Navbar() {
 
         {/* Mobile Nav */}
         {mobileOpen && (
-          <div className="md:hidden pb-4 border-t border-border mt-2 pt-4 space-y-1">
+          <div className="md:hidden pb-4 border-t border-[#eee] mt-1 pt-3 space-y-1">
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
               return (
@@ -92,28 +95,21 @@ export default function Navbar() {
                   key={link.href}
                   href={link.href}
                   onClick={() => setMobileOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                  className={`block px-4 py-2.5 text-[14px] font-semibold transition-colors ${
                     isActive
-                      ? "bg-primary text-white"
-                      : "text-text-muted hover:bg-surface-hover"
+                      ? "text-[#c8102e] bg-[#fef2f2]"
+                      : "text-[#333] hover:bg-[#fafafa]"
                   }`}
                 >
-                  <span className="text-lg">{link.icon}</span>
                   {link.label}
                 </Link>
               );
             })}
             <div className="flex gap-2 pt-3 px-4">
-              <Link
-                href="/auth/login"
-                className="flex-1 text-center text-sm font-medium py-2 rounded-xl border border-border hover:bg-surface-hover transition-colors"
-              >
+              <Link href="/auth/login" className="flex-1 text-center text-[13px] font-semibold py-2 border border-[#ddd] hover:bg-[#fafafa] transition-colors">
                 Sign In
               </Link>
-              <Link
-                href="/auth/signup"
-                className="flex-1 text-center text-sm font-medium bg-primary text-white py-2 rounded-xl hover:bg-primary-dark transition-colors"
-              >
+              <Link href="/auth/signup" className="flex-1 text-center text-[13px] font-semibold bg-[#c8102e] text-white py-2 rounded-full hover:bg-[#a50d24] transition-colors">
                 Get Started
               </Link>
             </div>

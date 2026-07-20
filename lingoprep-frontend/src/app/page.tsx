@@ -2,171 +2,172 @@ import Link from "next/link";
 
 const modules = [
   {
-    title: "Reading",
-    description:
-      "Practice with IELTS & TOEFL reading passages. Answer MCQs and get instant scoring with detailed explanations.",
-    icon: "📖",
+    title: "IELTS Reading",
+    subtitle: "Computer-based practice",
+    description: "Academic reading passages with timed comprehension questions.",
     href: "/reading",
-    gradient: "from-indigo-500 to-purple-600",
-    shadowColor: "shadow-indigo-500/20",
+    tag: "Computer",
   },
   {
-    title: "Listening",
-    description:
-      "Listen to academic audio clips and answer comprehension questions. Simulates the real exam experience.",
-    icon: "🎧",
-    href: "/listening",
-    gradient: "from-cyan-500 to-blue-600",
-    shadowColor: "shadow-cyan-500/20",
-  },
-  {
-    title: "Writing",
-    description:
-      "Submit essays and receive AI-powered evaluation. Get band scores, feedback, and improvement suggestions.",
-    icon: "✍️",
+    title: "IELTS Writing",
+    subtitle: "Task 1 & Task 2",
+    description: "Essay prompts with AI-powered band score evaluation.",
     href: "/writing",
-    gradient: "from-amber-500 to-orange-600",
-    shadowColor: "shadow-amber-500/20",
+    tag: "Computer",
+  },
+  {
+    title: "IELTS Listening",
+    subtitle: "Audio comprehension",
+    description: "Listen to recordings and answer section-based questions.",
+    href: "/listening",
+    tag: "Computer",
+  },
+  {
+    title: "IELTS Speaking",
+    subtitle: "Parts 1, 2 & 3",
+    description: "Record responses and receive pronunciation feedback.",
+    href: "/speaking",
+    tag: "Computer",
   },
 ];
 
-const stats = [
-  { value: "3", label: "Practice Modules" },
-  { value: "AI", label: "Powered by Llama 3" },
-  { value: "24/7", label: "Available Anytime" },
-  { value: "Free", label: "Open Source" },
-];
+/* Simple SVG icons matching the IDP test card style */
+function MonitorIcon() {
+  return (
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#c8102e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+      <line x1="8" y1="21" x2="16" y2="21"/>
+      <line x1="12" y1="17" x2="12" y2="21"/>
+    </svg>
+  );
+}
+
+function CheckCircleIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2e7d32" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+      <polyline points="22 4 12 14.01 9 11.01"/>
+    </svg>
+  );
+}
 
 export default function Home() {
   return (
     <div className="flex flex-col">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        {/* Background gradient orbs */}
-        <div className="absolute inset-0 -z-10">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-subtle-pulse" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-secondary/20 rounded-full blur-3xl animate-subtle-pulse [animation-delay:1.5s]" />
-        </div>
-
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24 sm:py-32 lg:py-40">
-          <div className="text-center">
-            <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5 mb-8">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75"></span>
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-primary"></span>
-              </span>
-              <span className="text-sm font-medium text-primary">
-                AI-Powered English Proficiency Evaluator
-              </span>
-            </div>
-
-            <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold tracking-tight mb-6">
-              Master Your
-              <span className="block gradient-text">IELTS & TOEFL</span>
-              With AI Precision
-            </h1>
-
-            <p className="mx-auto max-w-2xl text-lg sm:text-xl text-text-muted leading-relaxed mb-10">
-              Practice reading, listening, and writing with our intelligent evaluation engine.
-              Get instant band scores, detailed feedback, and personalized improvement strategies
-              — all powered by Llama 3 AI.
-            </p>
-
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link
-                href="/auth/signup"
-                className="w-full sm:w-auto px-8 py-3.5 bg-primary text-white font-semibold rounded-2xl hover:bg-primary-dark transition-all duration-200 shadow-xl shadow-primary/25 hover:shadow-2xl hover:shadow-primary/30 hover:-translate-y-0.5"
-              >
-                Start Practicing Free →
-              </Link>
-              <Link
-                href="/dashboard"
-                className="w-full sm:w-auto px-8 py-3.5 border border-border font-semibold rounded-2xl hover:bg-surface-hover transition-all duration-200"
-              >
-                View Dashboard
-              </Link>
-            </div>
+      {/* Hero */}
+      <section className="bg-white border-b border-[#e0e0e0]">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-16 sm:py-20 text-center">
+          <h1 className="text-[32px] sm:text-[40px] font-bold text-[#1a1a1a] leading-tight mb-4">
+            IELTS Practice tests
+          </h1>
+          <p className="text-[16px] text-[#666] max-w-xl mx-auto leading-relaxed mb-8">
+            Prepare for your IELTS test with free practice tests and AI-powered scoring. Familiarise yourself with the test format.
+          </p>
+          <div className="flex flex-col sm:flex-row justify-center gap-3">
+            <Link
+              href="/reading"
+              className="px-6 py-2.5 bg-[#c8102e] text-white font-semibold rounded-full hover:bg-[#a50d24] transition-colors text-[14px]"
+            >
+              Access now
+            </Link>
+            <Link
+              href="/dashboard"
+              className="px-6 py-2.5 border border-[#ddd] text-[#333] font-semibold rounded-full hover:bg-[#fafafa] transition-colors text-[14px]"
+            >
+              View results
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* Stats bar */}
-      <section className="border-y border-border bg-surface/50">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat) => (
-              <div key={stat.label} className="text-center">
-                <div className="text-2xl sm:text-3xl font-bold gradient-text">
-                  {stat.value}
+      {/* Filter bar — decorative, matches IDP UI */}
+      <div className="bg-white border-b border-[#e0e0e0]">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap gap-3">
+          {["Material types", "Topic", "Test type", "Test skill", "Band score"].map((f) => (
+            <span key={f} className="px-3 py-1.5 border border-[#ddd] rounded-full text-[13px] text-[#555] font-medium cursor-default">
+              {f}
+              <svg className="inline-block ml-1 w-3 h-3 text-[#999]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Practice test cards — matches IDP layout exactly */}
+      <section className="py-12 sm:py-16">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-[22px] font-bold text-[#1a1a1a] flex items-center gap-3">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#c8102e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2"/>
+                <line x1="8" y1="21" x2="16" y2="21"/>
+                <line x1="12" y1="17" x2="12" y2="21"/>
+              </svg>
+              IELTS Practice tests
+            </h2>
+            <Link href="/dashboard" className="text-[13px] font-semibold text-[#333] border border-[#ddd] px-4 py-1.5 rounded-full hover:bg-[#fafafa] transition-colors">
+              View more
+            </Link>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {modules.map((mod) => (
+              <div
+                key={mod.title}
+                className="bg-white border border-[#e0e0e0] rounded-lg p-5 flex flex-col"
+              >
+                {/* Icon + Tag */}
+                <div className="flex items-start justify-between mb-4">
+                  <MonitorIcon />
+                  <span className="text-[11px] font-bold bg-[#1a1a1a] text-white px-2 py-0.5 rounded">
+                    {mod.tag}
+                  </span>
                 </div>
-                <div className="text-sm text-text-muted mt-1">{stat.label}</div>
+
+                {/* Title */}
+                <h3 className="text-[15px] font-bold text-[#1a1a1a] leading-snug mb-1">
+                  {mod.title}
+                </h3>
+                <p className="text-[13px] text-[#999] mb-auto">{mod.subtitle}</p>
+
+                {/* Actions */}
+                <div className="mt-5 space-y-2">
+                  <Link
+                    href={mod.href}
+                    className="block text-center py-2 bg-[#c8102e] text-white font-semibold text-[13px] rounded-full hover:bg-[#a50d24] transition-colors"
+                  >
+                    Access now
+                  </Link>
+                  <Link
+                    href="/dashboard"
+                    className="block text-center py-2 border border-[#ddd] text-[#333] font-semibold text-[13px] rounded-full hover:bg-[#fafafa] transition-colors"
+                  >
+                    View answers
+                  </Link>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Modules Section */}
-      <section className="py-20 sm:py-28">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Practice Every Module
-            </h2>
-            <p className="text-lg text-text-muted max-w-2xl mx-auto">
-              Comprehensive preparation covering all major sections of IELTS and TOEFL exams.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {modules.map((mod) => (
-              <Link
-                key={mod.title}
-                href={mod.href}
-                className={`group relative overflow-hidden rounded-3xl border border-border bg-surface p-8 transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl ${mod.shadowColor}`}
-              >
-                {/* Gradient accent bar */}
-                <div
-                  className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${mod.gradient} opacity-0 group-hover:opacity-100 transition-opacity`}
-                />
-
-                <div className="text-5xl mb-6 transform transition-transform group-hover:scale-110">
-                  {mod.icon}
-                </div>
-                <h3 className="text-xl font-bold mb-3">{mod.title}</h3>
-                <p className="text-text-muted leading-relaxed">{mod.description}</p>
-
-                <div className="mt-6 flex items-center text-primary font-medium text-sm group-hover:gap-2 transition-all">
-                  Start Practice
-                  <svg className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 sm:py-28">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary to-secondary p-12 sm:p-16 text-center">
-            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
-            <div className="relative">
-              <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-                Ready to Ace Your Exam?
-              </h2>
-              <p className="text-lg text-white/80 max-w-xl mx-auto mb-8">
-                Join LingoPrep today and start your journey to English proficiency.
-                No credit card required.
-              </p>
-              <Link
-                href="/auth/signup"
-                className="inline-flex items-center px-8 py-3.5 bg-white text-primary font-semibold rounded-2xl hover:bg-white/90 transition-all shadow-xl hover:-translate-y-0.5"
-              >
-                Get Started — It&apos;s Free
-              </Link>
+      {/* Features section */}
+      <section className="bg-white border-t border-[#e0e0e0] py-12 sm:py-16">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <div className="grid sm:grid-cols-3 gap-8 text-center">
+            <div>
+              <CheckCircleIcon />
+              <h3 className="font-bold text-[15px] text-[#1a1a1a] mt-3 mb-1">AI-Powered Scoring</h3>
+              <p className="text-[13px] text-[#666] leading-relaxed">Get instant band scores and detailed feedback on your writing and speaking responses.</p>
+            </div>
+            <div>
+              <CheckCircleIcon />
+              <h3 className="font-bold text-[15px] text-[#1a1a1a] mt-3 mb-1">Computer-Based Format</h3>
+              <p className="text-[13px] text-[#666] leading-relaxed">Practice in the same format used in the actual IELTS computer-delivered test.</p>
+            </div>
+            <div>
+              <CheckCircleIcon />
+              <h3 className="font-bold text-[15px] text-[#1a1a1a] mt-3 mb-1">Track Your Progress</h3>
+              <p className="text-[13px] text-[#666] leading-relaxed">Review past scores and monitor improvement across all four test modules.</p>
             </div>
           </div>
         </div>

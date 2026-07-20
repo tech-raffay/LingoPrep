@@ -25,6 +25,7 @@ class ModuleType(str, Enum):
     READING = "reading"
     LISTENING = "listening"
     WRITING = "writing"
+    SPEAKING = "speaking"
 
 
 # --- MCQ / Questions ---
@@ -103,6 +104,28 @@ class EssayEvaluationSchema(BaseModel):
     feedback: str
     suggestions: list[str]
     improved_version: Optional[str] = None
+
+
+
+
+
+# --- Speaking Module ---
+
+class SpeakingSubmissionSchema(BaseModel):
+    prompt: str
+    transcript: str = Field(..., min_length=10)
+    exam_type: ExamType
+    task_type: Optional[str] = None  # e.g., "part1", "part2", "independent", "integrated"
+
+
+class SpeakingEvaluationSchema(BaseModel):
+    overall_band: float
+    pronunciation_fluency: float
+    grammar: float
+    lexical_resource: float
+    coherence_structure: float
+    feedback: str
+    suggestions: list[str]
 
 
 # --- Session Logs ---

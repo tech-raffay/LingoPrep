@@ -7,6 +7,8 @@ import json
 from groq import Groq
 from app.config import settings
 from app.schemas.models import EssaySubmissionSchema, EssayEvaluationSchema
+from app.services.supabase_client import get_client
+
 
 
 EVALUATION_SYSTEM_PROMPT = """You are an expert IELTS/TOEFL writing examiner. Evaluate the following essay based on these criteria:
@@ -81,8 +83,39 @@ Word count: {len(submission.essay_text.split())}
 
         response_text = chat_completion.choices[0].message.content
         evaluation_data = json.loads(response_text)
+        
+        evaluation = EssayEvaluationSchema(**evaluation_data)
 
-        return EssayEvaluationSchema(**evaluation_data)
+        # Log session in Supabase
+        try:
+            db = get_client()
+            is_toefl = submission.exam_type.value == "toefl"
+            max_score = 30.0 if is_toefl else 9.0
+            percentage = round((evaluation.overall_band / max_score) * 100, 1)
+
+            db.table("session_logs").insert({
+                "module": "writing",
+                "score": evaluation.overall_band,
+                "max_score": max_score,
+                "percentage": percentage,
+                "band_score": evaluation.overall_band,
+                "details": {
+                    "prompt": submission.prompt,
+                    "essay_text": submission.essay_text,
+                    "sub_scores": {
+                        "task_achievement": evaluation.task_achievement,
+                        "coherence_cohesion": evaluation.coherence_cohesion,
+                        "lexical_resource": evaluation.lexical_resource,
+                        "grammatical_range": evaluation.grammatical_range,
+                    },
+                    "feedback": evaluation.feedback,
+                    "suggestions": evaluation.suggestions,
+                }
+            }).execute()
+        except Exception as e:
+            print(f"Failed to log writing session: {str(e)}")
+
+        return evaluation
 
     except json.JSONDecodeError:
         # Fallback if LLM doesn't return valid JSON

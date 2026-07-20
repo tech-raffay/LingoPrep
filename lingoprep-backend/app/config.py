@@ -4,9 +4,12 @@ Loads environment variables for Supabase, Groq, and app settings.
 """
 
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+backend_dir = Path(__file__).resolve().parent.parent
+load_dotenv(backend_dir / ".env")
+
 
 
 class Settings:

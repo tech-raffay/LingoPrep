@@ -1,24 +1,13 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
-  title: "LingoPrep — AI-Powered IELTS & TOEFL Preparation",
+  title: "LingoPrep — IELTS & TOEFL Practice Tests",
   description:
-    "Master your English proficiency exams with AI-powered reading, listening, and writing evaluation. Practice with IELTS and TOEFL-style questions and get instant feedback from our Llama 3 AI engine.",
-  keywords: ["IELTS", "TOEFL", "English test preparation", "AI tutor", "essay evaluation"],
+    "Practice IELTS and TOEFL with computer-based test simulations. Get AI-powered scoring for Reading, Listening, Writing, and Speaking modules.",
+  keywords: ["IELTS", "TOEFL", "English test preparation", "practice tests", "band score"],
 };
 
 export default function RootLayout({
@@ -27,11 +16,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col bg-background text-foreground">
+    <html lang="en" className="h-full">
+      <body className="min-h-full flex flex-col bg-[#f5f5f5] text-[#1a1a1a] antialiased">
         <Navbar />
         <main className="flex-1">{children}</main>
         <Footer />

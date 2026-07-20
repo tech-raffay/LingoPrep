@@ -8,11 +8,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import reading, listening, writing, users
+from app.routers import reading, listening, writing, users, speaking
 
 app = FastAPI(
     title=settings.APP_NAME,
-    description="AI-powered IELTS & TOEFL preparation backend — evaluates reading, listening, and writing skills using Llama 3 via Groq.",
+    description="AI-powered IELTS & TOEFL preparation backend — evaluates reading, listening, writing, and speaking skills using Llama 3 and Whisper via Groq.",
     version=settings.APP_VERSION,
     docs_url="/docs",
     redoc_url="/redoc",
@@ -35,6 +35,7 @@ app.add_middleware(
 app.include_router(reading.router, prefix="/api/reading", tags=["Reading"])
 app.include_router(listening.router, prefix="/api/listening", tags=["Listening"])
 app.include_router(writing.router, prefix="/api/writing", tags=["Writing"])
+app.include_router(speaking.router, prefix="/api/speaking", tags=["Speaking"])
 app.include_router(users.router, prefix="/api/users", tags=["Users"])
 
 

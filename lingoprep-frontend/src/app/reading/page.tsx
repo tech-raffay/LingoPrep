@@ -1,199 +1,186 @@
 "use client";
 
-import { useState } from "react";
-import type { Metadata } from "next";
+import { useState, useEffect } from "react";
+import api from "@/lib/api";
 
-// Placeholder passage — will be fetched from API
-const samplePassage = {
-  title: "The Impact of Climate Change on Marine Ecosystems",
-  content: `Climate change has emerged as one of the most significant threats to marine ecosystems worldwide. Rising ocean temperatures, increasing acidification, and changing current patterns are fundamentally altering the conditions that marine species have adapted to over millions of years.
-
-Coral reefs, often called the "rainforests of the sea," are particularly vulnerable. When water temperatures rise even 1-2°C above the normal summer maximum, corals expel the symbiotic algae living in their tissues, causing them to turn white — a phenomenon known as coral bleaching. If the stress continues, the coral dies. The Great Barrier Reef has experienced several mass bleaching events in recent years, with scientists warning that rising temperatures could render most coral reefs unviable by 2050.
-
-Beyond corals, marine food webs are being disrupted at every level. Phytoplankton, the microscopic organisms that form the base of the ocean food chain, are declining in many regions as warmer surface waters become more stratified, reducing the upwelling of nutrients from deeper layers. This has cascading effects: fewer phytoplankton means less food for zooplankton, which in turn affects fish populations and the larger predators that depend on them.
-
-Ocean acidification, caused by the absorption of excess carbon dioxide from the atmosphere, poses an additional threat. As CO₂ dissolves in seawater, it forms carbonic acid, lowering the pH of the ocean. This makes it harder for organisms like mollusks, sea urchins, and some species of plankton to build their calcium carbonate shells and skeletons. Studies have shown that current rates of acidification are unprecedented in at least the last 300 million years.`,
-  questions: [
-    {
-      id: "q1",
-      question_text: "What happens when water temperatures rise 1-2°C above the normal summer maximum?",
-      options: [
-        { id: "a", text: "Coral reefs grow faster" },
-        { id: "b", text: "Corals undergo bleaching by expelling symbiotic algae" },
-        { id: "c", text: "Marine species migrate to deeper waters" },
-        { id: "d", text: "Phytoplankton populations increase" },
-      ],
-      correct_option_id: "b",
-      explanation: "The passage states that corals expel their symbiotic algae when temperatures rise 1-2°C above normal, causing coral bleaching.",
-    },
-    {
-      id: "q2",
-      question_text: "Why is phytoplankton declining in many regions?",
-      options: [
-        { id: "a", text: "Due to overfishing of zooplankton" },
-        { id: "b", text: "Because of increased ocean salinity" },
-        { id: "c", text: "Warmer surface waters reduce nutrient upwelling" },
-        { id: "d", text: "Light pollution from coastal cities" },
-      ],
-      correct_option_id: "c",
-      explanation: "The passage explains that warmer surface waters become more stratified, reducing the upwelling of nutrients from deeper layers.",
-    },
-    {
-      id: "q3",
-      question_text: "What makes ocean acidification particularly concerning according to the passage?",
-      options: [
-        { id: "a", text: "It only affects tropical waters" },
-        { id: "b", text: "Current rates are unprecedented in at least 300 million years" },
-        { id: "c", text: "It has no measurable effect yet" },
-        { id: "d", text: "It only affects microscopic organisms" },
-      ],
-      correct_option_id: "b",
-      explanation: "The passage states that current rates of acidification are unprecedented in at least the last 300 million years.",
-    },
-  ],
-};
+interface Option { id: string; text: string; label: string; }
+interface Question { id: string; question_text: string; options: Option[]; correct_option_id: string; explanation?: string; }
+interface Passage { id: string; title: string; content: string; word_count: number; difficulty: string; exam_type: string; questions: Question[]; }
 
 export default function ReadingPage() {
+  const [passage, setPassage] = useState<Passage | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [score, setScore] = useState<number | null>(null);
+  const [dbResults, setDbResults] = useState<any[] | null>(null);
 
-  const handleSelect = (questionId: string, optionId: string) => {
-    if (submitted) return;
-    setSelectedAnswers((prev) => ({ ...prev, [questionId]: optionId }));
+  useEffect(() => {
+    async function fetchPassage() {
+      try {
+        setLoading(true);
+        const response = await api.get("/api/reading/passages");
+        const passages = response.data?.data || [];
+        if (passages.length > 0) { setPassage(passages[0]); }
+        else { setError("No reading passages available."); }
+      } catch { setError("Failed to connect to the server."); }
+      finally { setLoading(false); }
+    }
+    fetchPassage();
+  }, []);
+
+  const handleSelect = (qId: string, oId: string) => { if (!submitted) setSelectedAnswers((p) => ({ ...p, [qId]: oId })); };
+
+  const handleSubmit = async () => {
+    if (!passage) return;
+    try {
+      const res = await api.post("/api/reading/submit", {
+        passage_id: passage.id,
+        answers: Object.entries(selectedAnswers).map(([qId, optId]) => ({ question_id: qId, selected_option_id: optId })),
+      });
+      setScore(res.data.correct_answers);
+      setDbResults(res.data.results);
+      setSubmitted(true);
+    } catch { alert("Failed to submit answers."); }
   };
 
-  const handleSubmit = () => {
-    setSubmitted(true);
-  };
+  const handleReset = () => { setSelectedAnswers({}); setSubmitted(false); setScore(null); setDbResults(null); };
 
-  const handleReset = () => {
-    setSelectedAnswers({});
-    setSubmitted(false);
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh] flex-col gap-3">
+        <div className="w-7 h-7 border-2 border-[#c8102e] border-t-transparent rounded-full animate-spin" />
+        <p className="text-[13px] text-[#999]">Loading reading passage...</p>
+      </div>
+    );
+  }
 
-  const score = submitted
-    ? samplePassage.questions.filter(
-        (q) => selectedAnswers[q.id] === q.correct_option_id
-      ).length
-    : 0;
+  if (error || !passage) {
+    return (
+      <div className="mx-auto max-w-md px-4 py-16 text-center">
+        <svg className="mx-auto mb-4" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#c8102e" strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <p className="text-[14px] text-[#666] mb-4">{error}</p>
+        <button onClick={() => window.location.reload()} className="px-5 py-2 bg-[#c8102e] text-white font-semibold text-[13px] rounded-full hover:bg-[#a50d24] transition-colors">Retry</button>
+      </div>
+    );
+  }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-10">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <span className="text-3xl">📖</span>
-          <h1 className="text-3xl font-bold">Reading Module</h1>
+    <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-6">
+      {/* Top bar — mimics Global Prep test header */}
+      <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#e0e0e0]">
+        <div>
+          <h1 className="text-[20px] font-bold text-[#1a1a1a]">Reading Passage 1</h1>
+          <p className="text-[13px] text-[#999]">Academic Module</p>
         </div>
-        <p className="text-text-muted">
-          Read the passage carefully, then answer the multiple-choice questions below.
-        </p>
+        <span className="px-3 py-1 border border-[#c8102e] text-[#c8102e] text-[12px] font-bold rounded-full">
+          Questions 1–{passage.questions.length}
+        </span>
       </div>
 
-      {/* Passage */}
-      <div className="rounded-2xl border border-border bg-surface p-6 sm:p-8 mb-8">
-        <h2 className="text-xl font-bold mb-4">{samplePassage.title}</h2>
-        <div className="prose prose-zinc dark:prose-invert max-w-none">
-          {samplePassage.content.split("\n\n").map((paragraph, i) => (
-            <p key={i} className="text-foreground/80 leading-relaxed mb-4 last:mb-0">
-              {paragraph}
-            </p>
-          ))}
+      {/* Two-column layout: passage | questions */}
+      <div className="grid lg:grid-cols-2 gap-6 items-start">
+        {/* Left: Passage */}
+        <div className="bg-white border border-[#e0e0e0] rounded-lg p-6 sm:p-8">
+          <h2 className="text-[22px] font-bold text-[#c8102e] leading-snug mb-6">{passage.title}</h2>
+          <div className="text-[15px] text-[#333] leading-[1.8] space-y-4">
+            {passage.content.split("\n\n").map((p, i) => (
+              <p key={i}>{p}</p>
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* Questions */}
-      <div className="space-y-6 mb-8">
-        {samplePassage.questions.map((q, index) => {
-          const isCorrect = submitted && selectedAnswers[q.id] === q.correct_option_id;
-          const isWrong = submitted && selectedAnswers[q.id] && selectedAnswers[q.id] !== q.correct_option_id;
+        {/* Right: Questions */}
+        <div className="space-y-5">
+          <div className="bg-[#fafafa] border border-[#e0e0e0] rounded-lg p-4">
+            <p className="text-[13px] font-bold text-[#1a1a1a] mb-1">Questions 1–{passage.questions.length}</p>
+            <p className="text-[13px] text-[#666]">Choose the correct letter, <strong>A</strong>, <strong>B</strong>, <strong>C</strong> or <strong>D</strong>.</p>
+          </div>
 
-          return (
-            <div
-              key={q.id}
-              className={`rounded-2xl border p-6 transition-all ${
-                submitted
-                  ? isCorrect
-                    ? "border-success/50 bg-success/5"
-                    : isWrong
-                    ? "border-danger/50 bg-danger/5"
-                    : "border-border bg-surface"
-                  : "border-border bg-surface"
-              }`}
-            >
-              <p className="font-semibold mb-4">
-                <span className="text-primary mr-2">Q{index + 1}.</span>
-                {q.question_text}
-              </p>
-              <div className="grid gap-3">
-                {q.options.map((opt) => {
-                  const isSelected = selectedAnswers[q.id] === opt.id;
-                  const isCorrectOpt = submitted && opt.id === q.correct_option_id;
+          {passage.questions.map((q, idx) => {
+            const result = dbResults?.find((r) => r.question_id === q.id);
+            const isCorrect = submitted && result?.is_correct;
+            const isWrong = submitted && result && !result.is_correct;
 
-                  return (
-                    <button
-                      key={opt.id}
-                      onClick={() => handleSelect(q.id, opt.id)}
-                      disabled={submitted}
-                      className={`w-full text-left px-4 py-3 rounded-xl border transition-all ${
-                        isCorrectOpt
-                          ? "border-success bg-success/10 text-success font-medium"
-                          : isSelected && submitted
-                          ? "border-danger bg-danger/10 text-danger"
-                          : isSelected
-                          ? "border-primary bg-primary/10 text-primary font-medium"
-                          : "border-border hover:border-primary/50 hover:bg-surface-hover"
-                      }`}
-                    >
-                      <span className="font-mono text-sm mr-3 opacity-60">
-                        {opt.id.toUpperCase()}
-                      </span>
-                      {opt.text}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Explanation */}
-              {submitted && q.explanation && (
-                <div className="mt-4 p-4 rounded-xl bg-primary/5 border border-primary/20">
-                  <p className="text-sm">
-                    <span className="font-semibold text-primary">Explanation: </span>
-                    {q.explanation}
-                  </p>
+            return (
+              <div key={q.id} className={`bg-white border rounded-lg p-5 ${submitted ? (isCorrect ? "border-[#2e7d32]" : isWrong ? "border-[#c8102e]" : "border-[#e0e0e0]") : "border-[#e0e0e0]"}`}>
+                <p className="text-[14px] text-[#1a1a1a] mb-4">
+                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#c8102e] text-white text-[12px] font-bold mr-2">{idx + 1}</span>
+                  {q.question_text}
+                </p>
+                <div className="space-y-2 pl-8">
+                  {q.options.map((opt) => {
+                    const isSel = selectedAnswers[q.id] === opt.id;
+                    const isCorrOpt = submitted && opt.id === q.correct_option_id;
+                    return (
+                      <label
+                        key={opt.id}
+                        className={`flex items-center gap-3 py-2 px-3 rounded cursor-pointer text-[14px] transition-colors ${
+                          isCorrOpt ? "bg-[#e8f5e9] text-[#2e7d32] font-semibold" :
+                          isSel && submitted ? "bg-[#fce4ec] text-[#c8102e] font-semibold" :
+                          isSel ? "bg-[#fef2f2] text-[#c8102e]" :
+                          "hover:bg-[#fafafa] text-[#333]"
+                        }`}
+                        onClick={() => handleSelect(q.id, opt.id)}
+                      >
+                        <span className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
+                          isSel || isCorrOpt ? "border-[#c8102e]" : "border-[#ccc]"
+                        }`}>
+                          {(isSel || isCorrOpt) && <span className="w-2 h-2 rounded-full bg-[#c8102e]" />}
+                        </span>
+                        <span className="font-semibold mr-1 text-[#999]">{opt.label}</span>
+                        {opt.text}
+                      </label>
+                    );
+                  })}
                 </div>
-              )}
-            </div>
-          );
-        })}
+
+                {submitted && q.explanation && (
+                  <div className="mt-3 ml-8 p-3 bg-[#f5f5f5] border-l-3 border-[#2e7d32] text-[13px] text-[#555]">
+                    <strong className="text-[#2e7d32]">Explanation:</strong> {q.explanation}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Actions */}
-      <div className="flex items-center justify-between">
-        {submitted ? (
+      {/* Bottom action bar */}
+      <div className="mt-6 flex items-center justify-between py-4 border-t border-[#e0e0e0]">
+        {submitted && score !== null ? (
           <div className="flex items-center gap-6">
-            <div className="text-lg">
-              Score:{" "}
-              <span className="font-bold text-2xl gradient-text">
-                {score}/{samplePassage.questions.length}
-              </span>
-            </div>
-            <button
-              onClick={handleReset}
-              className="px-6 py-2.5 border border-border rounded-xl font-medium hover:bg-surface-hover transition-colors"
-            >
-              Try Again
+            <p className="text-[15px] text-[#1a1a1a]">
+              Score: <span className="font-bold text-[20px]">{score}/{passage.questions.length}</span> correct
+            </p>
+            <button onClick={handleReset} className="px-5 py-2 border border-[#ddd] text-[#333] font-semibold text-[13px] rounded-full hover:bg-[#fafafa] transition-colors">
+              Try again
             </button>
           </div>
         ) : (
           <button
             onClick={handleSubmit}
-            disabled={Object.keys(selectedAnswers).length < samplePassage.questions.length}
-            className="px-8 py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary-dark transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-primary/25"
+            disabled={Object.keys(selectedAnswers).length < passage.questions.length}
+            className="px-6 py-2.5 bg-[#1a1a1a] text-white font-semibold text-[13px] rounded-full hover:bg-[#333] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
-            Submit Answers ({Object.keys(selectedAnswers).length}/{samplePassage.questions.length})
+            Next →
           </button>
         )}
+        <div className="flex items-center gap-2 text-[12px] text-[#999]">
+          {passage.questions.map((_, i) => (
+            <span
+              key={i}
+              className={`w-7 h-7 flex items-center justify-center rounded font-bold ${
+                selectedAnswers[passage.questions[i].id]
+                  ? "bg-[#c8102e] text-white"
+                  : "bg-[#f0f0f0] text-[#666]"
+              }`}
+            >
+              {i + 1}
+            </span>
+          ))}
+        </div>
       </div>
     </div>
   );
