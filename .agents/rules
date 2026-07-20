@@ -1,0 +1,20 @@
+# LingoPrep System Grounding Rules
+
+## Project Definition
+LingoPrep is an AI-powered English proficiency evaluator specializing in IELTS and TOEFL preparation[cite: 1].
+
+## Technical Stack Architecture
+- Frontend: Next.js, Tailwind CSS (inside /lingoprep-frontend)[cite: 1].
+- Backend: FastAPI (Python 3.11+) (inside /lingoprep-backend)[cite: 1].
+- Database: Supabase PostgreSQL[cite: 1].
+- Core LLM Engine: Llama 3 via Ollama/Groq[cite: 1].
+
+## Current Phase Focus (7th Semester Evaluation - 50% Completeness)
+We are strictly focused on establishing the objective core engines and baseline data pathways. 
+DO NOT write code for Speech-to-Text (Whisper), real-time interactive examiner speech loops, or vector databases yet[cite: 1].
+
+### Target Deliverables for Current Sprints:
+1. Supabase database schema for users, session logs, and question banks[cite: 1].
+2. Automated Reading Module (MCQ engine)[cite: 1].
+3. Automated Listening Module (Audio player + MCQ engine)[cite: 1].
+4. Baseline Text Essay Writing Evaluator backend endpoint connected to Llama 3[cite: 1]. 

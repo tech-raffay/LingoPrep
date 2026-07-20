@@ -1,0 +1,41 @@
+# ===========================
+# LingoPrep — Root .gitignore
+# ===========================
+
+# --- Node / Frontend ---
+node_modules/
+.next/
+out/
+.env.local
+.env*.local
+npm-debug.log*
+
+# --- Python / Backend ---
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+
+# --- Environment ---
+.env
+
+# --- IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-*
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Misc ---
+*.log
+coverage/
+.vercel
