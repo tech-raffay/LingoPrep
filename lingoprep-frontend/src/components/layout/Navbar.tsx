@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 const navLinks = [
   { href: "/listening", label: "Listening" },
@@ -15,6 +16,7 @@ const navLinks = [
 export default function Navbar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user, signOut } = useAuth();
 
   return (
     <nav className="sticky top-0 z-50 bg-white border-b border-[#e0e0e0]">
@@ -51,22 +53,38 @@ export default function Navbar() {
 
           {/* Right side actions */}
           <div className="hidden md:flex items-center gap-4">
-            <Link
-              href="/auth/login"
-              className="text-[13px] font-semibold text-[#333] hover:text-[#c8102e] flex items-center gap-1.5 transition-colors"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                <circle cx="12" cy="7" r="4"/>
-              </svg>
-              Sign In
-            </Link>
-            <Link
-              href="/auth/signup"
-              className="text-[13px] font-semibold bg-[#c8102e] text-white px-4 py-2 rounded-full hover:bg-[#a50d24] transition-colors"
-            >
-              Book your test
-            </Link>
+            {user ? (
+              <>
+                <span className="text-[13px] text-[#666] font-medium max-w-[150px] truncate">
+                  {user.user_metadata?.full_name || user.email}
+                </span>
+                <button
+                  onClick={() => signOut()}
+                  className="text-[13px] font-semibold text-[#333] hover:text-[#c8102e] flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/auth/login"
+                  className="text-[13px] font-semibold text-[#333] hover:text-[#c8102e] flex items-center gap-1.5 transition-colors"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                  Sign In
+                </Link>
+                <Link
+                  href="/auth/signup"
+                  className="text-[13px] font-semibold bg-[#c8102e] text-white px-4 py-2 rounded-full hover:bg-[#a50d24] transition-colors"
+                >
+                  Book your test
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -106,12 +124,34 @@ export default function Navbar() {
               );
             })}
             <div className="flex gap-2 pt-3 px-4">
-              <Link href="/auth/login" className="flex-1 text-center text-[13px] font-semibold py-2 border border-[#ddd] hover:bg-[#fafafa] transition-colors">
-                Sign In
-              </Link>
-              <Link href="/auth/signup" className="flex-1 text-center text-[13px] font-semibold bg-[#c8102e] text-white py-2 rounded-full hover:bg-[#a50d24] transition-colors">
-                Get Started
-              </Link>
+              {user ? (
+                <button
+                  onClick={() => {
+                    signOut();
+                    setMobileOpen(false);
+                  }}
+                  className="flex-1 text-center text-[13px] font-semibold py-2 border border-[#ddd] hover:bg-[#fafafa] transition-colors cursor-pointer"
+                >
+                  Sign Out
+                </button>
+              ) : (
+                <>
+                  <Link
+                    href="/auth/login"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex-1 text-center text-[13px] font-semibold py-2 border border-[#ddd] hover:bg-[#fafafa] transition-colors"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    href="/auth/signup"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex-1 text-center text-[13px] font-semibold bg-[#c8102e] text-white py-2 rounded-full hover:bg-[#a50d24] transition-colors"
+                  >
+                    Get Started
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         )}

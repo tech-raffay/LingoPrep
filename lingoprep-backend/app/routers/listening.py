@@ -31,11 +31,19 @@ async def get_audio(audio_id: str):
     return {"success": True, "data": audio}
 
 
+from app.dependencies.auth import get_optional_user, AuthenticatedUser
+from fastapi import Depends
+
 @router.post("/submit", response_model=MCQResult)
-async def submit_answers(submission: MCQSubmission):
+async def submit_answers(
+    submission: MCQSubmission,
+    user: AuthenticatedUser | None = Depends(get_optional_user)
+):
     """Submit answers for a listening exercise and get scored results."""
     try:
-        result = listening_service.score_submission(submission)
+        user_id = user.id if user else None
+        result = listening_service.score_submission(submission, user_id=user_id)
         return result
+
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

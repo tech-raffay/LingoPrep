@@ -27,6 +27,8 @@ interface UserStats {
   recent_sessions: SessionLog[];
 }
 
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -83,7 +85,9 @@ export default function DashboardPage() {
   const maxScore = isToefl ? 120 : 9;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8">
+    <ProtectedRoute>
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8">
+
       {/* Page header */}
       <div className="mb-8">
         <h1 className="text-[26px] font-bold text-[#1a1a1a]">Your results</h1>
@@ -177,6 +181,8 @@ export default function DashboardPage() {
           </tbody>
         </table>
       </div>
-    </div>
+      </div>
+    </ProtectedRoute>
   );
 }
+

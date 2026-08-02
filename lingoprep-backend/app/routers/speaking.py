@@ -69,12 +69,20 @@ async def transcribe_audio(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+from app.dependencies.auth import get_optional_user, AuthenticatedUser
+from fastapi import Depends
+
 @router.post("/evaluate", response_model=SpeakingEvaluationSchema)
-async def evaluate_speaking(submission: SpeakingSubmissionSchema):
+async def evaluate_speaking(
+    submission: SpeakingSubmissionSchema,
+    user: AuthenticatedUser | None = Depends(get_optional_user)
+):
     """Evaluate speech transcript with Llama 3 via Groq."""
     try:
-        evaluation = await speaking_service.evaluate_speaking(submission)
+        user_id = user.id if user else None
+        evaluation = await speaking_service.evaluate_speaking(submission, user_id=user_id)
         return evaluation
+
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except RuntimeError as e:

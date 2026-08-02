@@ -63,8 +63,15 @@ class WritingSubmitRequest(BaseModel):
     user_id: Optional[str] = None
 
 
+from app.dependencies.auth import get_optional_user, AuthenticatedUser
+from fastapi import Depends
+
 @router.post("/submit")
-async def submit_essay(req: WritingSubmitRequest):
+async def submit_essay(
+    req: WritingSubmitRequest,
+    user: AuthenticatedUser | None = Depends(get_optional_user)
+):
+
     """
     Submit an essay for AI evaluation and save the result to writing_submissions.
     
@@ -117,8 +124,11 @@ async def submit_essay(req: WritingSubmitRequest):
         "ai_feedback": feedback_json,
         "score": evaluation.overall_band,
     }
-    if req.user_id:
-        insert_data["user_id"] = req.user_id
+    # Determine user_id
+    current_uid = user.id if user else req.user_id
+    if current_uid:
+        insert_data["user_id"] = current_uid
+
 
     try:
         db.table("writing_submissions").insert(insert_data).execute()

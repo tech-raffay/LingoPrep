@@ -1,4 +1,5 @@
 import axios from "axios";
+import { supabase } from "./supabase";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -10,13 +11,17 @@ const api = axios.create({
   timeout: 30000, // 30s timeout for LLM calls
 });
 
-// Request interceptor — attach auth token if available
+// Request interceptor — attach Supabase session token dynamically
 api.interceptors.request.use(
-  (config) => {
+  async (config) => {
     if (typeof window !== "undefined") {
-      const token = localStorage.getItem("access_token");
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          config.headers.Authorization = `Bearer ${session.access_token}`;
+        }
+      } catch (error) {
+        console.error("Error retrieving Supabase session token:", error);
       }
     }
     return config;
@@ -29,9 +34,9 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Redirect to login or clear auth
       if (typeof window !== "undefined") {
-        localStorage.removeItem("access_token");
+        // Handle session expiry or logout redirection if needed
+        supabase.auth.signOut();
       }
     }
     return Promise.reject(error);

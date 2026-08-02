@@ -104,7 +104,7 @@ def get_audio_by_id(audio_id: str) -> dict | None:
     return audio
 
 
-def score_submission(submission: MCQSubmission) -> MCQResult:
+def score_submission(submission: MCQSubmission, user_id: str = None) -> MCQResult:
     """Score listening MCQ answers against correct options in the database."""
     client = get_client()
 
@@ -171,6 +171,7 @@ def score_submission(submission: MCQSubmission) -> MCQResult:
     # Log the session
     try:
         client.table("session_logs").insert({
+            "user_id": user_id,
             "module": "listening",
             "passage_id": submission.passage_id,
             "score": band_score,
@@ -181,6 +182,7 @@ def score_submission(submission: MCQSubmission) -> MCQResult:
         }).execute()
     except Exception as e:
         print(f"Failed to log listening session: {str(e)}")
+
 
     return MCQResult(
         passage_id=submission.passage_id,

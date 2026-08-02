@@ -4,39 +4,46 @@ Endpoints for user profile, session history, and dashboard stats.
 Queries Supabase profiles and session_logs tables.
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from app.services.supabase_client import get_client
+from app.dependencies.auth import get_current_user as verify_user, AuthenticatedUser
 
 router = APIRouter()
 
 
 @router.get("/me")
-async def get_current_user():
+async def get_current_user_profile(user: AuthenticatedUser = Depends(verify_user)):
     """
-    Get a demo user profile.
-    TODO: Replace with Supabase Auth JWT verification when auth is wired.
+    Get the authenticated user's profile from the profiles table.
     """
+    try:
+        client = get_client()
+        res = client.table("profiles").select("*").eq("id", user.id).single().execute()
+        profile_data = res.data or {}
+    except Exception:
+        profile_data = {}
+
     return {
         "success": True,
         "data": {
-            "id": "demo-user",
-            "email": "demo@lingoprep.com",
-            "full_name": "Demo User",
-            "target_exam": "ielts",
-            "target_score": 7.0,
+            "id": user.id,
+            "email": user.email,
+            "full_name": profile_data.get("full_name") or user.full_name or "Student",
+            "target_exam": profile_data.get("target_exam", "ielts"),
+            "target_score": float(profile_data.get("target_score") or 7.0),
         },
-        "message": "Demo mode — sign up to track your progress.",
     }
 
 
 @router.get("/sessions")
-async def get_all_sessions():
-    """Get all session logs (demo mode — no user filter)."""
+async def get_all_sessions(user: AuthenticatedUser = Depends(verify_user)):
+    """Get session logs for the currently authenticated user."""
     try:
         client = get_client()
         res = (
             client.table("session_logs")
             .select("*")
+            .eq("user_id", user.id)
             .order("created_at", desc=True)
             .limit(20)
             .execute()
@@ -63,11 +70,11 @@ async def get_all_sessions():
 
 
 @router.get("/stats")
-async def get_user_stats():
-    """Get aggregated stats for the dashboard (demo mode)."""
+async def get_user_stats(user: AuthenticatedUser = Depends(verify_user)):
+    """Get aggregated stats for the dashboard of the authenticated user."""
     try:
         client = get_client()
-        res = client.table("session_logs").select("*").execute()
+        res = client.table("session_logs").select("*").eq("user_id", user.id).execute()
         sessions = res.data or []
 
         # Separate into ielts and toefl sessions
@@ -127,8 +134,16 @@ async def get_user_stats():
         
         toefl_overall = round(toefl_reading_avg + toefl_listening_avg + toefl_writing_avg + toefl_speaking_avg, 1)
 
-        # Backwards compatibility flat values
-        if toefl_total > ielts_total:
+        # Active Track determination
+        active_track = "ielts"
+        try:
+            profile_res = client.table("profiles").select("target_exam").eq("id", user.id).single().execute()
+            if profile_res.data:
+                active_track = profile_res.data.get("target_exam", "ielts")
+        except Exception:
+            pass
+
+        if active_track == "toefl":
             flat_total = toefl_total
             flat_avg_pct = toefl_avg_pct
             flat_overall = toefl_overall
@@ -136,7 +151,6 @@ async def get_user_stats():
             flat_listening = toefl_listening_avg
             flat_writing = toefl_writing_avg
             flat_speaking = toefl_speaking_avg
-            active_track = "toefl"
         else:
             flat_total = ielts_total
             flat_avg_pct = ielts_avg_pct
@@ -145,7 +159,6 @@ async def get_user_stats():
             flat_listening = ielts_listening_avg
             flat_writing = ielts_writing_avg
             flat_speaking = ielts_speaking_avg
-            active_track = "ielts"
 
         # Recent sessions
         recent = sorted(sessions, key=lambda s: s.get("created_at", ""), reverse=True)[:10]

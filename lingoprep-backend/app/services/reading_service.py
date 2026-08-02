@@ -107,7 +107,7 @@ def get_passage_by_id(passage_id: str) -> dict | None:
     return passage
 
 
-def score_submission(submission: MCQSubmission) -> MCQResult:
+def score_submission(submission: MCQSubmission, user_id: str = None) -> MCQResult:
     """Score MCQ answers by checking against correct options in the database."""
     client = get_client()
 
@@ -177,6 +177,7 @@ def score_submission(submission: MCQSubmission) -> MCQResult:
     # Log the session
     try:
         client.table("session_logs").insert({
+            "user_id": user_id,
             "module": "reading",
             "passage_id": submission.passage_id,
             "score": band_score,
@@ -187,6 +188,7 @@ def score_submission(submission: MCQSubmission) -> MCQResult:
         }).execute()
     except Exception as e:
         print(f"Failed to log reading session: {str(e)}")
+
 
     return MCQResult(
         passage_id=submission.passage_id,
