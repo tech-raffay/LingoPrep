@@ -50,14 +50,13 @@ export default function Footer() {
               <path d="M2 12h20" />
             </svg>
             <span className="font-semibold">Pakistan</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
           </div>
         </div>
 
         {/* Links Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8 text-left">
           <div>
-            <h4 className="text-[14px] font-bold text-white mb-4 relative pb-2 inline-block">
+            <h4 className="text-[14px] font-bold text-white mb-4 relative pb-2 inline-block" style={{ color: "#ffffff" }}>
               Useful links
               <span className="absolute bottom-0 left-0 w-8 h-[2px] transition-all duration-300" style={{ backgroundColor: accentColor }} />
             </h4>
@@ -70,7 +69,7 @@ export default function Footer() {
             </ul>
           </div>
           <div>
-            <h4 className="text-[14px] font-bold text-white mb-4 relative pb-2 inline-block">
+            <h4 className="text-[14px] font-bold text-white mb-4 relative pb-2 inline-block" style={{ color: "#ffffff" }}>
               Featured
               <span className="absolute bottom-0 left-0 w-8 h-[2px] transition-all duration-300" style={{ backgroundColor: accentColor }} />
             </h4>
@@ -82,7 +81,7 @@ export default function Footer() {
             </ul>
           </div>
           <div>
-            <h4 className="text-[14px] font-bold text-white mb-4 relative pb-2 inline-block">
+            <h4 className="text-[14px] font-bold text-white mb-4 relative pb-2 inline-block" style={{ color: "#ffffff" }}>
               Need help?
               <span className="absolute bottom-0 left-0 w-8 h-[2px] transition-all duration-300" style={{ backgroundColor: accentColor }} />
             </h4>

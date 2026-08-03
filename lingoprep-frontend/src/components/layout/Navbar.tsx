@@ -7,9 +7,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 
 const STORAGE_KEY = "lingoprep_exam";
 
-const moduleLinks = [
-  { path: "/dashboard", label: "Results" },
-];
+const moduleLinks: Array<{ path: string; label: string }> = [];
 
 const examColors: Record<string, { color: string; bg: string }> = {
   ielts: { color: "#c8102e", bg: "#fef2f2" },
@@ -77,7 +75,7 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Desktop Nav */}
+          {/* Desktop Nav (empty center) */}
           <div className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => {
               const isActive = pathname === link.path;
@@ -103,7 +101,19 @@ export default function Navbar() {
           </div>
 
           {/* Right side actions */}
-          <div className="hidden md:flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-5">
+            <Link
+              href={activeExam ? `/dashboard?exam=${activeExam}` : "/dashboard"}
+              className={`text-[13px] font-semibold transition-colors ${
+                pathname === "/dashboard"
+                  ? ""
+                  : "text-[#333] hover:opacity-70"
+              }`}
+              style={pathname === "/dashboard" ? { color: accentColor } : undefined}
+            >
+              View your results
+            </Link>
+
             {user ? (
               <>
                 <span className="text-[13px] text-[#666] font-medium max-w-[150px] truncate">
@@ -171,6 +181,25 @@ export default function Navbar() {
                 </span>
               </div>
             )}
+            <Link
+              href={activeExam ? `/dashboard?exam=${activeExam}` : "/dashboard"}
+              onClick={() => setMobileOpen(false)}
+              className={`block px-4 py-2.5 text-[14px] font-semibold transition-colors ${
+                pathname === "/dashboard"
+                  ? "bg-opacity-10"
+                  : "text-[#333] hover:bg-[#fafafa]"
+              }`}
+              style={
+                pathname === "/dashboard"
+                  ? {
+                      color: accentColor,
+                      backgroundColor: `${accentColor}10`,
+                    }
+                  : undefined
+              }
+            >
+              View your results
+            </Link>
             {navLinks.map((link) => {
               const isActive = pathname === link.path;
               return (

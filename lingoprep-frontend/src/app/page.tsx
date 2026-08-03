@@ -114,7 +114,7 @@ export default function Home() {
             <div className="grid lg:grid-cols-12 gap-10 items-center">
               <div className="lg:col-span-7 space-y-5">
                 <h1 className="text-[36px] sm:text-[48px] font-extrabold text-[#000] leading-[1.1] tracking-tight">
-                  Achieve Your{" "}
+                  Achieve Your<br />
                   <span className="relative inline-block text-[#c8102e]">
                     Dream Score
                     <svg className="absolute left-0 -bottom-1.5 w-full h-3 text-[#c8102e]" viewBox="0 0 100 10" preserveAspectRatio="none" fill="none">
