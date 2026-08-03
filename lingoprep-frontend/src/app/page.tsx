@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 
 /* ───────────────────────────────────────────
@@ -133,7 +133,7 @@ function MicIcon({ color }: { color: string }) {
   );
 }
 
-const iconMap: Record<string, (props: { color: string }) => JSX.Element> = {
+const iconMap: Record<string, (props: { color: string }) => React.ReactNode> = {
   book: BookIcon,
   pen: PenIcon,
   headphones: HeadphonesIcon,
