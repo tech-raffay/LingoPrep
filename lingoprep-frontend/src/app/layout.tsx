@@ -27,7 +27,9 @@ export default function RootLayout({
           <main className="flex-1">
             <Suspense>{children}</Suspense>
           </main>
-          <Footer />
+          <Suspense>
+            <Footer />
+          </Suspense>
         </AuthProvider>
       </body>
     </html>

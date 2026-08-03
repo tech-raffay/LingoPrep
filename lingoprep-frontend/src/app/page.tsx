@@ -55,55 +55,7 @@ const iconMap: Record<string, (props: { color?: string }) => React.ReactNode> = 
   headphones: HeadphonesIcon, book: BookIcon, pen: PenIcon, mic: MicIcon,
 };
 
-/* ── Footer Component ── */
-function Footer({ accentColor = "#c8102e" }: { accentColor?: string }) {
-  return (
-    <footer className="bg-[#1a1a2e] text-white mt-auto">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
-              <span className="text-[16px] font-bold">LingoPrep</span>
-            </div>
-            <p className="text-[13px] text-[#999] leading-relaxed">AI-powered IELTS & TOEFL preparation platform.</p>
-          </div>
-          <div>
-            <h4 className="text-[13px] font-bold uppercase tracking-wider text-[#999] mb-4">Useful Links</h4>
-            <ul className="space-y-2 text-[13px]">
-              <li><Link href="/dashboard" className="text-[#ccc] hover:text-white transition-colors">Results</Link></li>
-              <li><Link href="/auth/login" className="text-[#ccc] hover:text-white transition-colors">Sign In</Link></li>
-              <li><Link href="/auth/signup" className="text-[#ccc] hover:text-white transition-colors">Register</Link></li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="text-[13px] font-bold uppercase tracking-wider text-[#999] mb-4">Prepare</h4>
-            <ul className="space-y-2 text-[13px]">
-              <li><Link href="/listening?exam=ielts" className="text-[#ccc] hover:text-white transition-colors">Listening</Link></li>
-              <li><Link href="/reading?exam=ielts" className="text-[#ccc] hover:text-white transition-colors">Reading</Link></li>
-              <li><Link href="/writing?exam=ielts" className="text-[#ccc] hover:text-white transition-colors">Writing</Link></li>
-              <li><Link href="/speaking?exam=ielts" className="text-[#ccc] hover:text-white transition-colors">Speaking</Link></li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="text-[13px] font-bold uppercase tracking-wider text-[#999] mb-4">Need Help?</h4>
-            <ul className="space-y-2 text-[13px]">
-              <li><span className="text-[#ccc]">Contact Support</span></li>
-              <li><span className="text-[#ccc]">FAQs</span></li>
-            </ul>
-          </div>
-        </div>
-        <div className="border-t border-[#333] mt-10 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
-          <p className="text-[12px] text-[#777]">© {new Date().getFullYear()} LingoPrep. All rights reserved.</p>
-          <div className="flex gap-4 text-[12px] text-[#777]">
-            <span>Privacy Policy</span>
-            <span>Terms of Service</span>
-          </div>
-        </div>
-      </div>
-    </footer>
-  );
-}
+
 
 export default function Home() {
   const [selectedExam, setSelectedExam] = useState<ExamType | null>(null);
@@ -258,7 +210,6 @@ export default function Home() {
           </div>
         </section>
 
-        <Footer />
       </div>
     );
   }
@@ -320,7 +271,6 @@ export default function Home() {
         </div>
       </section>
 
-      <Footer accentColor={config!.color} />
     </div>
   );
 }
