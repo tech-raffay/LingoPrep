@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 
 type ExamType = "ielts" | "toefl";
 const STORAGE_KEY = "lingoprep_exam";
@@ -147,23 +148,36 @@ function CheckCircleIcon() {
 export default function Home() {
   const [selectedExam, setSelectedExam] = useState<ExamType | null>(null);
   const [mounted, setMounted] = useState(false);
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY) as ExamType | null;
-    if (stored === "ielts" || stored === "toefl") {
-      setSelectedExam(stored);
+    const urlExam = searchParams.get("exam") as ExamType | null;
+    if (urlExam === "ielts" || urlExam === "toefl") {
+      setSelectedExam(urlExam);
+      localStorage.setItem(STORAGE_KEY, urlExam);
+    } else {
+      const stored = localStorage.getItem(STORAGE_KEY) as ExamType | null;
+      if (stored === "ielts" || stored === "toefl") {
+        setSelectedExam(stored);
+        router.replace(`/?exam=${stored}`);
+      } else {
+        setSelectedExam(null);
+      }
     }
     setMounted(true);
-  }, []);
+  }, [searchParams, router]);
 
   const handleSelectExam = (exam: ExamType) => {
     setSelectedExam(exam);
     localStorage.setItem(STORAGE_KEY, exam);
+    router.push(`/?exam=${exam}`);
   };
 
   const handleChangeExam = () => {
     setSelectedExam(null);
     localStorage.removeItem(STORAGE_KEY);
+    router.push("/");
   };
 
   if (!mounted) {
@@ -186,10 +200,6 @@ export default function Home() {
             <div className="grid lg:grid-cols-12 gap-12 items-center">
               {/* Left Column: Heading and info */}
               <div className="lg:col-span-7 space-y-6">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#fcf2f2] border border-[#fde2e2]">
-                  <span className="w-2 h-2 rounded-full bg-[#c8102e]" />
-                  <span className="text-[12px] font-bold text-[#c8102e] tracking-wide">New AI Features Available</span>
-                </div>
                 <h1 className="text-[40px] sm:text-[54px] font-extrabold text-[#000000] leading-[1.1] tracking-tight">
                   Achieve Your{" "}
                   <span className="relative inline-block text-[#c8102e]">
@@ -452,7 +462,7 @@ export default function Home() {
                 Change exam
               </button>
               <h1 className="text-[36px] sm:text-[44px] font-extrabold text-[#000000] leading-tight mb-3">
-                {config!.name} Cockpit
+                {config!.name} Practice Tests
               </h1>
               <p className="text-[15px] text-[#555] max-w-xl leading-relaxed">
                 {config!.description}

@@ -8,10 +8,6 @@ import { useAuth } from "@/components/auth/AuthProvider";
 const STORAGE_KEY = "lingoprep_exam";
 
 const moduleLinks = [
-  { path: "/listening", label: "Listening" },
-  { path: "/reading", label: "Reading" },
-  { path: "/writing", label: "Writing" },
-  { path: "/speaking", label: "Speaking" },
   { path: "/dashboard", label: "Results" },
 ];
 
@@ -36,6 +32,8 @@ export default function Navbar() {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored === "ielts" || stored === "toefl") {
         setActiveExam(stored);
+      } else {
+        setActiveExam(null);
       }
     }
   }, [searchParams]);
@@ -44,7 +42,7 @@ export default function Navbar() {
   const navLinks = moduleLinks.map((link) => {
     const href =
       link.path === "/dashboard"
-        ? link.path
+        ? (activeExam ? `${link.path}?exam=${activeExam}` : link.path)
         : activeExam
         ? `${link.path}?exam=${activeExam}`
         : link.path;
@@ -59,7 +57,7 @@ export default function Navbar() {
         <div className="flex h-14 items-center justify-between">
           {/* Logo + Exam Badge */}
           <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-2">
+            <Link href={activeExam ? `/?exam=${activeExam}` : "/"} className="flex items-center gap-2">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10" />
                 <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
