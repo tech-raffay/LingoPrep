@@ -1,13 +1,23 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import api from "@/lib/api";
 
 interface Option { id: string; text: string; label: string; }
 interface Question { id: string; question_text: string; options: Option[]; correct_option_id: string; explanation?: string; }
 interface Passage { id: string; title: string; content: string; word_count: number; difficulty: string; exam_type: string; questions: Question[]; }
 
+const examColors: Record<string, { color: string; colorDark: string; colorLight: string; name: string }> = {
+  ielts: { color: "#c8102e", colorDark: "#a50d24", colorLight: "#fef2f2", name: "IELTS" },
+  toefl: { color: "#0057b8", colorDark: "#004494", colorLight: "#eff6ff", name: "TOEFL" },
+};
+
 export default function ReadingPage() {
+  const searchParams = useSearchParams();
+  const examType = searchParams.get("exam") === "toefl" ? "toefl" : "ielts";
+  const theme = examColors[examType];
+
   const [passage, setPassage] = useState<Passage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,15 +30,15 @@ export default function ReadingPage() {
     async function fetchPassage() {
       try {
         setLoading(true);
-        const response = await api.get("/api/reading/passages");
+        const response = await api.get(`/api/reading/passages?exam_type=${examType}`);
         const passages = response.data?.data || [];
         if (passages.length > 0) { setPassage(passages[0]); }
-        else { setError("No reading passages available."); }
+        else { setError(`No ${theme.name} reading passages available.`); }
       } catch { setError("Failed to connect to the server."); }
       finally { setLoading(false); }
     }
     fetchPassage();
-  }, []);
+  }, [examType, theme.name]);
 
   const handleSelect = (qId: string, oId: string) => { if (!submitted) setSelectedAnswers((p) => ({ ...p, [qId]: oId })); };
 
@@ -50,8 +60,8 @@ export default function ReadingPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh] flex-col gap-3">
-        <div className="w-7 h-7 border-2 border-[#c8102e] border-t-transparent rounded-full animate-spin" />
-        <p className="text-[13px] text-[#999]">Loading reading passage...</p>
+        <div className="w-7 h-7 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: `${theme.color} transparent transparent transparent` }} />
+        <p className="text-[13px] text-[#999]">Loading {theme.name} reading passage...</p>
       </div>
     );
   }
@@ -59,31 +69,36 @@ export default function ReadingPage() {
   if (error || !passage) {
     return (
       <div className="mx-auto max-w-md px-4 py-16 text-center">
-        <svg className="mx-auto mb-4" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#c8102e" strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <svg className="mx-auto mb-4" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={theme.color} strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         <p className="text-[14px] text-[#666] mb-4">{error}</p>
-        <button onClick={() => window.location.reload()} className="px-5 py-2 bg-[#c8102e] text-white font-semibold text-[13px] rounded-full hover:bg-[#a50d24] transition-colors">Retry</button>
+        <button onClick={() => window.location.reload()} className="px-5 py-2 text-white font-semibold text-[13px] rounded-full transition-colors" style={{ backgroundColor: theme.color }}>Retry</button>
       </div>
     );
   }
 
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-6">
-      {/* Top bar — mimics Global Prep test header */}
+      {/* Top bar */}
       <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#e0e0e0]">
         <div>
-          <h1 className="text-[20px] font-bold text-[#1a1a1a]">Reading Passage 1</h1>
+          <h1 className="text-[20px] font-bold text-[#1a1a1a]">{theme.name} Reading Passage 1</h1>
           <p className="text-[13px] text-[#999]">Academic Module</p>
         </div>
-        <span className="px-3 py-1 border border-[#c8102e] text-[#c8102e] text-[12px] font-bold rounded-full">
-          Questions 1–{passage.questions.length}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="px-2.5 py-0.5 rounded text-[11px] font-bold text-white" style={{ backgroundColor: theme.color }}>
+            {theme.name}
+          </span>
+          <span className="px-3 py-1 border text-[12px] font-bold rounded-full" style={{ borderColor: theme.color, color: theme.color }}>
+            Questions 1–{passage.questions.length}
+          </span>
+        </div>
       </div>
 
       {/* Two-column layout: passage | questions */}
       <div className="grid lg:grid-cols-2 gap-6 items-start">
         {/* Left: Passage */}
         <div className="bg-white border border-[#e0e0e0] rounded-lg p-6 sm:p-8">
-          <h2 className="text-[22px] font-bold text-[#c8102e] leading-snug mb-6">{passage.title}</h2>
+          <h2 className="text-[22px] font-bold leading-snug mb-6" style={{ color: theme.color }}>{passage.title}</h2>
           <div className="text-[15px] text-[#333] leading-[1.8] space-y-4">
             {passage.content.split("\n\n").map((p, i) => (
               <p key={i}>{p}</p>
@@ -106,7 +121,7 @@ export default function ReadingPage() {
             return (
               <div key={q.id} className={`bg-white border rounded-lg p-5 ${submitted ? (isCorrect ? "border-[#2e7d32]" : isWrong ? "border-[#c8102e]" : "border-[#e0e0e0]") : "border-[#e0e0e0]"}`}>
                 <p className="text-[14px] text-[#1a1a1a] mb-4">
-                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#c8102e] text-white text-[12px] font-bold mr-2">{idx + 1}</span>
+                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-white text-[12px] font-bold mr-2" style={{ backgroundColor: theme.color }}>{idx + 1}</span>
                   {q.question_text}
                 </p>
                 <div className="space-y-2 pl-8">
@@ -119,15 +134,16 @@ export default function ReadingPage() {
                         className={`flex items-center gap-3 py-2 px-3 rounded cursor-pointer text-[14px] transition-colors ${
                           isCorrOpt ? "bg-[#e8f5e9] text-[#2e7d32] font-semibold" :
                           isSel && submitted ? "bg-[#fce4ec] text-[#c8102e] font-semibold" :
-                          isSel ? "bg-[#fef2f2] text-[#c8102e]" :
+                          isSel ? `text-[${theme.color}]` :
                           "hover:bg-[#fafafa] text-[#333]"
                         }`}
+                        style={isSel && !submitted ? { backgroundColor: theme.colorLight, color: theme.color } : undefined}
                         onClick={() => handleSelect(q.id, opt.id)}
                       >
                         <span className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
-                          isSel || isCorrOpt ? "border-[#c8102e]" : "border-[#ccc]"
-                        }`}>
-                          {(isSel || isCorrOpt) && <span className="w-2 h-2 rounded-full bg-[#c8102e]" />}
+                          isSel || isCorrOpt ? "" : "border-[#ccc]"
+                        }`} style={(isSel || isCorrOpt) ? { borderColor: theme.color } : undefined}>
+                          {(isSel || isCorrOpt) && <span className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.color }} />}
                         </span>
                         <span className="font-semibold mr-1 text-[#999]">{opt.label}</span>
                         {opt.text}
@@ -162,7 +178,8 @@ export default function ReadingPage() {
           <button
             onClick={handleSubmit}
             disabled={Object.keys(selectedAnswers).length < passage.questions.length}
-            className="px-6 py-2.5 bg-[#1a1a1a] text-white font-semibold text-[13px] rounded-full hover:bg-[#333] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="px-6 py-2.5 text-white font-semibold text-[13px] rounded-full disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            style={{ backgroundColor: "#1a1a1a" }}
           >
             Next →
           </button>
@@ -173,9 +190,10 @@ export default function ReadingPage() {
               key={i}
               className={`w-7 h-7 flex items-center justify-center rounded font-bold ${
                 selectedAnswers[passage.questions[i].id]
-                  ? "bg-[#c8102e] text-white"
+                  ? "text-white"
                   : "bg-[#f0f0f0] text-[#666]"
               }`}
+              style={selectedAnswers[passage.questions[i].id] ? { backgroundColor: theme.color } : undefined}
             >
               {i + 1}
             </span>

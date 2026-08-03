@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -17,11 +18,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full">
-      <body className="min-h-full flex flex-col bg-[#f5f5f5] text-[#1a1a1a] antialiased">
+    <html lang="en" className="h-full" suppressHydrationWarning>
+      <body className="min-h-full flex flex-col bg-[#f5f5f5] text-[#333541] antialiased">
         <AuthProvider>
-          <Navbar />
-          <main className="flex-1">{children}</main>
+          <Suspense>
+            <Navbar />
+          </Suspense>
+          <main className="flex-1">
+            <Suspense>{children}</Suspense>
+          </main>
           <Footer />
         </AuthProvider>
       </body>

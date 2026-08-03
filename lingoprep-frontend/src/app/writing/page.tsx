@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import api from "@/lib/api";
 
 interface Prompt {
@@ -27,7 +28,16 @@ const bandLabels: Record<string, string> = {
   grammatical_range: "Grammatical Range & Accuracy",
 };
 
+const examColors: Record<string, { color: string; colorDark: string; colorLight: string; name: string }> = {
+  ielts: { color: "#c8102e", colorDark: "#a50d24", colorLight: "#fef2f2", name: "IELTS" },
+  toefl: { color: "#0057b8", colorDark: "#004494", colorLight: "#eff6ff", name: "TOEFL" },
+};
+
 export default function WritingPage() {
+  const searchParams = useSearchParams();
+  const examType = searchParams.get("exam") === "toefl" ? "toefl" : "ielts";
+  const theme = examColors[examType];
+
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [selectedPrompt, setSelectedPrompt] = useState<Prompt | null>(null);
   const [essay, setEssay] = useState("");
@@ -40,22 +50,22 @@ export default function WritingPage() {
   useEffect(() => {
     async function fetchPrompts() {
       try {
-        const res = await api.get("/api/writing/prompts");
+        const res = await api.get(`/api/writing/prompts?exam_type=${examType}`);
         const data = res.data?.data || [];
         setPrompts(data);
         if (data.length > 0) setSelectedPrompt(data[0]);
       } catch {
-        setError("Failed to load writing prompts.");
+        setError(`Failed to load ${theme.name} writing prompts.`);
       } finally {
         setLoadingPrompts(false);
       }
     }
     fetchPrompts();
-  }, []);
+  }, [examType, theme.name]);
 
   const wordCount = essay.trim() ? essay.trim().split(/\s+/).length : 0;
 
-  // Use the new /submit endpoint that saves to writing_submissions
+  // Use the /submit endpoint that saves to writing_submissions
   const handleEvaluate = async () => {
     if (wordCount < 50 || !selectedPrompt) return;
     setIsEvaluating(true);
@@ -97,12 +107,14 @@ export default function WritingPage() {
     }
   };
 
+  const maxBand = examType === "toefl" ? 30 : 9;
+
   if (loadingPrompts) {
     return (
       <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-10">
         <div className="flex items-center gap-3 mb-6">
           <span className="text-3xl">✍️</span>
-          <h1 className="text-3xl font-extrabold text-slate-900">Writing Practice</h1>
+          <h1 className="text-3xl font-extrabold text-slate-900">{theme.name} Writing Practice</h1>
         </div>
         <div className="animate-pulse space-y-4">
           <div className="h-12 bg-slate-200 rounded-md" />
@@ -119,10 +131,16 @@ export default function WritingPage() {
       <div className="mb-8 border-b border-slate-200 pb-5">
         <div className="flex items-center gap-3 mb-2">
           <span className="text-3xl">✍️</span>
-          <h1 className="text-3xl font-extrabold text-slate-900">Writing Module</h1>
+          <h1 className="text-3xl font-extrabold text-slate-900">{theme.name} Writing Module</h1>
+          <span
+            className="text-[11px] font-bold text-white px-2.5 py-0.5 rounded"
+            style={{ backgroundColor: theme.color }}
+          >
+            {theme.name}
+          </span>
         </div>
         <p className="text-slate-500 text-sm">
-          Write an essay in response to the prompt. Your response will be graded based on IELTS task achievement criteria.
+          Write an essay in response to the prompt. Your response will be graded based on {theme.name} {examType === "ielts" ? "task achievement" : "scoring"} criteria.
         </p>
       </div>
 
@@ -134,16 +152,22 @@ export default function WritingPage() {
             onClick={() => { setSelectedPrompt(p); handleReset(); }}
             className={`px-4 py-2 rounded-md text-xs font-bold border transition-all ${
               selectedPrompt?.id === p.id
-                ? "bg-[#e31837] border-[#e31837] text-white shadow-sm"
+                ? "text-white shadow-sm"
                 : "bg-white border-slate-300 text-slate-700 hover:bg-slate-50"
             }`}
+            style={
+              selectedPrompt?.id === p.id
+                ? { backgroundColor: theme.color, borderColor: theme.color }
+                : undefined
+            }
           >
             Prompt {i + 1} (Task {p.task_type})
           </button>
         ))}
         <button
           onClick={loadRandomPrompt}
-          className="px-4 py-2 rounded-md text-xs font-bold border border-slate-300 bg-white text-[#e31837] hover:bg-slate-50 transition-all flex items-center gap-1"
+          className="px-4 py-2 rounded-md text-xs font-bold border border-slate-300 bg-white hover:bg-slate-50 transition-all flex items-center gap-1"
+          style={{ color: theme.color }}
         >
           <span>🔀</span> Random Prompt
         </button>
@@ -153,21 +177,24 @@ export default function WritingPage() {
       {selectedPrompt && (
         <div className="bg-white border border-slate-200 rounded-lg p-6 mb-6 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
-            <span className="px-2.5 py-0.5 rounded text-[10px] font-extrabold bg-red-100 text-[#e31837] uppercase">
-              IELTS Writing
+            <span
+              className="px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase"
+              style={{ backgroundColor: theme.colorLight, color: theme.color }}
+            >
+              {theme.name} Writing
             </span>
             <span className="px-2.5 py-0.5 rounded text-[10px] font-extrabold bg-slate-100 text-slate-700 uppercase">
               Task {selectedPrompt.task_type}
             </span>
             {selectedPrompt.overall > 0 && (
               <span className="px-2.5 py-0.5 rounded text-[10px] font-extrabold bg-emerald-100 text-emerald-800 uppercase">
-                Band Reference: {selectedPrompt.overall}
+                {examType === "ielts" ? "Band" : "Score"} Reference: {selectedPrompt.overall}
               </span>
             )}
           </div>
           <p className="text-slate-800 leading-relaxed font-medium text-base">{selectedPrompt.question}</p>
           <div className="mt-4 pt-4 border-t border-slate-100 text-xs text-slate-400 font-semibold">
-            Recommended: Minimum 250 words, time suggested: 40 minutes.
+            Recommended: Minimum {examType === "ielts" ? "250" : "300"} words, time suggested: {examType === "ielts" ? "40" : "30"} minutes.
           </div>
         </div>
       )}
@@ -177,7 +204,7 @@ export default function WritingPage() {
         <div className="flex items-center justify-between px-6 py-3 border-b border-slate-200 bg-slate-50 text-xs font-bold text-slate-500 uppercase">
           <span>Writing Area</span>
           <span className={wordCount >= 250 ? "text-emerald-700" : "text-slate-400"}>
-            {wordCount} / 250 words
+            {wordCount} / {examType === "ielts" ? "250" : "300"} words
           </span>
         </div>
         <textarea
@@ -203,7 +230,10 @@ export default function WritingPage() {
           <button
             onClick={handleEvaluate}
             disabled={wordCount < 50 || isEvaluating}
-            className="px-8 py-3.5 bg-[#e31837] text-white font-bold rounded-md hover:bg-[#b91c1c] transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+            className="px-8 py-3.5 text-white font-bold rounded-md transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+            style={{ backgroundColor: theme.color }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme.colorDark)}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = theme.color)}
           >
             {isEvaluating ? (
               <span className="flex items-center gap-2">
@@ -224,20 +254,20 @@ export default function WritingPage() {
       {/* Evaluation Results */}
       {evaluation && (
         <div className="space-y-6">
-          {/* Main IELTS Result Header Card */}
+          {/* Main Result Header Card */}
           <div className="bg-white border border-slate-200 rounded-lg p-6 sm:p-8 shadow-sm">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
               <div>
-                <h3 className="text-xl font-bold text-slate-900">IELTS Writing Band Score</h3>
-                <p className="text-slate-500 text-sm mt-1">Based on official IELTS Writing Assessment Rubrics</p>
+                <h3 className="text-xl font-bold text-slate-900">{theme.name} Writing {examType === "ielts" ? "Band" : ""} Score</h3>
+                <p className="text-slate-500 text-sm mt-1">Based on official {theme.name} Writing Assessment Rubrics</p>
               </div>
               <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 px-6 py-4 rounded-lg">
                 <div className="text-center">
-                  <div className="text-5xl font-extrabold text-[#e31837]">
+                  <div className="text-5xl font-extrabold" style={{ color: theme.color }}>
                     {evaluation.overall_band}
                   </div>
                   <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mt-1">
-                    Band / 9.0
+                    {examType === "ielts" ? "Band" : "Score"} / {maxBand}
                   </div>
                 </div>
               </div>
@@ -257,8 +287,8 @@ export default function WritingPage() {
                   {/* Clean progress indicator */}
                   <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-[#007a87] rounded-full transition-all duration-500"
-                      style={{ width: `${(val / 9) * 100}%` }}
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${(val / (examType === "ielts" ? 9 : 30)) * 100}%`, backgroundColor: theme.color }}
                     />
                   </div>
                 </div>
@@ -277,7 +307,7 @@ export default function WritingPage() {
             <ul className="space-y-3">
               {evaluation.suggestions.map((s, i) => (
                 <li key={i} className="flex items-start gap-3 text-slate-700 text-sm">
-                  <span className="text-[#e31837] font-bold">✓</span>
+                  <span className="font-bold" style={{ color: theme.color }}>✓</span>
                   <span>{s}</span>
                 </li>
               ))}

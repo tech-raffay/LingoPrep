@@ -1,49 +1,102 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 
-const navLinks = [
-  { href: "/listening", label: "Listening" },
-  { href: "/reading", label: "Reading" },
-  { href: "/writing", label: "Writing" },
-  { href: "/speaking", label: "Speaking" },
-  { href: "/dashboard", label: "Results" },
+const STORAGE_KEY = "lingoprep_exam";
+
+const moduleLinks = [
+  { path: "/listening", label: "Listening" },
+  { path: "/reading", label: "Reading" },
+  { path: "/writing", label: "Writing" },
+  { path: "/speaking", label: "Speaking" },
+  { path: "/dashboard", label: "Results" },
 ];
+
+const examColors: Record<string, { color: string; bg: string }> = {
+  ielts: { color: "#c8102e", bg: "#fef2f2" },
+  toefl: { color: "#0057b8", bg: "#eff6ff" },
+};
 
 export default function Navbar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const [activeExam, setActiveExam] = useState<string | null>(null);
+
+  // Determine active exam from URL param or localStorage
+  useEffect(() => {
+    const urlExam = searchParams.get("exam");
+    if (urlExam === "ielts" || urlExam === "toefl") {
+      setActiveExam(urlExam);
+    } else {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored === "ielts" || stored === "toefl") {
+        setActiveExam(stored);
+      }
+    }
+  }, [searchParams]);
+
+  // Build nav links with exam param preserved
+  const navLinks = moduleLinks.map((link) => {
+    const href =
+      link.path === "/dashboard"
+        ? link.path
+        : activeExam
+        ? `${link.path}?exam=${activeExam}`
+        : link.path;
+    return { href, label: link.label, path: link.path };
+  });
+
+  const accentColor = activeExam ? examColors[activeExam]?.color : "#c8102e";
 
   return (
     <nav className="sticky top-0 z-50 bg-white border-b border-[#e0e0e0]">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-14 items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c8102e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"/>
-              <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-            </svg>
-            <span className="text-lg font-bold text-[#c8102e] tracking-tight">LingoPrep</span>
-          </Link>
+          {/* Logo + Exam Badge */}
+          <div className="flex items-center gap-3">
+            <Link href="/" className="flex items-center gap-2">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+              </svg>
+              <span className="text-lg font-bold tracking-tight" style={{ color: accentColor }}>LingoPrep</span>
+            </Link>
+            {activeExam && pathname !== "/" && (
+              <span
+                className="hidden sm:inline-flex text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full"
+                style={{
+                  color: examColors[activeExam].color,
+                  backgroundColor: examColors[activeExam].bg,
+                }}
+              >
+                {activeExam}
+              </span>
+            )}
+          </div>
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => {
-              const isActive = pathname === link.href;
+              const isActive = pathname === link.path;
               return (
                 <Link
-                  key={link.href}
+                  key={link.path}
                   href={link.href}
                   className={`px-3 py-1.5 text-[14px] font-semibold transition-colors ${
                     isActive
-                      ? "text-[#c8102e] border-b-2 border-[#c8102e]"
-                      : "text-[#333] hover:text-[#c8102e]"
+                      ? `border-b-2`
+                      : "text-[#333] hover:opacity-70"
                   }`}
+                  style={
+                    isActive
+                      ? { color: accentColor, borderBottomColor: accentColor }
+                      : undefined
+                  }
                 >
                   {link.label}
                 </Link>
@@ -60,7 +113,7 @@ export default function Navbar() {
                 </span>
                 <button
                   onClick={() => signOut()}
-                  className="text-[13px] font-semibold text-[#333] hover:text-[#c8102e] flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="text-[13px] font-semibold text-[#333] hover:opacity-70 flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   Sign Out
                 </button>
@@ -69,17 +122,18 @@ export default function Navbar() {
               <>
                 <Link
                   href="/auth/login"
-                  className="text-[13px] font-semibold text-[#333] hover:text-[#c8102e] flex items-center gap-1.5 transition-colors"
+                  className="text-[13px] font-semibold text-[#333] hover:opacity-70 flex items-center gap-1.5 transition-colors"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                    <circle cx="12" cy="7" r="4"/>
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
                   </svg>
                   Sign In
                 </Link>
                 <Link
                   href="/auth/signup"
-                  className="text-[13px] font-semibold bg-[#c8102e] text-white px-4 py-2 rounded-full hover:bg-[#a50d24] transition-colors"
+                  className="text-[13px] font-semibold text-white px-4 py-2 rounded-full transition-colors"
+                  style={{ backgroundColor: accentColor }}
                 >
                   Book your test
                 </Link>
@@ -106,18 +160,39 @@ export default function Navbar() {
         {/* Mobile Nav */}
         {mobileOpen && (
           <div className="md:hidden pb-4 border-t border-[#eee] mt-1 pt-3 space-y-1">
+            {activeExam && (
+              <div className="px-4 pb-2">
+                <span
+                  className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full"
+                  style={{
+                    color: examColors[activeExam].color,
+                    backgroundColor: examColors[activeExam].bg,
+                  }}
+                >
+                  {activeExam}
+                </span>
+              </div>
+            )}
             {navLinks.map((link) => {
-              const isActive = pathname === link.href;
+              const isActive = pathname === link.path;
               return (
                 <Link
-                  key={link.href}
+                  key={link.path}
                   href={link.href}
                   onClick={() => setMobileOpen(false)}
                   className={`block px-4 py-2.5 text-[14px] font-semibold transition-colors ${
                     isActive
-                      ? "text-[#c8102e] bg-[#fef2f2]"
+                      ? "bg-opacity-10"
                       : "text-[#333] hover:bg-[#fafafa]"
                   }`}
+                  style={
+                    isActive
+                      ? {
+                          color: accentColor,
+                          backgroundColor: `${accentColor}10`,
+                        }
+                      : undefined
+                  }
                 >
                   {link.label}
                 </Link>
@@ -146,7 +221,8 @@ export default function Navbar() {
                   <Link
                     href="/auth/signup"
                     onClick={() => setMobileOpen(false)}
-                    className="flex-1 text-center text-[13px] font-semibold bg-[#c8102e] text-white py-2 rounded-full hover:bg-[#a50d24] transition-colors"
+                    className="flex-1 text-center text-[13px] font-semibold text-white py-2 rounded-full transition-colors"
+                    style={{ backgroundColor: accentColor }}
                   >
                     Get Started
                   </Link>
