@@ -3,11 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 
-/* ───────────────────────────────────────────
-   Exam configuration
-   ─────────────────────────────────────────── */
 type ExamType = "ielts" | "toefl";
-
 const STORAGE_KEY = "lingoprep_exam";
 
 const examConfig = {
@@ -148,14 +144,10 @@ function CheckCircleIcon() {
   );
 }
 
-/* ───────────────────────────────────────────
-   Main Page Component
-   ─────────────────────────────────────────── */
 export default function Home() {
   const [selectedExam, setSelectedExam] = useState<ExamType | null>(null);
   const [mounted, setMounted] = useState(false);
 
-  // Load persisted exam choice from localStorage on mount
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY) as ExamType | null;
     if (stored === "ielts" || stored === "toefl") {
@@ -174,7 +166,6 @@ export default function Home() {
     localStorage.removeItem(STORAGE_KEY);
   };
 
-  // Avoid hydration mismatch — show nothing until client-side mount
   if (!mounted) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -185,103 +176,255 @@ export default function Home() {
 
   const config = selectedExam ? examConfig[selectedExam] : null;
 
-  /* ─── Exam Selector View ─── */
+  /* ─── Hero / Main Landing Page View (When no exam is selected) ─── */
   if (!selectedExam) {
     return (
-      <div className="flex flex-col">
-        {/* Hero */}
-        <section className="bg-white border-b border-[#e0e0e0]">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-16 sm:py-24 text-center">
-            <div className="inline-flex items-center gap-2 mb-5 px-4 py-1.5 rounded-full bg-[#f5f5f5] border border-[#e0e0e0]">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c8102e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-              </svg>
-              <span className="text-[13px] font-bold text-[#555]">LingoPrep</span>
-            </div>
-            <h1 className="text-[32px] sm:text-[44px] font-bold text-[#1a1a1a] leading-tight mb-4">
-              Choose Your Exam
-            </h1>
-            <p className="text-[16px] text-[#666] max-w-xl mx-auto leading-relaxed mb-12">
-              Select the exam you are preparing for. Get AI-powered practice tests, scoring, and feedback tailored to your chosen test format.
-            </p>
+      <div className="flex flex-col bg-[#fafafa]">
+        {/* Hero Section */}
+        <section className="bg-white border-b border-[#e0e0e0] py-16 sm:py-24">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+            <div className="grid lg:grid-cols-12 gap-12 items-center">
+              {/* Left Column: Heading and info */}
+              <div className="lg:col-span-7 space-y-6">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#fcf2f2] border border-[#fde2e2]">
+                  <span className="w-2 h-2 rounded-full bg-[#c8102e]" />
+                  <span className="text-[12px] font-bold text-[#c8102e] tracking-wide">New AI Features Available</span>
+                </div>
+                <h1 className="text-[40px] sm:text-[54px] font-extrabold text-[#000000] leading-[1.1] tracking-tight">
+                  Achieve Your{" "}
+                  <span className="relative inline-block text-[#c8102e]">
+                    Dream Score
+                    <svg className="absolute left-0 -bottom-2 w-full h-3 text-[#c8102e]" viewBox="0 0 100 10" preserveAspectRatio="none" fill="none">
+                      <path d="M3 7 C 30 3, 70 3, 97 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                    </svg>
+                  </span>{" "}
+                  with LingoPrep
+                </h1>
+                <p className="text-[16px] sm:text-[17px] text-[#555] leading-relaxed max-w-xl">
+                  AI-powered practice tests, instant scoring, and expert feedback tailored to IELTS and TOEFL. Start preparing smarter today.
+                </p>
+                <div className="flex flex-wrap gap-4 pt-2">
+                  <a
+                    href="#choose-path"
+                    className="inline-flex items-center justify-center px-6 py-3.5 bg-[#c8102e] hover:bg-[#a50d24] text-white font-bold text-[14px] rounded-full transition-all shadow-md hover:shadow-lg"
+                  >
+                    Get Started →
+                  </a>
+                  <button
+                    onClick={() => alert("Demo video is coming soon!")}
+                    className="inline-flex items-center justify-center px-6 py-3.5 bg-white hover:bg-[#fafafa] border border-[#ddd] text-[#333541] font-bold text-[14px] rounded-full transition-all gap-2"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polygon points="5 3 19 12 5 21 5 3" />
+                    </svg>
+                    Watch Demo
+                  </button>
+                </div>
+                
+                {/* Social proof trust badge */}
+                <div className="flex items-center gap-3 pt-6">
+                  <div className="flex -space-x-2">
+                    <img className="w-8 h-8 rounded-full border-2 border-white" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&h=100&q=80" alt="Student" />
+                    <img className="w-8 h-8 rounded-full border-2 border-white" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&h=100&q=80" alt="Student" />
+                    <img className="w-8 h-8 rounded-full border-2 border-white" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100&q=80" alt="Student" />
+                    <div className="w-8 h-8 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-[10px] font-bold text-[#666]">+10k</div>
+                  </div>
+                  <span className="text-[13px] font-semibold text-[#666]">Trusted by students worldwide</span>
+                </div>
+              </div>
 
-            {/* Exam Cards */}
-            <div className="grid sm:grid-cols-2 gap-6 max-w-3xl mx-auto">
-              {/* IELTS Card */}
-              <button
-                id="select-ielts"
-                onClick={() => handleSelectExam("ielts")}
-                className="group relative bg-white border-2 border-[#e0e0e0] rounded-2xl p-8 text-left hover:border-[#c8102e] transition-all duration-300 hover:shadow-[0_8px_30px_rgba(200,16,46,0.12)] cursor-pointer"
-              >
-                <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-[#fef2f2] flex items-center justify-center group-hover:bg-[#c8102e] transition-colors duration-300">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#c8102e" strokeWidth="2.5" className="group-hover:stroke-white transition-colors duration-300">
-                    <polyline points="9 18 15 12 9 6" />
-                  </svg>
+              {/* Right Column: Hero image with custom floating metric card */}
+              <div className="lg:col-span-5 relative">
+                <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white">
+                  <img
+                    src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=800&auto=format&fit=crop"
+                    alt="Students studying"
+                    className="w-full h-[450px] object-cover"
+                  />
+                  {/* Floating target score overlay card */}
+                  <div className="absolute bottom-5 left-5 right-5 bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border border-white/50 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-[#e8f5e9] flex items-center justify-center text-[#2e7d32]">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+                          <polyline points="17 6 23 6 23 12" />
+                        </svg>
+                      </div>
+                      <div>
+                        <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Target Score</div>
+                        <div className="text-[16px] font-bold text-slate-900">IELTS 8.0</div>
+                      </div>
+                    </div>
+                    <div className="text-right border-l border-slate-200 pl-4">
+                      <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Probability</div>
+                      <div className="text-[18px] font-extrabold text-[#2e7d32]">92%</div>
+                    </div>
+                  </div>
                 </div>
-                <div className="w-14 h-14 rounded-xl bg-[#fef2f2] flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300">
-                  <span className="text-[24px] font-black text-[#c8102e]">I</span>
-                </div>
-                <h2 className="text-[22px] font-bold text-[#1a1a1a] mb-1">IELTS</h2>
-                <p className="text-[12px] font-semibold text-[#999] uppercase tracking-wider mb-3">
-                  International English Language Testing System
-                </p>
-                <p className="text-[14px] text-[#666] leading-relaxed mb-4">
-                  Academic & General Training with band score evaluation from 1 to 9.
-                </p>
-                <div className="flex items-center gap-3">
-                  <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-[#fef2f2] text-[#c8102e]">Band 1 – 9</span>
-                  <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-[#f5f5f5] text-[#555]">4 Modules</span>
-                </div>
-              </button>
-
-              {/* TOEFL Card */}
-              <button
-                id="select-toefl"
-                onClick={() => handleSelectExam("toefl")}
-                className="group relative bg-white border-2 border-[#e0e0e0] rounded-2xl p-8 text-left hover:border-[#0057b8] transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,87,184,0.12)] cursor-pointer"
-              >
-                <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-[#eff6ff] flex items-center justify-center group-hover:bg-[#0057b8] transition-colors duration-300">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0057b8" strokeWidth="2.5" className="group-hover:stroke-white transition-colors duration-300">
-                    <polyline points="9 18 15 12 9 6" />
-                  </svg>
-                </div>
-                <div className="w-14 h-14 rounded-xl bg-[#eff6ff] flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300">
-                  <span className="text-[24px] font-black text-[#0057b8]">T</span>
-                </div>
-                <h2 className="text-[22px] font-bold text-[#1a1a1a] mb-1">TOEFL</h2>
-                <p className="text-[12px] font-semibold text-[#999] uppercase tracking-wider mb-3">
-                  Test of English as a Foreign Language
-                </p>
-                <p className="text-[14px] text-[#666] leading-relaxed mb-4">
-                  iBT format with integrated tasks and score evaluation out of 120.
-                </p>
-                <div className="flex items-center gap-3">
-                  <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-[#eff6ff] text-[#0057b8]">Score 0 – 120</span>
-                  <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-[#f5f5f5] text-[#555]">4 Sections</span>
-                </div>
-              </button>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* Features section */}
-        <section className="bg-white border-t border-[#e0e0e0] py-12 sm:py-16">
+        {/* Feature Highlights Section */}
+        <section className="py-20 bg-white">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 text-center">
+            <h2 className="text-[32px] font-extrabold text-[#000000] mb-2">Smarter preparation, better results</h2>
+            <p className="text-[16px] text-[#666] max-w-xl mx-auto leading-relaxed mb-16">
+              Everything you need to confidently walk into test day.
+            </p>
+
+            <div className="grid md:grid-cols-3 gap-8 text-left">
+              {/* Feature 1 */}
+              <div className="bg-[#fafafa] border border-[#e0e0e0] rounded-2xl p-8 hover:shadow-xl transition-all duration-300">
+                <div className="w-12 h-12 rounded-xl bg-white border border-[#e0e0e0] flex items-center justify-center mb-6">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#c8102e" strokeWidth="1.5">
+                    <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+                    <path d="m9 12 2 2 4-4" />
+                  </svg>
+                </div>
+                <h3 className="text-[18px] font-bold text-[#000000] mb-3">AI-Powered Scoring</h3>
+                <p className="text-[14px] text-[#555] leading-relaxed">
+                  Get instant scores and detailed feedback on your writing and speaking responses using our advanced AI.
+                </p>
+              </div>
+
+              {/* Feature 2 */}
+              <div className="bg-[#fafafa] border border-[#e0e0e0] rounded-2xl p-8 hover:shadow-xl transition-all duration-300">
+                <div className="w-12 h-12 rounded-xl bg-white border border-[#e0e0e0] flex items-center justify-center mb-6">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#c8102e" strokeWidth="1.5">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                  </svg>
+                </div>
+                <h3 className="text-[18px] font-bold text-[#000000] mb-3">Exam-Specific Content</h3>
+                <p className="text-[14px] text-[#555] leading-relaxed">
+                  Practice with content precisely tailored to official IELTS and TOEFL test formats and scoring criteria.
+                </p>
+              </div>
+
+              {/* Feature 3 */}
+              <div className="bg-[#fafafa] border border-[#e0e0e0] rounded-2xl p-8 hover:shadow-xl transition-all duration-300">
+                <div className="w-12 h-12 rounded-xl bg-white border border-[#e0e0e0] flex items-center justify-center mb-6">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#c8102e" strokeWidth="1.5">
+                    <line x1="18" y1="20" x2="18" y2="10" />
+                    <line x1="12" y1="20" x2="12" y2="4" />
+                    <line x1="6" y1="20" x2="6" y2="14" />
+                  </svg>
+                </div>
+                <h3 className="text-[18px] font-bold text-[#000000] mb-3">Track Your Progress</h3>
+                <p className="text-[14px] text-[#555] leading-relaxed">
+                  Review past scores and monitor improvement across all test modules with detailed analytics.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Choose Your Path Section */}
+        <section id="choose-path" className="py-20 bg-slate-50 border-t border-[#e0e0e0]">
           <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-            <div className="grid sm:grid-cols-3 gap-8 text-center">
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-12">
               <div>
-                <CheckCircleIcon />
-                <h3 className="font-bold text-[15px] text-[#1a1a1a] mt-3 mb-1">AI-Powered Scoring</h3>
-                <p className="text-[13px] text-[#666] leading-relaxed">Get instant scores and detailed feedback on your writing and speaking responses.</p>
+                <h2 className="text-[32px] font-extrabold text-[#000000] mb-2">Choose Your Path</h2>
+                <p className="text-[15px] text-[#666] max-w-xl leading-relaxed">
+                  Select your target examination to access tailored practice materials, mock tests, and specialized feedback rubrics.
+                </p>
               </div>
-              <div>
-                <CheckCircleIcon />
-                <h3 className="font-bold text-[15px] text-[#1a1a1a] mt-3 mb-1">Exam-Specific Content</h3>
-                <p className="text-[13px] text-[#666] leading-relaxed">Practice with content tailored to IELTS or TOEFL test formats and scoring criteria.</p>
+              <Link
+                href="/dashboard"
+                className="mt-4 md:mt-0 inline-flex items-center gap-1 text-[13px] font-bold hover:underline"
+                style={{ color: "#c8102e" }}
+              >
+                View all materials →
+              </Link>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-8">
+              {/* IELTS Path Card */}
+              <div className="bg-white border border-[#e0e0e0] rounded-3xl p-8 hover:shadow-xl transition-all duration-300 flex flex-col justify-between relative overflow-hidden">
+                {/* Visual red gradient accent background corner */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-[#c8102e]/5 to-transparent rounded-bl-full pointer-events-none" />
+
+                <div>
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-xl bg-[#c8102e] flex items-center justify-center text-white font-extrabold text-[18px]">
+                      I
+                    </div>
+                    <h3 className="text-[20px] font-bold text-[#000000]">IELTS Preparation</h3>
+                  </div>
+                  <p className="text-[14px] text-[#555] leading-relaxed mb-8">
+                    Comprehensive modules for Academic and General Training. Master the 4 skills with realistic test scenarios.
+                  </p>
+
+                  {/* 4 skills pill list */}
+                  <div className="grid grid-cols-2 gap-3 mb-8">
+                    <span className="flex items-center gap-2 py-2 px-3 bg-[#f5f5f5] rounded-xl text-[12px] font-semibold text-[#555]">
+                      🎧 Listening
+                    </span>
+                    <span className="flex items-center gap-2 py-2 px-3 bg-[#f5f5f5] rounded-xl text-[12px] font-semibold text-[#555]">
+                      📖 Reading
+                    </span>
+                    <span className="flex items-center gap-2 py-2 px-3 bg-[#f5f5f5] rounded-xl text-[12px] font-semibold text-[#555]">
+                      ✍️ Writing
+                    </span>
+                    <span className="flex items-center gap-2 py-2 px-3 bg-[#f5f5f5] rounded-xl text-[12px] font-semibold text-[#555]">
+                      🎤 Speaking
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  id="select-ielts"
+                  onClick={() => handleSelectExam("ielts")}
+                  className="w-full py-3 bg-[#c8102e] hover:bg-[#a50d24] text-white font-bold text-[14px] rounded-full transition-colors text-center shadow-sm cursor-pointer"
+                >
+                  Start IELTS Practice →
+                </button>
               </div>
-              <div>
-                <CheckCircleIcon />
-                <h3 className="font-bold text-[15px] text-[#1a1a1a] mt-3 mb-1">Track Your Progress</h3>
-                <p className="text-[13px] text-[#666] leading-relaxed">Review past scores and monitor improvement across all test modules.</p>
+
+              {/* TOEFL Path Card */}
+              <div className="bg-white border border-[#e0e0e0] rounded-3xl p-8 hover:shadow-xl transition-all duration-300 flex flex-col justify-between relative overflow-hidden">
+                {/* Visual blue gradient accent background corner */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-[#0057b8]/5 to-transparent rounded-bl-full pointer-events-none" />
+
+                <div>
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-xl bg-[#0057b8] flex items-center justify-center text-white font-extrabold text-[18px]">
+                      T
+                    </div>
+                    <h3 className="text-[20px] font-bold text-[#000000]">TOEFL iBT® Preparation</h3>
+                  </div>
+                  <p className="text-[14px] text-[#555] leading-relaxed mb-8">
+                    Integrated tasks and authentic academic content designed to boost your iBT score efficiently.
+                  </p>
+
+                  {/* 4 features pill list */}
+                  <div className="grid grid-cols-2 gap-3 mb-8">
+                    <span className="flex items-center gap-2 py-2 px-3 bg-[#f5f5f5] rounded-xl text-[12px] font-semibold text-[#555]">
+                      💻 iBT Format
+                    </span>
+                    <span className="flex items-center gap-2 py-2 px-3 bg-[#f5f5f5] rounded-xl text-[12px] font-semibold text-[#555]">
+                      🎓 Academic Focus
+                    </span>
+                    <span className="flex items-center gap-2 py-2 px-3 bg-[#f5f5f5] rounded-xl text-[12px] font-semibold text-[#555]">
+                      🔄 Integrated Tasks
+                    </span>
+                    <span className="flex items-center gap-2 py-2 px-3 bg-[#f5f5f5] rounded-xl text-[12px] font-semibold text-[#555]">
+                      📊 Score Analysis
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  id="select-toefl"
+                  onClick={() => handleSelectExam("toefl")}
+                  className="w-full py-3 bg-[#0057b8] hover:bg-[#004494] text-white font-bold text-[14px] rounded-full transition-colors text-center shadow-sm cursor-pointer"
+                >
+                  Start TOEFL Practice →
+                </button>
               </div>
             </div>
           </div>
@@ -290,17 +433,17 @@ export default function Home() {
     );
   }
 
-  /* ─── Module Cards View (exam selected) ─── */
+  /* ─── Exam Module Dashboard View (When an exam is selected) ─── */
   return (
-    <div className="flex flex-col">
-      {/* Hero — selected exam */}
+    <div className="flex flex-col min-h-screen bg-[#fafafa]">
+      {/* Cockpit Hero */}
       <section className="bg-white border-b border-[#e0e0e0]">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-14 sm:py-18">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-2">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
             <div>
               <button
                 onClick={handleChangeExam}
-                className="inline-flex items-center gap-1.5 text-[13px] font-semibold mb-4 hover:opacity-70 transition-opacity cursor-pointer"
+                className="inline-flex items-center gap-1.5 text-[13px] font-bold mb-4 hover:opacity-75 transition-opacity cursor-pointer"
                 style={{ color: config!.color }}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -308,23 +451,23 @@ export default function Home() {
                 </svg>
                 Change exam
               </button>
-              <h1 className="text-[32px] sm:text-[40px] font-bold text-[#1a1a1a] leading-tight mb-2">
-                {config!.name} Practice Tests
+              <h1 className="text-[36px] sm:text-[44px] font-extrabold text-[#000000] leading-tight mb-3">
+                {config!.name} Cockpit
               </h1>
-              <p className="text-[14px] text-[#666] max-w-lg leading-relaxed">
+              <p className="text-[15px] text-[#555] max-w-xl leading-relaxed">
                 {config!.description}
               </p>
             </div>
             <div className="flex items-center gap-3">
               <span
-                className="px-4 py-2 rounded-full text-[12px] font-bold text-white"
+                className="px-4 py-2 rounded-full text-[12px] font-extrabold text-white"
                 style={{ backgroundColor: config!.color }}
               >
                 {config!.name}
               </span>
               <Link
                 href="/dashboard"
-                className="px-5 py-2 border border-[#ddd] text-[#333] font-semibold rounded-full hover:bg-[#fafafa] transition-colors text-[13px]"
+                className="px-5 py-2 border border-[#ddd] bg-white text-[#333541] font-bold rounded-full hover:bg-[#fafafa] transition-colors text-[13px] shadow-sm"
               >
                 View results
               </Link>
@@ -333,12 +476,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Module cards */}
-      <section className="py-12 sm:py-16">
+      {/* Cockpit Modules Grid */}
+      <section className="py-16 flex-1">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-[22px] font-bold text-[#1a1a1a] flex items-center gap-3">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={config!.color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <div className="flex items-center justify-between mb-10">
+            <h2 className="text-[24px] font-bold text-[#000000] flex items-center gap-3">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={config!.color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="2" y="3" width="20" height="14" rx="2" />
                 <line x1="8" y1="21" x2="16" y2="21" />
                 <line x1="12" y1="17" x2="12" y2="21" />
@@ -350,19 +493,19 @@ export default function Home() {
             </span>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {config!.modules.map((mod) => {
               const IconComponent = iconMap[mod.icon];
               return (
                 <div
                   key={mod.title}
-                  className="group bg-white border border-[#e0e0e0] rounded-xl p-6 flex flex-col hover:border-transparent transition-all duration-300"
+                  className="group bg-white border border-[#e0e0e0] rounded-2xl p-6 flex flex-col hover:border-transparent transition-all duration-300"
                   style={{
                     // @ts-ignore
-                    "--hover-shadow": `0 8px 30px ${config!.color}18`,
+                    "--hover-shadow": `0 12px 40px ${config!.color}15`,
                   }}
                   onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLElement).style.boxShadow = `0 8px 30px ${config!.color}20`;
+                    (e.currentTarget as HTMLElement).style.boxShadow = `0 12px 40px ${config!.color}15`;
                     (e.currentTarget as HTMLElement).style.borderColor = config!.color;
                   }}
                   onMouseLeave={(e) => {
@@ -370,36 +513,33 @@ export default function Home() {
                     (e.currentTarget as HTMLElement).style.borderColor = "#e0e0e0";
                   }}
                 >
-                  {/* Icon + Tag */}
-                  <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-start justify-between mb-5">
                     <div
-                      className="w-11 h-11 rounded-lg flex items-center justify-center"
+                      className="w-12 h-12 rounded-xl flex items-center justify-center"
                       style={{ backgroundColor: config!.colorLight }}
                     >
                       {IconComponent && <IconComponent color={config!.color} />}
                     </div>
                     <span
-                      className="text-[11px] font-bold text-white px-2.5 py-0.5 rounded"
+                      className="text-[10px] font-bold text-white px-2.5 py-0.5 rounded uppercase"
                       style={{ backgroundColor: config!.color }}
                     >
                       {config!.name}
                     </span>
                   </div>
 
-                  {/* Title */}
-                  <h3 className="text-[16px] font-bold text-[#1a1a1a] leading-snug mb-1">
+                  <h3 className="text-[18px] font-bold text-[#000000] mb-1">
                     {mod.title}
                   </h3>
-                  <p className="text-[12px] font-semibold text-[#999] mb-2">{mod.subtitle}</p>
-                  <p className="text-[13px] text-[#666] leading-relaxed mb-auto">
+                  <p className="text-[12px] font-semibold text-[#999] mb-3">{mod.subtitle}</p>
+                  <p className="text-[13px] text-[#555] leading-relaxed mb-6 flex-1">
                     {mod.description}
                   </p>
 
-                  {/* Actions */}
-                  <div className="mt-5 space-y-2">
+                  <div className="space-y-2.5 pt-4 border-t border-[#f0f0f0]">
                     <Link
                       href={mod.href}
-                      className="block text-center py-2.5 text-white font-semibold text-[13px] rounded-full transition-colors"
+                      className="block text-center py-2.5 text-white font-bold text-[13px] rounded-full transition-colors"
                       style={{ backgroundColor: config!.color }}
                       onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = config!.colorDark)}
                       onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = config!.color)}
@@ -408,7 +548,7 @@ export default function Home() {
                     </Link>
                     <Link
                       href="/dashboard"
-                      className="block text-center py-2 border border-[#ddd] text-[#333] font-semibold text-[13px] rounded-full hover:bg-[#fafafa] transition-colors"
+                      className="block text-center py-2.5 border border-[#ddd] bg-white text-[#333541] font-bold text-[13px] rounded-full hover:bg-[#fafafa] transition-colors"
                     >
                       View Scores
                     </Link>
@@ -416,33 +556,6 @@ export default function Home() {
                 </div>
               );
             })}
-          </div>
-        </div>
-      </section>
-
-      {/* Features section */}
-      <section className="bg-white border-t border-[#e0e0e0] py-12 sm:py-16">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          <div className="grid sm:grid-cols-3 gap-8 text-center">
-            <div>
-              <CheckCircleIcon />
-              <h3 className="font-bold text-[15px] text-[#1a1a1a] mt-3 mb-1">AI-Powered Scoring</h3>
-              <p className="text-[13px] text-[#666] leading-relaxed">Get instant {config!.name} scores and detailed feedback on your writing and speaking responses.</p>
-            </div>
-            <div>
-              <CheckCircleIcon />
-              <h3 className="font-bold text-[15px] text-[#1a1a1a] mt-3 mb-1">
-                {selectedExam === "ielts" ? "Computer-Based Format" : "iBT Test Format"}
-              </h3>
-              <p className="text-[13px] text-[#666] leading-relaxed">
-                Practice in the same format used in the actual {config!.name} {selectedExam === "ielts" ? "computer-delivered" : "internet-based"} test.
-              </p>
-            </div>
-            <div>
-              <CheckCircleIcon />
-              <h3 className="font-bold text-[15px] text-[#1a1a1a] mt-3 mb-1">Track Your Progress</h3>
-              <p className="text-[13px] text-[#666] leading-relaxed">Review past scores and monitor improvement across all four {config!.name} test modules.</p>
-            </div>
           </div>
         </div>
       </section>
