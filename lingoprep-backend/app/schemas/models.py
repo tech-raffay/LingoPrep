@@ -86,6 +86,19 @@ class MCQResult(BaseModel):
     results: list[dict]
 
 
+class FullTestSubmission(BaseModel):
+    """Submit answers for a full IELTS/TOEFL exam."""
+    answers: list[AnswerSubmission]
+
+
+class FullTestResult(BaseModel):
+    total_questions: int
+    correct_answers: int
+    score_percentage: float
+    band_score: float
+    results: list[dict]
+
+
 # --- Writing Module ---
 
 class EssaySubmissionSchema(BaseModel):

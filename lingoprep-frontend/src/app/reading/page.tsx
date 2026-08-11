@@ -1,12 +1,33 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useEffect, useRef } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import api from "@/lib/api";
 
-interface Option { id: string; text: string; label: string; }
-interface Question { id: string; question_text: string; options: Option[]; correct_option_id: string; explanation?: string; }
-interface Passage { id: string; title: string; content: string; word_count: number; difficulty: string; exam_type: string; questions: Question[]; }
+interface Option {
+  id: string;
+  text: string;
+  label: string;
+}
+
+interface Question {
+  id: string;
+  question_text: string;
+  options: Option[];
+  correct_option_id: string;
+  explanation?: string;
+  sort_order: number;
+}
+
+interface Passage {
+  id: string;
+  title: string;
+  content: string;
+  word_count: number;
+  difficulty: string;
+  exam_type: string;
+  questions: Question[];
+}
 
 const examColors: Record<string, { color: string; colorDark: string; colorLight: string; name: string }> = {
   ielts: { color: "#c8102e", colorDark: "#a50d24", colorLight: "#fef2f2", name: "IELTS" },
@@ -15,191 +36,652 @@ const examColors: Record<string, { color: string; colorDark: string; colorLight:
 
 export default function ReadingPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const examType = searchParams.get("exam") === "toefl" ? "toefl" : "ielts";
   const theme = examColors[examType];
 
-  const [passage, setPassage] = useState<Passage | null>(null);
+  const [passages, setPassages] = useState<Passage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Flow control
+  const [isTestStarted, setIsTestStarted] = useState(false);
+  const [activeSectionIdx, setActiveSectionIdx] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
-  const [score, setScore] = useState<number | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  
+  // Results from backend
+  const [bandScore, setBandScore] = useState<number | null>(null);
+  const [correctCount, setCorrectCount] = useState<number | null>(null);
+  const [scorePercentage, setScorePercentage] = useState<number | null>(null);
   const [dbResults, setDbResults] = useState<any[] | null>(null);
 
+  // Timer: 60 minutes for IELTS
+  const [timeLeft, setTimeLeft] = useState(3600);
+  
+  // Refs for scrolling to specific questions
+  const questionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
   useEffect(() => {
-    async function fetchPassage() {
+    async function fetchPassages() {
       try {
         setLoading(true);
         const response = await api.get(`/api/reading/passages?exam_type=${examType}`);
-        const passages = response.data?.data || [];
-        if (passages.length > 0) { setPassage(passages[0]); }
-        else { setError(`No ${theme.name} reading passages available.`); }
-      } catch { setError("Failed to connect to the server."); }
-      finally { setLoading(false); }
+        const data = response.data?.data || [];
+        if (data.length > 0) {
+          // Sort passages by ID to ensure Section 1, 2, 3 ordering
+          const sorted = [...data].sort((a, b) => a.id.localeCompare(b.id));
+          setPassages(sorted);
+        } else {
+          setError(`No ${theme.name} reading passages available in the database.`);
+        }
+      } catch (err) {
+        console.error("Fetch error:", err);
+        setError("Failed to load test content. Please verify that database is seeded and backend is running.");
+      } finally {
+        setLoading(false);
+      }
     }
-    fetchPassage();
+    fetchPassages();
   }, [examType, theme.name]);
 
-  const handleSelect = (qId: string, oId: string) => { if (!submitted) setSelectedAnswers((p) => ({ ...p, [qId]: oId })); };
+  // Timer Effect
+  useEffect(() => {
+    if (!isTestStarted || submitted || timeLeft <= 0) return;
 
-  const handleSubmit = async () => {
-    if (!passage) return;
-    try {
-      const res = await api.post("/api/reading/submit", {
-        passage_id: passage.id,
-        answers: Object.entries(selectedAnswers).map(([qId, optId]) => ({ question_id: qId, selected_option_id: optId })),
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          autoSubmit();
+          return 0;
+        }
+        return prev - 1;
       });
-      setScore(res.data.correct_answers);
-      setDbResults(res.data.results);
-      setSubmitted(true);
-    } catch { alert("Failed to submit answers."); }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isTestStarted, submitted, timeLeft]);
+
+  // Helper: flatten all questions across passages
+  const allQuestions = passages.reduce<Question[]>((acc, p) => {
+    return [...acc, ...p.questions];
+  }, []);
+
+  // Handle option click
+  const handleSelect = (qId: string, oId: string) => {
+    if (submitted) return;
+    setSelectedAnswers((prev) => ({ ...prev, [qId]: oId }));
   };
 
-  const handleReset = () => { setSelectedAnswers({}); setSubmitted(false); setScore(null); setDbResults(null); };
+  // Submit flow
+  const handleSubmit = async (force: boolean = false) => {
+    if (passages.length === 0 || submitted) return;
 
-  if (loading) {
+    if (!force) {
+      const unansweredCount = allQuestions.length - Object.keys(selectedAnswers).length;
+      if (unansweredCount > 0) {
+        setShowConfirmModal(true);
+        return;
+      }
+    }
+
+    try {
+      setLoading(true);
+      const answersPayload = allQuestions.map((q) => ({
+        question_id: q.id,
+        selected_option_id: selectedAnswers[q.id] || "",
+      }));
+
+      const res = await api.post("/api/reading/submit-full", {
+        answers: answersPayload,
+      });
+
+      setCorrectCount(res.data.correct_answers);
+      setScorePercentage(res.data.score_percentage);
+      setBandScore(res.data.band_score);
+      setDbResults(res.data.results);
+      setSubmitted(true);
+    } catch (err) {
+      console.error("Submission error:", err);
+      setError("Failed to submit answers. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const autoSubmit = () => {
+    handleSubmit(true);
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const handleReset = () => {
+    setSelectedAnswers({});
+    setSubmitted(false);
+    setScorePercentage(null);
+    setCorrectCount(null);
+    setBandScore(null);
+    setDbResults(null);
+    setTimeLeft(3600);
+    setIsTestStarted(false);
+    setActiveSectionIdx(0);
+  };
+
+  // Question Navigator click: jump to section and scroll to question
+  const handleNavClick = (qIndex: number) => {
+    let questionCount = 0;
+    for (let pIdx = 0; pIdx < passages.length; pIdx++) {
+      const pQuestions = passages[pIdx].questions;
+      if (qIndex >= questionCount && qIndex < questionCount + pQuestions.length) {
+        setActiveSectionIdx(pIdx);
+        const qId = pQuestions[qIndex - questionCount].id;
+        setTimeout(() => {
+          const el = questionRefs.current[qId];
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+        }, 100);
+        break;
+      }
+      questionCount += pQuestions.length;
+    }
+  };
+
+  // Get question number in the overall test (1-40)
+  const getOverallQuestionNumber = (qId: string) => {
+    return allQuestions.findIndex((q) => q.id === qId) + 1;
+  };
+
+  if (loading && passages.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[50vh] flex-col gap-3">
-        <div className="w-7 h-7 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: `${theme.color} transparent transparent transparent` }} />
-        <p className="text-[13px] text-[#999]">Loading {theme.name} reading passage...</p>
+        <div
+          className="w-8 h-8 border-3 border-t-transparent rounded-full animate-spin"
+          style={{ borderColor: `${theme.color} transparent transparent transparent` }}
+        />
+        <p className="text-[14px] text-slate-500 font-medium">Loading {theme.name} reading exam content...</p>
       </div>
     );
   }
 
-  if (error || !passage) {
+  if (error) {
     return (
       <div className="mx-auto max-w-md px-4 py-16 text-center">
-        <svg className="mx-auto mb-4" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={theme.color} strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        <p className="text-[14px] text-[#666] mb-4">{error}</p>
-        <button onClick={() => window.location.reload()} className="px-5 py-2 text-white font-semibold text-[13px] rounded-full transition-colors" style={{ backgroundColor: theme.color }}>Retry</button>
+        <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#c8102e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </div>
+        <h2 className="text-[16px] font-bold text-slate-800 mb-2">Error Loading Test</h2>
+        <p className="text-[13px] text-slate-500 mb-6">{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-5 py-2.5 text-white font-semibold text-[13px] rounded-full transition-all shadow-sm"
+          style={{ backgroundColor: theme.color }}
+        >
+          Retry Load
+        </button>
       </div>
     );
   }
 
-  return (
-    <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-6">
-      {/* Top bar */}
-      <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#e0e0e0]">
-        <div>
-          <h1 className="text-[20px] font-bold text-[#1a1a1a]">{theme.name} Reading Passage 1</h1>
-          <p className="text-[13px] text-[#999]">Academic Module</p>
+  // 1. Welcome / Instructions Screen
+  if (!isTestStarted && !submitted) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-12">
+        <div className="bg-white border border-[#e0e0e0] rounded-2xl shadow-sm overflow-hidden">
+          <div className="p-6 sm:p-10 border-b border-[#f0f0f0]" style={{ backgroundColor: theme.colorLight }}>
+            <span className="px-3 py-1 text-[11px] font-extrabold uppercase rounded-full text-white tracking-wider" style={{ backgroundColor: theme.color }}>
+              {theme.name} Academic
+            </span>
+            <h1 className="text-[26px] sm:text-[32px] font-bold text-slate-900 mt-3">Full Reading Exam</h1>
+            <p className="text-[14px] text-slate-600 mt-1">Realistic 3-section, 40-question academic practice environment</p>
+          </div>
+
+          <div className="p-6 sm:p-10 space-y-6">
+            <div>
+              <h2 className="text-[16px] font-bold text-slate-800 mb-3">Exam Structure & Timing</h2>
+              <ul className="space-y-3 text-[14px] text-slate-600">
+                <li className="flex items-start gap-2.5">
+                  <svg className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <span><strong>Total Duration:</strong> 60 minutes exactly. The timer will auto-submit when it reaches 0.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <svg className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <span><strong>Sections:</strong> 3 distinct reading passages, each increasing in academic complexity.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <svg className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <span><strong>Questions:</strong> 40 multiple-choice questions total. Mark answers directly in the panel.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <svg className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <span><strong>Navigation:</strong> Free movement between sections using tabs or the 1-40 layout grid.</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 text-[13px] text-slate-500 leading-relaxed">
+              <strong>Instructions:</strong> Ensure you are in a quiet workspace. Once you click "Start Exam", the countdown begins and cannot be paused. Read the texts and answer the questions. Good luck!
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+              <button
+                onClick={() => router.push("/")}
+                className="px-5 py-2.5 border border-slate-300 text-slate-700 font-semibold text-[13px] rounded-full hover:bg-slate-50 transition-colors"
+              >
+                Back to Dashboard
+              </button>
+              <button
+                onClick={() => setIsTestStarted(true)}
+                className="px-6 py-2.5 text-white font-semibold text-[13px] rounded-full hover:shadow transition-all"
+                style={{ backgroundColor: theme.color }}
+              >
+                Start Exam
+              </button>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="px-2.5 py-0.5 rounded text-[11px] font-bold text-white" style={{ backgroundColor: theme.color }}>
-            {theme.name}
-          </span>
-          <span className="px-3 py-1 border text-[12px] font-bold rounded-full" style={{ borderColor: theme.color, color: theme.color }}>
-            Questions 1–{passage.questions.length}
-          </span>
+      </div>
+    );
+  }
+
+  // 2. Results Screen
+  if (submitted) {
+    return (
+      <div className="mx-auto max-w-6xl px-4 py-8">
+        {/* Results Header Card */}
+        <div className="bg-white border border-[#e0e0e0] rounded-2xl shadow-sm overflow-hidden mb-8">
+          <div className="p-6 sm:p-10 text-center border-b border-[#f0f0f0]">
+            <span className="px-3 py-1 text-[11px] font-extrabold uppercase rounded-full text-white tracking-wider" style={{ backgroundColor: theme.color }}>
+              Test Completed
+            </span>
+            <h1 className="text-[28px] font-bold text-slate-900 mt-4">Your Reading Score Report</h1>
+            <p className="text-[13px] text-[#999] mt-1">Official IELTS Academic Reading Criteria</p>
+
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-6 sm:gap-16 my-8">
+              {/* Band Score Circle */}
+              <div className="relative w-36 h-36 flex flex-col items-center justify-center rounded-full border-8 bg-slate-50" style={{ borderColor: theme.colorLight }}>
+                <span className="text-[12px] font-bold uppercase tracking-wider text-slate-500">IELTS Band</span>
+                <span className="text-[42px] font-extrabold text-slate-900 leading-none mt-1">{bandScore !== null ? bandScore.toFixed(1) : "0.0"}</span>
+              </div>
+
+              {/* Statistics */}
+              <div className="text-left space-y-2">
+                <div className="flex items-center gap-8">
+                  <span className="text-[14px] text-slate-500 font-medium">Raw Score:</span>
+                  <span className="text-[16px] font-bold text-slate-800">{correctCount} / {allQuestions.length} correct</span>
+                </div>
+                <div className="flex items-center gap-8">
+                  <span className="text-[14px] text-slate-500 font-medium">Percentage:</span>
+                  <span className="text-[16px] font-bold text-slate-800">{scorePercentage}%</span>
+                </div>
+                <div className="flex items-center gap-8">
+                  <span className="text-[14px] text-slate-500 font-medium">Time Remaining:</span>
+                  <span className="text-[16px] font-bold text-slate-800">{formatTime(timeLeft)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={handleReset}
+                className="px-6 py-2.5 border border-slate-300 text-slate-700 font-bold text-[13px] rounded-full hover:bg-slate-50 transition-colors"
+              >
+                Restart Test
+              </button>
+              <button
+                onClick={() => router.push("/")}
+                className="px-6 py-2.5 text-white font-bold text-[13px] rounded-full transition-all shadow-sm"
+                style={{ backgroundColor: theme.color }}
+              >
+                Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Interactive Review Section */}
+        <h2 className="text-[20px] font-bold text-slate-800 mb-4">Detailed Answers Review</h2>
+        <div className="border border-[#e0e0e0] rounded-2xl bg-white p-4 sm:p-6 mb-6">
+          {/* Section Selector for Review */}
+          <div className="flex gap-2 border-b border-[#f0f0f0] pb-4 mb-6 overflow-x-auto">
+            {passages.map((p, idx) => (
+              <button
+                key={p.id}
+                onClick={() => setActiveSectionIdx(idx)}
+                className={`px-4 py-2 text-[13px] font-bold rounded-lg transition-colors whitespace-nowrap ${
+                  activeSectionIdx === idx
+                    ? "text-white"
+                    : "bg-[#f5f5f5] text-slate-700 hover:bg-[#eee]"
+                }`}
+                style={activeSectionIdx === idx ? { backgroundColor: theme.color } : undefined}
+              >
+                Section {idx + 1}: {p.title.length > 25 ? `${p.title.substring(0, 25)}...` : p.title}
+              </button>
+            ))}
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-8 items-start">
+            {/* Passage Text */}
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 max-h-[600px] overflow-y-auto">
+              <h3 className="text-[18px] font-bold mb-4" style={{ color: theme.color }}>
+                Section {activeSectionIdx + 1}: {passages[activeSectionIdx].title}
+              </h3>
+              <div className="text-[14px] text-slate-700 leading-[1.8] space-y-4 font-medium">
+                {passages[activeSectionIdx].content.split("\n\n").map((p, i) => (
+                  <p key={i}>{p}</p>
+                ))}
+              </div>
+            </div>
+
+            {/* Questions Review */}
+            <div className="space-y-6">
+              {passages[activeSectionIdx].questions.map((q) => {
+                const dbRes = dbResults?.find((r) => r.question_id === q.id);
+                const isCorrect = dbRes?.is_correct;
+                const userSel = selectedAnswers[q.id];
+                const overallNum = getOverallQuestionNumber(q.id);
+
+                return (
+                  <div
+                    key={q.id}
+                    className={`border rounded-xl p-5 ${
+                      isCorrect ? "border-[#2e7d32] bg-[#f8fdf9]" : "border-[#c8102e] bg-[#fffdfd]"
+                    }`}
+                  >
+                    <p className="text-[14px] font-bold text-slate-800 mb-4 flex items-start">
+                      <span
+                        className="inline-flex items-center justify-center w-6 h-6 rounded-full text-white text-[12px] font-extrabold mr-2 flex-shrink-0 mt-0.5"
+                        style={{ backgroundColor: theme.color }}
+                      >
+                        {overallNum}
+                      </span>
+                      {q.question_text}
+                    </p>
+
+                    <div className="space-y-2.5 pl-8">
+                      {q.options.map((opt) => {
+                        const isUserSelected = userSel === opt.id;
+                        const isCorrectOption = opt.id === q.correct_option_id;
+
+                        let optionStyle = "border-slate-200 hover:bg-[#fafafa] text-slate-600";
+                        if (isCorrectOption) {
+                          optionStyle = "bg-[#e8f5e9] text-[#2e7d32] font-semibold border-[#a5d6a7]";
+                        } else if (isUserSelected && !isCorrect) {
+                          optionStyle = "bg-[#fce4ec] text-[#c8102e] font-semibold border-[#f8bbd0]";
+                        }
+
+                        return (
+                          <div
+                            key={opt.id}
+                            className={`flex items-center gap-3 py-2.5 px-3 border rounded-lg text-[13px] ${optionStyle}`}
+                          >
+                            <span className="font-bold text-[#888]">{opt.label}.</span>
+                            <span>{opt.text}</span>
+                            {isCorrectOption && <span className="ml-auto text-[11px] font-bold text-[#2e7d32] uppercase">Correct</span>}
+                            {isUserSelected && !isCorrect && <span className="ml-auto text-[11px] font-bold text-[#c8102e] uppercase">Your Choice</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {q.explanation && (
+                      <div className="mt-4 ml-8 p-3 bg-white border-l-4 border-emerald-500 rounded-r-lg text-[13px] text-slate-600">
+                        <strong className="text-emerald-700">Explanation:</strong> {q.explanation}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 3. Active Test Screen
+  const currentPassage = passages[activeSectionIdx];
+
+  return (
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 pb-32">
+      {/* Timer & Header Panel */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-[#e0e0e0]">
+        <div>
+          <h1 className="text-[22px] font-bold text-slate-900 flex items-center gap-2.5">
+            {theme.name} Academic Reading Test
+          </h1>
+          <p className="text-[13px] text-slate-500 font-semibold mt-0.5">
+            Section {activeSectionIdx + 1}: {currentPassage.title}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-4 self-stretch sm:self-auto justify-between sm:justify-start">
+          {/* Section Tabs */}
+          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+            {passages.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setActiveSectionIdx(idx)}
+                className={`px-3 py-1.5 rounded-lg text-[12px] font-extrabold transition-all ${
+                  activeSectionIdx === idx
+                    ? "bg-white text-slate-950 shadow-sm"
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                Sec {idx + 1}
+              </button>
+            ))}
+          </div>
+
+          {/* Premium Countdown Clock */}
+          <div
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl border font-mono font-bold text-[14px] shadow-sm transition-all ${
+              timeLeft < 300
+                ? "bg-red-50 text-[#c8102e] border-red-200 animate-pulse"
+                : "bg-slate-50 text-slate-700 border-slate-200"
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{formatTime(timeLeft)}</span>
+          </div>
         </div>
       </div>
 
-      {/* Two-column layout: passage | questions */}
-      <div className="grid lg:grid-cols-2 gap-6 items-start">
-        {/* Left: Passage */}
-        <div className="bg-white border border-[#e0e0e0] rounded-lg p-6 sm:p-8">
-          <h2 className="text-[22px] font-bold leading-snug mb-6" style={{ color: theme.color }}>{passage.title}</h2>
-          <div className="text-[15px] text-[#333] leading-[1.8] space-y-4">
-            {passage.content.split("\n\n").map((p, i) => (
+      {/* Main Workspace (Split Screen) */}
+      <div className="grid lg:grid-cols-12 gap-6 items-start">
+        {/* Left Side: Scrollable Passage */}
+        <div className="lg:col-span-7 bg-white border border-[#e0e0e0] rounded-2xl p-6 sm:p-8 max-h-[70vh] overflow-y-auto shadow-sm">
+          <span className="px-2.5 py-0.5 bg-slate-100 border border-slate-200 text-slate-500 font-bold rounded text-[10px] uppercase tracking-wide">
+            Passage {activeSectionIdx + 1}
+          </span>
+          <h2 className="text-[22px] sm:text-[24px] font-bold text-slate-900 mt-3 mb-6 leading-tight">
+            {currentPassage.title}
+          </h2>
+          <div className="text-[15px] text-slate-800 leading-[1.8] space-y-5 font-normal">
+            {currentPassage.content.split("\n\n").map((p, i) => (
               <p key={i}>{p}</p>
             ))}
           </div>
         </div>
 
-        {/* Right: Questions */}
-        <div className="space-y-5">
-          <div className="bg-[#fafafa] border border-[#e0e0e0] rounded-lg p-4">
-            <p className="text-[13px] font-bold text-[#1a1a1a] mb-1">Questions 1–{passage.questions.length}</p>
-            <p className="text-[13px] text-[#666]">Choose the correct letter, <strong>A</strong>, <strong>B</strong>, <strong>C</strong> or <strong>D</strong>.</p>
+        {/* Right Side: Scrollable Questions */}
+        <div className="lg:col-span-5 space-y-5 max-h-[70vh] overflow-y-auto pr-1">
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <p className="text-[13px] font-bold text-slate-800 mb-1">
+              Questions {getOverallQuestionNumber(currentPassage.questions[0].id)}–
+              {getOverallQuestionNumber(currentPassage.questions[currentPassage.questions.length - 1].id)}
+            </p>
+            <p className="text-[12px] text-slate-500">Choose the correct letter, <strong>A</strong>, <strong>B</strong>, <strong>C</strong> or <strong>D</strong>.</p>
           </div>
 
-          {passage.questions.map((q, idx) => {
-            const result = dbResults?.find((r) => r.question_id === q.id);
-            const isCorrect = submitted && result?.is_correct;
-            const isWrong = submitted && result && !result.is_correct;
+          {currentPassage.questions.map((q) => {
+            const overallNum = getOverallQuestionNumber(q.id);
+            const userSelectedOpt = selectedAnswers[q.id];
 
             return (
-              <div key={q.id} className={`bg-white border rounded-lg p-5 ${submitted ? (isCorrect ? "border-[#2e7d32]" : isWrong ? "border-[#c8102e]" : "border-[#e0e0e0]") : "border-[#e0e0e0]"}`}>
-                <p className="text-[14px] text-[#1a1a1a] mb-4">
-                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-white text-[12px] font-bold mr-2" style={{ backgroundColor: theme.color }}>{idx + 1}</span>
+              <div
+                key={q.id}
+                ref={(el) => {
+                  questionRefs.current[q.id] = el;
+                }}
+                className={`bg-white border rounded-xl p-5 shadow-sm transition-all ${
+                  userSelectedOpt ? "border-slate-300" : "border-[#e0e0e0]"
+                }`}
+              >
+                <p className="text-[14px] font-bold text-slate-900 mb-4 flex items-start">
+                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-white text-[12px] font-extrabold mr-2 flex-shrink-0 mt-0.5" style={{ backgroundColor: theme.color }}>
+                    {overallNum}
+                  </span>
                   {q.question_text}
                 </p>
+
                 <div className="space-y-2 pl-8">
                   {q.options.map((opt) => {
-                    const isSel = selectedAnswers[q.id] === opt.id;
-                    const isCorrOpt = submitted && opt.id === q.correct_option_id;
+                    const isSelected = userSelectedOpt === opt.id;
+
                     return (
                       <label
                         key={opt.id}
-                        className={`flex items-center gap-3 py-2 px-3 rounded cursor-pointer text-[14px] transition-colors ${
-                          isCorrOpt ? "bg-[#e8f5e9] text-[#2e7d32] font-semibold" :
-                          isSel && submitted ? "bg-[#fce4ec] text-[#c8102e] font-semibold" :
-                          isSel ? `text-[${theme.color}]` :
-                          "hover:bg-[#fafafa] text-[#333]"
-                        }`}
-                        style={isSel && !submitted ? { backgroundColor: theme.colorLight, color: theme.color } : undefined}
                         onClick={() => handleSelect(q.id, opt.id)}
+                        className={`flex items-center gap-3 py-2.5 px-3 border rounded-lg cursor-pointer text-[13px] transition-all ${
+                          isSelected
+                            ? "font-semibold border-slate-700 bg-slate-50 text-slate-950"
+                            : "border-slate-100 hover:bg-[#fafafa] text-slate-600"
+                        }`}
+                        style={isSelected ? { borderColor: theme.color, backgroundColor: theme.colorLight, color: theme.color } : undefined}
                       >
-                        <span className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
-                          isSel || isCorrOpt ? "" : "border-[#ccc]"
-                        }`} style={(isSel || isCorrOpt) ? { borderColor: theme.color } : undefined}>
-                          {(isSel || isCorrOpt) && <span className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.color }} />}
+                        <span
+                          className={`w-4 h-4 rounded-full border flex-shrink-0 flex items-center justify-center transition-all ${
+                            isSelected ? "" : "border-slate-300 bg-white"
+                          }`}
+                          style={isSelected ? { borderColor: theme.color } : undefined}
+                        >
+                          {isSelected && (
+                            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: theme.color }} />
+                          )}
                         </span>
-                        <span className="font-semibold mr-1 text-[#999]">{opt.label}</span>
-                        {opt.text}
+                        <span className="font-extrabold text-slate-400 mr-0.5">{opt.label}</span>
+                        <span>{opt.text}</span>
                       </label>
                     );
                   })}
                 </div>
-
-                {submitted && q.explanation && (
-                  <div className="mt-3 ml-8 p-3 bg-[#f5f5f5] border-l-3 border-[#2e7d32] text-[13px] text-[#555]">
-                    <strong className="text-[#2e7d32]">Explanation:</strong> {q.explanation}
-                  </div>
-                )}
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* Bottom action bar */}
-      <div className="mt-6 flex items-center justify-between py-4 border-t border-[#e0e0e0]">
-        {submitted && score !== null ? (
-          <div className="flex items-center gap-6">
-            <p className="text-[15px] text-[#1a1a1a]">
-              Score: <span className="font-bold text-[20px]">{score}/{passage.questions.length}</span> correct
-            </p>
-            <button onClick={handleReset} className="px-5 py-2 border border-[#ddd] text-[#333] font-semibold text-[13px] rounded-full hover:bg-[#fafafa] transition-colors">
-              Try again
+      {/* Floating Bottom Navigator (Fixed overlay) */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 py-4 px-4 sm:px-6 lg:px-8 shadow-lg z-30">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+          {/* Question Grid 1-40 */}
+          <div className="flex flex-wrap items-center gap-1.5 max-w-full overflow-x-auto py-1">
+            <span className="text-[11px] font-extrabold text-slate-400 uppercase mr-2 tracking-wide whitespace-nowrap">Navigator:</span>
+            {allQuestions.map((q, idx) => {
+              const hasAnswer = !!selectedAnswers[q.id];
+              const isCurrentPassage = currentPassage.questions.some((pq) => pq.id === q.id);
+
+              let boxStyle = "bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200";
+              if (hasAnswer) {
+                boxStyle = "text-white shadow-sm hover:opacity-90";
+              } else if (isCurrentPassage) {
+                boxStyle = "bg-white border-2 hover:bg-slate-50";
+              }
+
+              return (
+                <button
+                  key={q.id}
+                  onClick={() => handleNavClick(idx)}
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center text-[12px] font-bold transition-all ${boxStyle}`}
+                  style={
+                    hasAnswer
+                      ? { backgroundColor: theme.color }
+                      : isCurrentPassage
+                      ? { borderColor: theme.color, color: theme.color }
+                      : undefined
+                  }
+                >
+                  {idx + 1}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 pt-3 md:pt-0 border-slate-100">
+            <div className="flex gap-2">
+              <button
+                disabled={activeSectionIdx === 0}
+                onClick={() => setActiveSectionIdx((prev) => prev - 1)}
+                className="px-4 py-2 border border-slate-300 text-slate-700 font-bold text-[12px] rounded-full hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                ← Prev Section
+              </button>
+              <button
+                disabled={activeSectionIdx === passages.length - 1}
+                onClick={() => setActiveSectionIdx((prev) => prev + 1)}
+                className="px-4 py-2 border border-slate-300 text-slate-700 font-bold text-[12px] rounded-full hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                Next Section →
+              </button>
+            </div>
+
+            <button
+              onClick={() => handleSubmit(false)}
+              className="px-6 py-2.5 text-white font-bold text-[12px] rounded-full transition-all shadow hover:shadow-md"
+              style={{ backgroundColor: "#1a1a1a" }}
+            >
+              Submit Test
             </button>
           </div>
-        ) : (
-          <button
-            onClick={handleSubmit}
-            disabled={Object.keys(selectedAnswers).length < passage.questions.length}
-            className="px-6 py-2.5 text-white font-semibold text-[13px] rounded-full disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-            style={{ backgroundColor: "#1a1a1a" }}
-          >
-            Next →
-          </button>
-        )}
-        <div className="flex items-center gap-2 text-[12px] text-[#999]">
-          {passage.questions.map((_, i) => (
-            <span
-              key={i}
-              className={`w-7 h-7 flex items-center justify-center rounded font-bold ${
-                selectedAnswers[passage.questions[i].id]
-                  ? "text-white"
-                  : "bg-[#f0f0f0] text-[#666]"
-              }`}
-              style={selectedAnswers[passage.questions[i].id] ? { backgroundColor: theme.color } : undefined}
-            >
-              {i + 1}
-            </span>
-          ))}
         </div>
       </div>
+
+      {/* Custom Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6">
+            <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mb-4">
+              <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h3 className="text-[16px] font-bold text-slate-900 mb-2">Submit Exam?</h3>
+            <p className="text-[13px] text-slate-500 mb-6 leading-relaxed">
+              You have {allQuestions.length - Object.keys(selectedAnswers).length} unanswered questions. Are you sure you want to submit your answers?
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="px-4 py-2 border border-slate-300 text-slate-700 font-bold text-[12px] rounded-full hover:bg-slate-50 transition-colors"
+              >
+                No, Keep Working
+              </button>
+              <button
+                onClick={() => {
+                  setShowConfirmModal(false);
+                  handleSubmit(true);
+                }}
+                className="px-5 py-2 text-white font-bold text-[12px] rounded-full transition-all shadow-sm"
+                style={{ backgroundColor: theme.color }}
+              >
+                Yes, Submit Test
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

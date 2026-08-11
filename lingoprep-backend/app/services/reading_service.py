@@ -4,7 +4,7 @@ Fetches reading passages from Supabase and scores MCQ submissions.
 """
 
 from app.services.supabase_client import get_client
-from app.schemas.models import MCQSubmission, MCQResult
+from app.schemas.models import MCQSubmission, MCQResult, FullTestSubmission, FullTestResult
 
 
 def get_passages(exam_type: str = None, difficulty: str = None) -> list[dict]:
@@ -213,3 +213,123 @@ def _percentage_to_band(percentage: float) -> float:
     elif percentage >= 27: return 4.5
     elif percentage >= 20: return 4.0
     else: return 3.0
+
+
+def _reading_raw_to_band(correct: int) -> float:
+    """Convert IELTS Academic Reading raw score (0-40) to band score."""
+    if correct >= 39: return 9.0
+    elif correct >= 37: return 8.5
+    elif correct >= 35: return 8.0
+    elif correct >= 32: return 7.5
+    elif correct >= 30: return 7.0
+    elif correct >= 27: return 6.5
+    elif correct >= 23: return 6.0
+    elif correct >= 19: return 5.5
+    elif correct >= 15: return 5.0
+    elif correct >= 13: return 4.5
+    elif correct >= 10: return 4.0
+    elif correct >= 8: return 3.5
+    elif correct >= 6: return 3.0
+    elif correct >= 4: return 2.5
+    elif correct >= 3: return 2.0
+    elif correct >= 2: return 1.5
+    elif correct >= 1: return 1.0
+    return 0.0
+
+
+def score_full_test(submission: FullTestSubmission, user_id: str = None) -> FullTestResult:
+    """Score all 40 questions for a full Reading test, calculate band score, and log the session."""
+    client = get_client()
+
+    question_ids = [ans.question_id for ans in submission.answers]
+    selected_option_ids = [ans.selected_option_id for ans in submission.answers if ans.selected_option_id]
+
+    # Batch fetch all correct options
+    correct_map = {}
+    try:
+        correct_res = (
+            client.table("options")
+            .select("id, question_id")
+            .in_("question_id", question_ids)
+            .eq("is_correct", True)
+            .execute()
+        )
+        if correct_res and correct_res.data:
+            correct_map = {opt["question_id"]: opt for opt in correct_res.data}
+    except Exception as e:
+        print(f"Error fetching correct options batch: {e}")
+
+    # Batch fetch all questions explanations
+    question_map = {}
+    try:
+        questions_res = (
+            client.table("questions")
+            .select("id, explanation")
+            .in_("id", question_ids)
+            .execute()
+        )
+        if questions_res and questions_res.data:
+            question_map = {q["id"]: q for q in questions_res.data}
+    except Exception as e:
+        print(f"Error fetching questions batch: {e}")
+
+    # Batch fetch user selected options details
+    selected_map = {}
+    if selected_option_ids:
+        try:
+            selected_res = (
+                client.table("options")
+                .select("id, is_correct")
+                .in_("id", selected_option_ids)
+                .execute()
+            )
+            if selected_res and selected_res.data:
+                selected_map = {opt["id"]: opt for opt in selected_res.data}
+        except Exception as e:
+            print(f"Error fetching selected options batch: {e}")
+
+    results = []
+    for answer in submission.answers:
+        selected_option = selected_map.get(answer.selected_option_id)
+        correct_option = correct_map.get(answer.question_id)
+        question = question_map.get(answer.question_id)
+
+        is_correct = selected_option and selected_option.get("is_correct", False) or False
+
+        results.append({
+            "question_id": answer.question_id,
+            "selected": answer.selected_option_id,
+            "correct": str(correct_option["id"]) if correct_option else "",
+            "is_correct": is_correct,
+            "explanation": question.get("explanation", "") if question else "",
+        })
+
+    correct_count = sum(1 for r in results if r["is_correct"])
+    total = len(results)
+    percentage = round((correct_count / total * 100) if total > 0 else 0, 1)
+
+    band_score = _reading_raw_to_band(correct_count)
+
+    # Log the session
+    try:
+        client.table("session_logs").insert({
+            "user_id": user_id,
+            "module": "reading",
+            "passage_id": None,  # Full test is multi-passage
+            "score": band_score,
+            "max_score": 9.0,
+            "percentage": percentage,
+            "band_score": band_score,
+            "details": {"exam_type": "ielts", "results": results, "is_full_test": True},
+        })
+    except Exception as e:
+        print(f"Failed to log full reading session: {str(e)}")
+
+    return FullTestResult(
+        total_questions=total,
+        correct_answers=correct_count,
+        score_percentage=percentage,
+        band_score=band_score,
+        results=results,
+    )
+

@@ -6,7 +6,7 @@ Endpoints for listening audio retrieval and MCQ scoring.
 from fastapi import APIRouter, HTTPException, Query
 from typing import Optional
 
-from app.schemas.models import MCQSubmission, MCQResult
+from app.schemas.models import MCQSubmission, MCQResult, FullTestSubmission, FullTestResult
 from app.services import listening_service
 
 router = APIRouter()
@@ -47,3 +47,18 @@ async def submit_answers(
 
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post("/submit-full", response_model=FullTestResult)
+async def submit_full_test(
+    submission: FullTestSubmission,
+    user: AuthenticatedUser | None = Depends(get_optional_user)
+):
+    """Submit answers for a full 40-question Listening test and get detailed band scoring."""
+    try:
+        user_id = user.id if user else None
+        result = listening_service.score_full_test(submission, user_id=user_id)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+

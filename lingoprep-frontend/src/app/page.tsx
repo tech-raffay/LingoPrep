@@ -114,7 +114,7 @@ export default function Home() {
             <div className="grid lg:grid-cols-12 gap-10 items-center">
               <div className="lg:col-span-7 space-y-5">
                 <h1 className="text-[36px] sm:text-[48px] font-extrabold text-[#000] leading-[1.1] tracking-tight">
-                  Achieve Your<br />
+                  Achieve Your{" "}
                   <span className="relative inline-block text-[#c8102e]">
                     Dream Score
                     <svg className="absolute left-0 -bottom-1.5 w-full h-3 text-[#c8102e]" viewBox="0 0 100 10" preserveAspectRatio="none" fill="none">
@@ -178,7 +178,7 @@ export default function Home() {
                   </div>
                   <p className="text-[13px] text-[#666] leading-relaxed mb-6">Comprehensive modules for Academic and General Training. Master the 4 skills with realistic test scenarios.</p>
                   <div className="grid grid-cols-2 gap-2 mb-6">
-                    {["Listening","Reading","Writing","Speaking"].map(s => (
+                    {["Listening", "Reading", "Writing", "Speaking"].map(s => (
                       <div key={s} className="flex items-center gap-2 py-2 px-3 bg-[#f5f5f5] rounded-lg text-[12px] font-semibold text-[#555]">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2"><polyline points="20 6 9 17 4 12" /></svg>{s}
                       </div>
@@ -197,7 +197,7 @@ export default function Home() {
                   </div>
                   <p className="text-[13px] text-[#666] leading-relaxed mb-6">Integrated tasks and authentic academic content designed to boost your iBT score efficiently.</p>
                   <div className="grid grid-cols-2 gap-2 mb-6">
-                    {["iBT Format","Academic Focus","Integrated Tasks","Score Analysis"].map(s => (
+                    {["iBT Format", "Academic Focus", "Integrated Tasks", "Score Analysis"].map(s => (
                       <div key={s} className="flex items-center gap-2 py-2 px-3 bg-[#f5f5f5] rounded-lg text-[12px] font-semibold text-[#555]">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2"><polyline points="20 6 9 17 4 12" /></svg>{s}
                       </div>
@@ -215,7 +215,7 @@ export default function Home() {
   }
 
   /* ═══════════════════════════════════════════
-     EXAM DASHBOARD (exam selected) — IDP skill cards style
+     EXAM DASHBOARD (exam selected) —  skill cards style
      ═══════════════════════════════════════════ */
   return (
     <div className="flex flex-col min-h-screen bg-[#f5f5f5]">

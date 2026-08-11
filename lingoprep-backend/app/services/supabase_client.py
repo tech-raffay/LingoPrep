@@ -27,6 +27,11 @@ class SupabaseTableQuery:
         self.params[column] = f"eq.{value}"
         return self
 
+    def in_(self, column: str, values: list):
+        val_str = ",".join(str(v) for v in values)
+        self.params[column] = f"in.({val_str})"
+        return self
+
     def order(self, column: str, desc: bool = False):
         self.params["order"] = f"{column}.{'desc' if desc else 'asc'}"
         return self
