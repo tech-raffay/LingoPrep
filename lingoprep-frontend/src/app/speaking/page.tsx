@@ -207,25 +207,28 @@ export default function SpeakingPage() {
   const subScoreMax = examType === "toefl" ? 4 : 9;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-6">
+    <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8">
       {/* Top Bar */}
-      <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#e0e0e0]">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 pb-5 border-b border-slate-200/80">
         <div>
-          <h1 className="text-[20px] font-bold text-[#1a1a1a]">{theme.name} Speaking Practice Test</h1>
-          <p className="text-[13px] text-[#999]">Academic Module</p>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider text-white" style={{ backgroundColor: theme.color }}>
+              {theme.name} Academic
+            </span>
+            <span className="text-[12px] font-semibold text-slate-400">•</span>
+            <span className="text-[13px] text-slate-500 font-medium">Speaking Assessment</span>
+          </div>
+          <h1 className="text-[24px] sm:text-[28px] font-extrabold text-slate-900 tracking-tight">{theme.name} Speaking Test</h1>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="px-2.5 py-0.5 rounded text-[11px] font-bold text-white" style={{ backgroundColor: theme.color }}>
-            {theme.name}
-          </span>
-          <span className="px-3 py-1 border text-[12px] font-bold rounded-full uppercase" style={{ borderColor: theme.color, color: theme.color }}>
-            {examType === "ielts" ? "Part 2" : "Task 1"}
+        <div className="flex items-center gap-2.5">
+          <span className="px-3.5 py-1 border text-[11.5px] font-extrabold rounded-full uppercase tracking-wider bg-slate-50" style={{ borderColor: `${theme.color}40`, color: theme.color }}>
+            {examType === "ielts" ? "Part 2 — Individual Long Turn" : "Task 1 — Independent Speaking"}
           </span>
         </div>
       </div>
 
       {/* Prompt Selection */}
-      <div className="flex flex-wrap gap-2.5 mb-6">
+      <div className="flex flex-wrap gap-2.5 mb-8">
         {prompts.map((p) => (
           <button
             key={p.id}
@@ -233,10 +236,10 @@ export default function SpeakingPage() {
               setSelectedPrompt(p);
               handleReset();
             }}
-            className={`px-4 py-1.5 rounded-full text-[12px] font-bold border transition-colors ${
+            className={`px-4 py-2 rounded-full text-[12.5px] font-bold border transition-all ${
               selectedPrompt.id === p.id
-                ? "text-white"
-                : "bg-white border-[#ddd] text-[#333] hover:bg-[#fafafa]"
+                ? "text-white shadow-sm"
+                : "bg-white border-slate-200/80 text-slate-700 hover:bg-slate-50/80"
             }`}
             style={
               selectedPrompt.id === p.id
@@ -244,26 +247,54 @@ export default function SpeakingPage() {
                 : undefined
             }
           >
-            {theme.name} — {p.title}
+            Topic: {p.title}
           </button>
         ))}
       </div>
 
       {/* Main Grid Layout */}
-      <div className="grid lg:grid-cols-12 gap-6 items-start">
+      <div className="grid lg:grid-cols-12 gap-8 items-start">
         
         {/* Left Side: Examiner Video simulation & audio state controls */}
-        <div className="lg:col-span-7 bg-white border border-[#e0e0e0] rounded-lg p-6">
-          <div className="bg-slate-100 rounded-lg aspect-video mb-6 flex flex-col items-center justify-center border border-slate-200 relative overflow-hidden">
+        <div className="lg:col-span-7 bg-white border border-slate-200/70 rounded-3xl p-6 sm:p-7 shadow-[0_8px_30px_rgb(0,0,0,0.03)]">
+          <div className="bg-gradient-to-b from-slate-900 to-slate-950 rounded-2xl aspect-video mb-6 flex flex-col items-center justify-center border border-slate-800 relative overflow-hidden shadow-inner">
             {/* Visual simulation of examiner */}
-            <div className="absolute inset-0 bg-slate-900 flex items-center justify-center">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1" opacity="0.3">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                <circle cx="12" cy="7" r="4"/>
-              </svg>
-              <div className="absolute bottom-3 left-3 bg-black/60 text-white text-[11px] px-2 py-0.5 rounded font-semibold">
-                Examiner
+            <div className="flex flex-col items-center justify-center text-center p-6 space-y-3">
+              <div className="relative">
+                <div className="w-16 h-16 rounded-full bg-slate-800/80 border border-slate-700/80 flex items-center justify-center text-slate-300 shadow-lg">
+                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                  </svg>
+                </div>
+                {recordingState === "recording" && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full animate-ping" />
+                )}
               </div>
+              <div>
+                <h4 className="text-white text-[14px] font-bold">AI Examiner Console</h4>
+                <p className="text-slate-400 text-[12px]">Listening & Evaluating spoken responses</p>
+              </div>
+
+              {/* Dynamic waveform visualizer */}
+              <div className="flex items-center gap-1 h-6 pt-2">
+                {[...Array(9)].map((_, i) => (
+                  <div
+                    key={i}
+                    className={`w-1 rounded-full transition-all duration-300 ${
+                      recordingState === "recording" ? "bg-red-400 animate-pulse" : "bg-slate-700"
+                    }`}
+                    style={{
+                      height: recordingState === "recording" ? `${[10, 22, 14, 24, 12, 20, 18, 22, 10][i]}px` : "6px",
+                      animationDelay: `${i * 100}ms`
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-md text-white text-[11px] px-2.5 py-1 rounded-full font-semibold border border-white/10 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Session Active</span>
             </div>
           </div>
 
@@ -272,26 +303,24 @@ export default function SpeakingPage() {
               <div className="text-center space-y-4">
                 <button
                   onClick={startRecording}
-                  className="w-14 h-14 rounded-full text-white flex items-center justify-center mx-auto shadow transition-colors"
+                  className="w-16 h-16 rounded-full text-white flex items-center justify-center mx-auto shadow-lg hover:scale-105 active:scale-95 transition-all"
                   style={{ backgroundColor: theme.color }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme.colorDark)}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = theme.color)}
                   aria-label="Start recording"
                 >
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
                     <path d="M19 10v1a7 7 0 0 1-14 0v-1"/>
                     <line x1="12" x2="12" y1="19" y2="22"/>
                   </svg>
                 </button>
-                <p className="text-[12px] font-bold text-slate-500 uppercase tracking-wide">Click microphone icon to record</p>
+                <p className="text-[12.5px] font-bold text-slate-500 uppercase tracking-wider">Click mic to record response</p>
                 
                 <button
                   onClick={() => setUseManualTranscript(true)}
-                  className="text-[12px] font-semibold hover:underline block"
+                  className="text-[12.5px] font-bold hover:underline block mx-auto"
                   style={{ color: theme.color }}
                 >
-                  Or manually enter response transcript
+                  Or type spoken transcript manually
                 </button>
               </div>
             )}
@@ -300,34 +329,36 @@ export default function SpeakingPage() {
               <div className="text-center space-y-4">
                 <button
                   onClick={stopRecording}
-                  className="w-14 h-14 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center mx-auto animate-pulse"
+                  className="w-16 h-16 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center mx-auto animate-pulse shadow-lg transition-all"
                   aria-label="Stop recording"
                 >
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="4" y="4" width="16" height="16" rx="2"/>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="5" y="5" width="14" height="14" rx="2"/>
                   </svg>
                 </button>
-                <div className="text-red-600 font-bold text-lg font-mono">
+                <div className="text-red-600 font-bold text-xl font-mono tracking-wider">
                   {formatTime(recordingTime)}
                 </div>
-                <p className="text-[12px] font-bold text-slate-400 uppercase">Recording... Click to stop</p>
+                <p className="text-[12px] font-extrabold text-slate-400 uppercase tracking-wider">Recording response... Click button to finish</p>
               </div>
             )}
 
             {recordingState === "recorded" && !transcript && (
               <div className="text-center space-y-4">
-                <p className="text-[13px] font-semibold text-slate-700">Audio length: {formatTime(recordingTime)}</p>
-                <div className="flex gap-2 justify-center">
+                <div className="px-4 py-2 rounded-full bg-slate-100 border border-slate-200 text-[13px] font-semibold text-slate-700 inline-block">
+                  Audio Duration: {formatTime(recordingTime)}
+                </div>
+                <div className="flex gap-3 justify-center">
                   <button
                     onClick={transcribeRecording}
-                    className="px-5 py-2 text-white font-semibold text-[13px] rounded-full transition-colors"
+                    className="px-6 py-2.5 text-white font-bold text-[13px] rounded-full transition-all shadow-md"
                     style={{ backgroundColor: theme.color }}
                   >
-                    Transcribe spoken response
+                    Transcribe Recording
                   </button>
                   <button
                     onClick={handleReset}
-                    className="px-5 py-2 border border-[#ddd] text-[#333] font-semibold text-[13px] rounded-full hover:bg-[#fafafa] transition-colors"
+                    className="px-5 py-2.5 border border-slate-200 text-slate-700 font-bold text-[13px] rounded-full hover:bg-slate-50 transition-colors"
                   >
                     Re-record
                   </button>
@@ -336,32 +367,32 @@ export default function SpeakingPage() {
             )}
 
             {(recordingState === "transcribing" || recordingState === "evaluating") && (
-              <div className="text-center space-y-3">
-                <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin mx-auto" style={{ borderColor: `${theme.color} transparent transparent transparent` }}></div>
-                <p className="text-[12px] font-bold text-slate-400 uppercase">AI is analyzing response...</p>
+              <div className="text-center space-y-3 py-4">
+                <div className="w-8 h-8 border-3 border-t-transparent rounded-full animate-spin mx-auto" style={{ borderColor: `${theme.color} transparent transparent transparent` }}></div>
+                <p className="text-[12.5px] font-extrabold text-slate-400 uppercase tracking-wider">Analyzing speaking metrics with AI...</p>
               </div>
             )}
           </div>
 
           {/* Manual input */}
           {useManualTranscript && recordingState === "idle" && (
-            <div className="mt-6 pt-6 border-t border-[#e0e0e0]">
+            <div className="mt-6 pt-6 border-t border-slate-200/80">
               <textarea
                 value={transcript}
                 onChange={(e) => setTranscript(e.target.value)}
-                placeholder="Enter what you would say in response..."
+                placeholder="Enter what you would say in response to the prompt..."
                 rows={5}
-                className="w-full p-4 rounded border border-[#e0e0e0] bg-slate-50 focus:outline-none text-[14px] leading-relaxed text-[#1a1a1a] placeholder:text-[#999]"
+                className="w-full p-4 rounded-2xl border border-slate-200 bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-slate-300 text-[14.5px] leading-relaxed text-slate-900 placeholder:text-slate-400"
               />
               <div className="flex items-center justify-between mt-3">
-                <span className="text-[12px] text-slate-400 font-semibold">{wordCount} words</span>
+                <span className="text-[12px] text-slate-500 font-semibold">{wordCount} words</span>
                 <button
                   onClick={evaluateTranscript}
                   disabled={wordCount < 10}
-                  className="px-5 py-2 text-white font-semibold text-[13px] rounded-full disabled:opacity-30 transition-colors"
+                  className="px-6 py-2.5 text-white font-bold text-[13px] rounded-full disabled:opacity-40 transition-all shadow-sm"
                   style={{ backgroundColor: theme.color }}
                 >
-                  Evaluate
+                  Evaluate Transcript
                 </button>
               </div>
             </div>
@@ -370,43 +401,53 @@ export default function SpeakingPage() {
 
         {/* Right Side: Candidate Cue Card */}
         <div className="lg:col-span-5 space-y-6">
-          <div className="bg-white border border-[#e0e0e0] rounded-lg p-6">
-            <h3 className="text-[15px] font-bold text-[#1a1a1a] border-b border-[#e0e0e0] pb-3 mb-4 flex items-center gap-2">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-                <line x1="16" y1="13" x2="8" y2="13"/>
-                <line x1="16" y1="17" x2="8" y2="17"/>
-                <polyline points="10 9 9 9 8 9"/>
-              </svg>
-              {examType === "ielts" ? "Candidate Cue Card" : "Speaking Prompt"}
+          <div className="bg-white border border-slate-200/70 rounded-3xl p-7 shadow-[0_8px_30px_rgb(0,0,0,0.03)]">
+            <h3 className="text-[16px] font-bold text-slate-900 border-b border-slate-100 pb-3 mb-5 flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="16" y1="13" x2="8" y2="13"/>
+                  <line x1="16" y1="17" x2="8" y2="17"/>
+                  <polyline points="10 9 9 9 8 9"/>
+                </svg>
+              </div>
+              <span>{examType === "ielts" ? "Candidate Cue Card" : "Speaking Task Prompt"}</span>
             </h3>
-            <p className="text-[14px] text-[#333] leading-relaxed whitespace-pre-line font-medium">
-              {selectedPrompt.content}
-            </p>
+            <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200/60 mb-4">
+              <p className="text-[14.5px] text-slate-800 leading-relaxed whitespace-pre-line font-medium">
+                {selectedPrompt.content}
+              </p>
+            </div>
+            <div className="text-[12px] text-slate-400 font-semibold flex items-center gap-1.5">
+              <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
+              <span>Suggested speaking duration: 1–2 minutes</span>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Transcript review */}
       {transcript && !evaluation && recordingState !== "evaluating" && !useManualTranscript && (
-        <div className="bg-white border border-[#e0e0e0] rounded-lg p-6 mt-6">
-          <h3 className="font-bold text-[14px] text-[#1a1a1a] border-b border-[#f0f0f0] pb-2 mb-3">Transcribed Response</h3>
-          <p className="text-[14px] text-[#333] leading-relaxed mb-5">{transcript}</p>
-          <div className="flex gap-2">
+        <div className="bg-white border border-slate-200/70 rounded-3xl p-7 mt-8 shadow-[0_8px_30px_rgb(0,0,0,0.03)]">
+          <h3 className="font-bold text-[15px] text-slate-900 border-b border-slate-100 pb-3 mb-4">Transcribed Spoken Response</h3>
+          <p className="text-[14.5px] text-slate-800 leading-relaxed mb-6 bg-slate-50/60 p-5 rounded-2xl border border-slate-200/60">{transcript}</p>
+          <div className="flex gap-3">
             <button
               onClick={evaluateTranscript}
               disabled={wordCount < 10}
-              className="px-5 py-2 text-white font-semibold text-[13px] rounded-full transition-colors"
+              className="px-6 py-2.5 text-white font-bold text-[13px] rounded-full transition-all shadow-md"
               style={{ backgroundColor: theme.color }}
             >
-              Get AI evaluation
+              Evaluate Response
             </button>
             <button
               onClick={handleReset}
-              className="px-5 py-2 border border-[#ddd] text-[#333] font-semibold text-[13px] rounded-full hover:bg-[#fafafa] transition-colors"
+              className="px-5 py-2.5 border border-slate-200 text-slate-700 font-bold text-[13px] rounded-full hover:bg-slate-50 transition-colors"
             >
-              Start over
+              Start Over
             </button>
           </div>
         </div>
@@ -414,45 +455,48 @@ export default function SpeakingPage() {
 
       {/* Error */}
       {error && (
-        <div className="mt-6 p-4 rounded bg-red-50 border border-red-200 text-red-700 text-[13px] font-semibold">
-          {error}
+        <div className="mt-8 p-4 rounded-2xl bg-red-50/80 border border-red-200 text-red-700 text-[13.5px] font-semibold flex items-center gap-3">
+          <svg className="w-5 h-5 text-red-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span>{error}</span>
         </div>
       )}
 
       {/* Evaluation Results */}
       {evaluation && (
-        <div className="mt-6 space-y-6">
+        <div className="mt-8 space-y-6">
           {/* Transcript review */}
-          <div className="bg-white border border-[#e0e0e0] rounded-lg p-6">
-            <h3 className="font-bold text-[14px] text-[#1a1a1a] border-b border-[#f0f0f0] pb-2 mb-3">Response Text</h3>
-            <p className="text-[14px] text-[#333] leading-relaxed">{transcript}</p>
+          <div className="bg-white border border-slate-200/70 rounded-3xl p-7 shadow-[0_8px_30px_rgb(0,0,0,0.03)]">
+            <h3 className="font-bold text-[15px] text-slate-900 border-b border-slate-100 pb-3 mb-4">Transcribed Response</h3>
+            <p className="text-[14.5px] text-slate-800 leading-relaxed">{transcript}</p>
           </div>
 
           {/* Results dashboard card */}
-          <div className="bg-white border border-[#e0e0e0] rounded-lg p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+          <div className="bg-white border border-slate-200/70 rounded-3xl p-7 shadow-[0_8px_30px_rgb(0,0,0,0.03)] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
             <div>
-              <h3 className="text-[16px] font-bold text-[#1a1a1a]">{theme.name} Speaking Score</h3>
-              <p className="text-[13px] text-[#666] mt-1">Based on pronunciation and structure metrics</p>
+              <h3 className="text-[18px] font-extrabold text-slate-900">{theme.name} Speaking Band Score</h3>
+              <p className="text-[13px] text-slate-500 mt-1">Evaluated based on official criteria</p>
             </div>
-            <div className="flex items-baseline gap-2 bg-[#f5f5f5] px-5 py-3 rounded-lg border border-[#e0e0e0]">
-              <span className="text-[36px] font-bold leading-none" style={{ color: theme.color }}>{evaluation.overall_band}</span>
-              <span className="text-[13px] text-[#666]">/ {maxScale}</span>
+            <div className="flex items-baseline gap-2 bg-slate-50 border border-slate-200/80 px-6 py-3.5 rounded-2xl shadow-sm">
+              <span className="text-[40px] font-extrabold leading-none" style={{ color: theme.color }}>{evaluation.overall_band}</span>
+              <span className="text-[14px] font-bold text-slate-500">/ {maxScale}</span>
             </div>
           </div>
 
           {/* Subscores Grid */}
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-2 gap-5">
             {Object.entries(bandLabels).map(([key, label]) => {
               const val = evaluation[key as keyof EvaluationResult] as number;
               return (
-                <div key={key} className="bg-white border border-[#e0e0e0] rounded-lg p-5">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[13px] font-bold text-slate-700">{label}</span>
-                    <span className="font-bold text-[15px] text-[#1a1a1a]">{val}</span>
+                <div key={key} className="bg-white border border-slate-200/70 rounded-3xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-[14px] font-bold text-slate-800">{label}</span>
+                    <span className="font-extrabold text-[16px] text-slate-900">{val}</span>
                   </div>
-                  <div className="h-1.5 bg-[#f0f0f0] rounded-full overflow-hidden">
+                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                     <div
-                      className="h-full"
+                      className="h-full rounded-full transition-all duration-500"
                       style={{ width: `${(val / subScoreMax) * 100}%`, backgroundColor: theme.color }}
                     />
                   </div>
@@ -462,18 +506,18 @@ export default function SpeakingPage() {
           </div>
 
           {/* Feedback & Suggestions */}
-          <div className="bg-white border border-[#e0e0e0] rounded-lg p-6">
-            <h4 className="font-bold text-[#1a1a1a] text-[15px] mb-3 border-b border-[#f0f0f0] pb-2">Feedback</h4>
-            <p className="text-[#333] leading-relaxed text-[13px] whitespace-pre-line">{evaluation.feedback}</p>
+          <div className="bg-white border border-slate-200/70 rounded-3xl p-7 shadow-[0_8px_30px_rgb(0,0,0,0.03)]">
+            <h4 className="font-bold text-slate-900 text-[16px] mb-4 border-b border-slate-100 pb-3">Detailed Assessment Feedback</h4>
+            <p className="text-slate-800 leading-relaxed text-[14px] whitespace-pre-line">{evaluation.feedback}</p>
           </div>
 
-          <div className="bg-white border border-[#e0e0e0] rounded-lg p-6">
-            <h4 className="font-bold text-[#1a1a1a] text-[15px] mb-3 border-b border-[#f0f0f0] pb-2">Suggestions for Improvement</h4>
-            <ul className="space-y-2">
+          <div className="bg-white border border-slate-200/70 rounded-3xl p-7 shadow-[0_8px_30px_rgb(0,0,0,0.03)]">
+            <h4 className="font-bold text-slate-900 text-[16px] mb-4 border-b border-slate-100 pb-3">Suggestions for Improvement</h4>
+            <ul className="space-y-3">
               {evaluation.suggestions.map((s, i) => (
-                <li key={i} className="flex items-start gap-2 text-[#333] text-[13px]">
-                  <span className="font-bold" style={{ color: theme.color }}>✓</span>
-                  <span>{s}</span>
+                <li key={i} className="flex items-start gap-3 text-slate-800 text-[14px]">
+                  <span className="font-extrabold text-base" style={{ color: theme.color }}>✓</span>
+                  <span className="leading-relaxed">{s}</span>
                 </li>
               ))}
             </ul>
@@ -481,12 +525,13 @@ export default function SpeakingPage() {
 
           <button
             onClick={handleReset}
-            className="px-6 py-2 border border-[#ddd] text-[#333] font-semibold text-[13px] rounded-full hover:bg-[#fafafa] transition-colors"
+            className="px-6 py-3 border border-slate-200 bg-white text-slate-700 font-bold text-[13px] rounded-full hover:bg-slate-50 transition-colors shadow-sm"
           >
-            Start new practice topic
+            Start New Practice Topic
           </button>
         </div>
       )}
     </div>
   );
 }
+
