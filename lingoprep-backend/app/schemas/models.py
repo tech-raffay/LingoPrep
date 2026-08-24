@@ -89,6 +89,7 @@ class MCQResult(BaseModel):
 class FullTestSubmission(BaseModel):
     """Submit answers for a full IELTS/TOEFL exam."""
     answers: list[AnswerSubmission]
+    exam_type: Optional[str] = "ielts"  # "ielts" or "toefl"
 
 
 class FullTestResult(BaseModel):

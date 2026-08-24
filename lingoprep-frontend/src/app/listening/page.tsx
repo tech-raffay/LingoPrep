@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useRef, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -229,6 +229,7 @@ export default function ListeningPage() {
 
       const res = await api.post("/api/listening/submit-full", {
         answers: answersPayload,
+        exam_type: examType,
       });
 
       setCorrectCount(res.data.correct_answers);
@@ -336,8 +337,10 @@ export default function ListeningPage() {
             <span className="px-3 py-1 text-[11px] font-extrabold uppercase rounded-full text-white tracking-wider" style={{ backgroundColor: theme.color }}>
               {theme.name} Academic
             </span>
-            <h1 className="text-[26px] sm:text-[32px] font-bold text-slate-900 mt-3">Full Listening Exam</h1>
-            <p className="text-[14px] text-slate-600 mt-1">Realistic 4-section, 40-question listening practice simulation</p>
+            <h1 className="text-[26px] sm:text-[32px] font-bold text-slate-900 mt-3">{theme.name} Listening Test</h1>
+            <p className="text-[14px] text-slate-600 mt-1">
+              {examType === "toefl" ? "1 Conversation + 2 Academic Lectures · 17 Questions" : "4 sections · 40-question listening practice simulation"}
+            </p>
           </div>
 
           <div className="p-6 sm:p-10 space-y-6">
@@ -403,13 +406,14 @@ export default function ListeningPage() {
               Test Completed
             </span>
             <h1 className="text-[28px] font-bold text-slate-900 mt-4">Your Listening Score Report</h1>
-            <p className="text-[13px] text-[#999] mt-1">Official IELTS Listening Band Scaling</p>
+            <p className="text-[13px] text-[#999] mt-1">{examType === "toefl" ? "TOEFL iBT Listening — Scored 0 to 30" : "Official IELTS Listening Band Scaling"}</p>
 
             <div className="flex flex-col sm:flex-row justify-center items-center gap-6 sm:gap-16 my-8">
-              {/* Band Score Circle */}
+              {/* Score Circle */}
               <div className="relative w-36 h-36 flex flex-col items-center justify-center rounded-full border-8 bg-slate-50" style={{ borderColor: theme.colorLight }}>
-                <span className="text-[12px] font-bold uppercase tracking-wider text-slate-500">IELTS Band</span>
-                <span className="text-[42px] font-extrabold text-slate-900 leading-none mt-1">{bandScore !== null ? bandScore.toFixed(1) : "0.0"}</span>
+                <span className="text-[12px] font-bold uppercase tracking-wider text-slate-500">{examType === "toefl" ? "TOEFL" : "IELTS Band"}</span>
+                <span className="text-[42px] font-extrabold text-slate-900 leading-none mt-1">{bandScore !== null ? (examType === "toefl" ? bandScore.toFixed(0) : bandScore.toFixed(1)) : "0"}</span>
+                {examType === "toefl" && <span className="text-[11px] text-slate-400 font-semibold">out of 30</span>}
               </div>
 
               {/* Statistics */}
@@ -599,46 +603,53 @@ export default function ListeningPage() {
       )
     },
   ];
-  const card = sectionCards[activeSectionIdx] ?? sectionCards[0];
+  const toeflSectionCards = [
+    {
+      bg: "#EFF6FF", color: "#3B82F6", label: "Campus Conversation",
+      svg: (<svg viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 8.81 19.79 19.79 0 010.07 2.18 2 2 0 012.07.07h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.29 6.29l.41-1.21a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>)
+    },
+    {
+      bg: "#F5F3FF", color: "#8B5CF6", label: "Academic Lecture 1",
+      svg: (<svg viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>)
+    },
+    {
+      bg: "#FFF7ED", color: "#F97316", label: "Academic Lecture 2",
+      svg: (<svg viewBox="0 0 24 24" fill="none" stroke="#F97316" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>)
+    },
+  ];
+  const card = examType === "toefl"
+    ? (toeflSectionCards[activeSectionIdx] ?? toeflSectionCards[0])
+    : (sectionCards[activeSectionIdx] ?? sectionCards[0]);
 
   return (
     <div className="min-h-screen bg-[#f4f5f7] flex flex-col">
 
       {/* TOP BAR */}
-      <header className="bg-white border-b border-slate-200 px-8 py-3.5 flex items-center justify-between sticky top-0 z-30 shadow-sm">
-        <div className="flex items-center gap-3">
-          <span className="text-[17px] font-extrabold tracking-tight" style={{ color: theme.color }}>
-            LingoPrep
-          </span>
-          <span className="text-slate-300">|</span>
-          <span className="text-[14px] font-semibold text-slate-600">
-            {theme.name} Listening Practice Test
-          </span>
+      <header className="bg-white border-b border-slate-200 px-4 sm:px-8 py-3 flex items-center justify-between sticky top-0 z-30 shadow-sm gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-[15px] sm:text-[17px] font-extrabold tracking-tight flex-shrink-0" style={{ color: theme.color }}>LingoPrep</span>
+          <span className="text-slate-300 hidden sm:inline">|</span>
+          <span className="text-[12px] sm:text-[14px] font-semibold text-slate-600 hidden sm:inline truncate">{theme.name} Listening Test</span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-shrink-0">
           {isReviewPeriod && (
             <div className="flex items-center gap-1.5 text-[13px] font-mono font-bold text-red-600 bg-red-50 border border-red-200 px-3 py-1.5 rounded-lg animate-pulse">
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-              </svg>
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               {formatTime(reviewTimeLeft)}
             </div>
           )}
-          <button
-            onClick={() => handleSubmit(false)}
-            className="px-5 py-2 text-white font-bold text-[13px] rounded-lg transition-all hover:opacity-90 active:scale-95"
+          <button onClick={() => handleSubmit(false)}
+            className="px-3 sm:px-5 py-2 text-white font-bold text-[12px] sm:text-[13px] rounded-lg transition-all hover:opacity-90 active:scale-95"
             style={{ backgroundColor: theme.color }}
-          >
-            Finish Test
-          </button>
+          >Finish</button>
         </div>
       </header>
 
       {/* MAIN CONTENT */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
 
         {/* LEFT PANEL */}
-        <div className="w-72 bg-white border-r border-slate-200 flex flex-col gap-5 p-5 overflow-y-auto flex-shrink-0">
+        <div className="md:w-72 bg-white border-b md:border-b-0 md:border-r border-slate-200 flex flex-col gap-4 p-4 md:p-5 overflow-y-auto md:flex-shrink-0">
 
           {/* Section visual card */}
           <div className="rounded-2xl overflow-hidden border border-slate-200">
@@ -769,8 +780,8 @@ export default function ListeningPage() {
           </div>
         </div>
 
-        {/* RIGHT PANEL â€” Questions */}
-        <div className="flex-1 overflow-y-auto px-8 py-6 space-y-4 pb-24">
+        {/* RIGHT PANEL - Questions */}
+        <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 space-y-4 pb-24">
           <div className="mb-4">
             <h2 className="text-[18px] font-bold text-slate-900">{currentExercise.title}</h2>
             <p className="text-[13px] text-slate-500 mt-1">

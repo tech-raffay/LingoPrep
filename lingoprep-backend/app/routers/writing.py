@@ -14,9 +14,37 @@ from app.services.supabase_client import get_client
 router = APIRouter()
 
 
+TOEFL_PROMPTS = [
+    {
+        "id": "toefl_w1",
+        "exam_type": "toefl",
+        "task_type": "1",
+        "question": "Build a coherent, grammatically correct sentence using the following words/phrase: 'due to', 'unforeseen circumstances', 'postponed'. Make sure the sentence makes academic sense.",
+        "overall": 0,
+    },
+    {
+        "id": "toefl_w2",
+        "exam_type": "toefl",
+        "task_type": "2",
+        "question": "Write an email to your professor, Dr. Evelyn Vance, requesting a short extension on your term paper. Explain the reasons for your request and propose a new deadline. Write between 120 and 150 words.",
+        "overall": 0,
+    },
+    {
+        "id": "toefl_w3",
+        "exam_type": "toefl",
+        "task_type": "3",
+        "question": "Your professor is teaching a class on sociology. Write a response to the discussion prompt: 'Some people argue that government funding should focus entirely on STEM subjects (science, technology, engineering, and mathematics), while others believe that the arts and humanities deserve equal support. What is your opinion?' Support your response with specific reasons and examples.",
+        "overall": 0,
+    },
+]
+
+
 @router.get("/prompts")
-async def get_prompts():
-    """Get writing prompts from the writing_samples table in Supabase."""
+async def get_prompts(exam_type: Optional[str] = "ielts"):
+    """Get writing prompts based on the exam_type."""
+    if exam_type == "toefl":
+        return {"success": True, "data": TOEFL_PROMPTS, "count": len(TOEFL_PROMPTS)}
+
     try:
         db = get_client()
         res = db.table("writing_samples").select("id,task_type,question,overall").limit(50).execute()
@@ -36,12 +64,20 @@ async def get_prompts():
             },
         ]
 
+    for p in prompts:
+        if "exam_type" not in p:
+            p["exam_type"] = "ielts"
+
     return {"success": True, "data": prompts, "count": len(prompts)}
 
 
 @router.get("/prompt/random")
-async def get_random_prompt():
-    """Get a single random writing prompt from writing_samples."""
+async def get_random_prompt(exam_type: Optional[str] = "ielts"):
+    """Get a single random writing prompt based on exam_type."""
+    if exam_type == "toefl":
+        import random
+        return {"success": True, "data": random.choice(TOEFL_PROMPTS)}
+
     try:
         db = get_client()
         res = db.table("writing_samples").select("*").limit(20).execute()
@@ -54,6 +90,8 @@ async def get_random_prompt():
 
     import random
     prompt = random.choice(data)
+    if isinstance(prompt, dict) and "exam_type" not in prompt:
+        prompt["exam_type"] = "ielts"
     return {"success": True, "data": prompt}
 
 
@@ -75,31 +113,50 @@ async def submit_essay(
     """
     Submit an essay for AI evaluation and save the result to writing_submissions.
     
-    1. Fetches the original prompt from writing_samples by prompt_id.
+    1. Fetches the original prompt from writing_samples or static prompts.
     2. Calls Llama 3 (via Groq) to evaluate the essay.
     3. Saves user_essay, ai_feedback, and score into writing_submissions.
     4. Returns the AI feedback to the frontend.
     """
     db = get_client()
 
-    # 1. Fetch the prompt text from writing_samples
-    try:
-        prompt_res = db.table("writing_samples").select("*").eq("id", req.prompt_id).single().execute()
-        prompt_data = prompt_res.data
-    except Exception:
-        prompt_data = None
+    # 1. Fetch the prompt text
+    prompt_data = None
+    # Check static TOEFL prompts first
+    for p in TOEFL_PROMPTS:
+        if p["id"] == req.prompt_id:
+            prompt_data = p
+            break
+
+    if not prompt_data:
+        # Check static fallback IELTS prompt
+        if req.prompt_id == "p1":
+            prompt_data = {
+                "id": "p1",
+                "exam_type": "ielts",
+                "task_type": "task2",
+                "question": "Some people believe that universities should focus on providing academic skills, while others think they should prepare students for employment. Discuss both views and give your opinion.",
+                "overall": 0,
+            }
+        else:
+            try:
+                prompt_res = db.table("writing_samples").select("*").eq("id", req.prompt_id).single().execute()
+                prompt_data = prompt_res.data
+            except Exception:
+                prompt_data = None
 
     if not prompt_data:
         raise HTTPException(status_code=404, detail="Prompt not found.")
 
     prompt_question = prompt_data.get("question", "")
+    exam_type = prompt_data.get("exam_type", "ielts")
 
     # 2. Call the existing evaluate_essay service (Llama 3 via Groq)
     try:
         submission = EssaySubmissionSchema(
             prompt=prompt_question,
             essay_text=req.essay,
-            exam_type="ielts",
+            exam_type=exam_type,
             task_type=prompt_data.get("task_type", "2"),
         )
         evaluation = await writing_service.evaluate_essay(submission)
@@ -119,16 +176,23 @@ async def submit_essay(
         "suggestions": evaluation.suggestions,
     }
     insert_data = {
-        "prompt_id": req.prompt_id,
-        "user_essay": req.essay,
-        "ai_feedback": feedback_json,
-        "score": evaluation.overall_band,
+        "prompt": prompt_question,
+        "essay_text": req.essay,
+        "exam_type": exam_type,
+        "task_type": prompt_data.get("task_type", "2"),
+        "word_count": len(req.essay.split()),
+        "overall_band": evaluation.overall_band,
+        "task_achievement": evaluation.task_achievement,
+        "coherence_cohesion": evaluation.coherence_cohesion,
+        "lexical_resource": evaluation.lexical_resource,
+        "grammatical_range": evaluation.grammatical_range,
+        "feedback": evaluation.feedback,
+        "suggestions": evaluation.suggestions,
     }
     # Determine user_id
     current_uid = user.id if user else req.user_id
     if current_uid:
         insert_data["user_id"] = current_uid
-
 
     try:
         db.table("writing_submissions").insert(insert_data).execute()

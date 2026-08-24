@@ -57,9 +57,13 @@ export default function ReadingPage() {
   const [scorePercentage, setScorePercentage] = useState<number | null>(null);
   const [dbResults, setDbResults] = useState<any[] | null>(null);
 
-  // Timer: 60 minutes for IELTS
-  const [timeLeft, setTimeLeft] = useState(3600);
-  
+  // Exam config: TOEFL = 35 min, IELTS = 60 min
+  const examConfig = examType === "toefl"
+    ? { timer: 2100, sections: "2 Passages", questions: "20 Questions", duration: "35 Minutes", scoreLabel: "TOEFL Score", maxScore: 30 }
+    : { timer: 3600, sections: "3 Passages", questions: "40 Questions", duration: "60 Minutes", scoreLabel: "IELTS Band", maxScore: 9 };
+  const [timeLeft, setTimeLeft] = useState(examConfig.timer);
+  const [showPassage, setShowPassage] = useState(true); // mobile toggle
+
   // Refs for scrolling to specific questions
   const questionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -136,6 +140,7 @@ export default function ReadingPage() {
 
       const res = await api.post("/api/reading/submit-full", {
         answers: answersPayload,
+        exam_type: examType,
       });
 
       setCorrectCount(res.data.correct_answers);
@@ -240,8 +245,8 @@ export default function ReadingPage() {
             <span className="px-3 py-1 text-[11px] font-extrabold uppercase rounded-full text-white tracking-wider" style={{ backgroundColor: theme.color }}>
               {theme.name} Academic
             </span>
-            <h1 className="text-[26px] sm:text-[32px] font-bold text-slate-900 mt-3">Full Reading Exam</h1>
-            <p className="text-[14px] text-slate-600 mt-1">Realistic 3-section, 40-question academic practice environment</p>
+            <h1 className="text-[26px] sm:text-[32px] font-bold text-slate-900 mt-3">{theme.name} Reading Test</h1>
+            <p className="text-[14px] text-slate-600 mt-1">{examConfig.sections} · {examConfig.questions} · {examConfig.duration}</p>
           </div>
 
           <div className="p-6 sm:p-10 space-y-6">
@@ -250,19 +255,19 @@ export default function ReadingPage() {
               <ul className="space-y-3 text-[14px] text-slate-600">
                 <li className="flex items-start gap-2.5">
                   <svg className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  <span><strong>Total Duration:</strong> 60 minutes exactly. The timer will auto-submit when it reaches 0.</span>
+                  <span><strong>Total Duration:</strong> {examConfig.duration}. The timer will auto-submit when it reaches 0.</span>
                 </li>
                 <li className="flex items-start gap-2.5">
                   <svg className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  <span><strong>Sections:</strong> 3 distinct reading passages, each increasing in academic complexity.</span>
+                  <span><strong>Sections:</strong> {examConfig.sections} — {examType === "toefl" ? "academic passages on science and social science topics" : "3 distinct passages increasing in academic complexity"}.</span>
                 </li>
                 <li className="flex items-start gap-2.5">
                   <svg className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  <span><strong>Questions:</strong> 40 multiple-choice questions total. Mark answers directly in the panel.</span>
+                  <span><strong>Questions:</strong> {examConfig.questions} — detail, inference, vocabulary-in-context, and purpose questions.</span>
                 </li>
                 <li className="flex items-start gap-2.5">
                   <svg className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  <span><strong>Navigation:</strong> Free movement between sections using tabs or the 1-40 layout grid.</span>
+                  <span><strong>Scoring:</strong> {examType === "toefl" ? "Scored 0–30 (TOEFL iBT section scale)" : "Scored as IELTS Academic Band 0–9"}.</span>
                 </li>
               </ul>
             </div>
@@ -303,13 +308,14 @@ export default function ReadingPage() {
               Test Completed
             </span>
             <h1 className="text-[28px] font-bold text-slate-900 mt-4">Your Reading Score Report</h1>
-            <p className="text-[13px] text-[#999] mt-1">Official IELTS Academic Reading Criteria</p>
+            <p className="text-[13px] text-[#999] mt-1">{examType === "toefl" ? "TOEFL iBT Reading — Scored 0 to 30" : "Official IELTS Academic Reading Criteria"}</p>
 
             <div className="flex flex-col sm:flex-row justify-center items-center gap-6 sm:gap-16 my-8">
               {/* Band Score Circle */}
               <div className="relative w-36 h-36 flex flex-col items-center justify-center rounded-full border-8 bg-slate-50" style={{ borderColor: theme.colorLight }}>
-                <span className="text-[12px] font-bold uppercase tracking-wider text-slate-500">IELTS Band</span>
-                <span className="text-[42px] font-extrabold text-slate-900 leading-none mt-1">{bandScore !== null ? bandScore.toFixed(1) : "0.0"}</span>
+                <span className="text-[12px] font-bold uppercase tracking-wider text-slate-500">{examType === "toefl" ? "TOEFL" : "IELTS Band"}</span>
+                <span className="text-[42px] font-extrabold text-slate-900 leading-none mt-1">{bandScore !== null ? (examType === "toefl" ? bandScore.toFixed(0) : bandScore.toFixed(1)) : "0"}</span>
+                {examType === "toefl" && <span className="text-[11px] text-slate-400 font-semibold">out of 30</span>}
               </div>
 
               {/* Statistics */}
@@ -457,68 +463,60 @@ export default function ReadingPage() {
     <div className="min-h-screen bg-[#f4f5f7] flex flex-col">
 
       {/* TOP BAR */}
-      <header className="bg-white border-b border-slate-200 px-8 py-3.5 flex items-center justify-between sticky top-0 z-30 shadow-sm">
-        <div className="flex items-center gap-3">
-          <span className="text-[17px] font-extrabold tracking-tight" style={{ color: theme.color }}>
-            LingoPrep
-          </span>
-          <span className="text-slate-300">|</span>
-          <span className="text-[14px] font-semibold text-slate-600">
-            {theme.name} Reading Practice Test
-          </span>
+      <header className="bg-white border-b border-slate-200 px-4 sm:px-8 py-3 flex items-center justify-between sticky top-0 z-30 shadow-sm gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-[15px] sm:text-[17px] font-extrabold tracking-tight flex-shrink-0" style={{ color: theme.color }}>LingoPrep</span>
+          <span className="text-slate-300 hidden sm:inline">|</span>
+          <span className="text-[12px] sm:text-[14px] font-semibold text-slate-600 hidden sm:inline truncate">{theme.name} Reading Test</span>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 bg-slate-100/90 border border-slate-200 p-1 rounded-xl">
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Passage tabs — hidden on mobile */}
+          <div className="hidden md:flex items-center gap-1 bg-slate-100/90 border border-slate-200 p-1 rounded-xl">
             {passages.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => setActiveSectionIdx(idx)}
+              <button key={idx} onClick={() => setActiveSectionIdx(idx)}
                 className={`px-3 py-1 rounded-lg text-[12px] font-bold transition-all ${
-                  activeSectionIdx === idx
-                    ? "bg-white text-slate-900 shadow-sm"
-                    : "text-slate-500 hover:text-slate-800"
+                  activeSectionIdx === idx ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
                 }`}
-              >
-                Passage {idx + 1}
-              </button>
+              >P{idx + 1}</button>
             ))}
           </div>
 
-          <div
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg border font-mono font-bold text-[13px] transition-all ${
-              timeLeft < 300
-                ? "bg-red-50 text-[#c8102e] border-red-200 animate-pulse"
-                : "bg-slate-50 text-slate-700 border-slate-200"
-            }`}
-          >
+          {/* Mobile passage toggle */}
+          <button onClick={() => setShowPassage(p => !p)}
+            className="md:hidden px-3 py-1.5 bg-slate-100 border border-slate-200 rounded-lg text-[12px] font-bold text-slate-700"
+          >{showPassage ? "Questions" : "Passage"}</button>
+
+          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border font-mono font-bold text-[13px] transition-all ${
+            timeLeft < 300 ? "bg-red-50 text-[#c8102e] border-red-200 animate-pulse" : "bg-slate-50 text-slate-700 border-slate-200"
+          }`}>
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span>{formatTime(timeLeft)}</span>
           </div>
 
-          <button
-            onClick={() => handleSubmit(false)}
-            className="px-5 py-2 text-white font-bold text-[13px] rounded-lg transition-all hover:opacity-90 active:scale-95"
+          <button onClick={() => handleSubmit(false)}
+            className="px-3 sm:px-5 py-2 text-white font-bold text-[12px] sm:text-[13px] rounded-lg transition-all hover:opacity-90 active:scale-95"
             style={{ backgroundColor: theme.color }}
-          >
-            Finish Test
-          </button>
+          >Finish</button>
         </div>
       </header>
 
-      {/* MAIN WORKSPACE (Split Screen) */}
-      <div className="flex-1 grid lg:grid-cols-12 gap-0 overflow-hidden">
-        
-        {/* Left Side: Scrollable Passage */}
-        <div className="lg:col-span-7 bg-white border-r border-slate-200 p-8 overflow-y-auto max-h-[calc(100vh-115px)]">
+      {/* MAIN WORKSPACE — responsive split screen */}
+      <div className="flex-1 overflow-hidden" style={{ display: "grid", gridTemplateColumns: "1fr" }}>
+        <div className="flex-1 grid md:grid-cols-12 gap-0 overflow-hidden flex-1">
+
+        {/* Left Side: Passage — hidden on mobile when showing questions */}
+        <div className={`md:col-span-7 bg-white border-r border-slate-200 p-5 sm:p-8 overflow-y-auto max-h-[calc(100vh-115px)] ${
+          showPassage ? "block" : "hidden md:block"
+        }`}>
           <div className="max-w-3xl mx-auto space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <span className="px-3.5 py-1 bg-slate-100 border border-slate-200 text-slate-600 font-extrabold rounded-full text-[10.5px] uppercase tracking-wider">
                 Passage {activeSectionIdx + 1} of {totalPassages}
               </span>
-              <span className="text-[12px] font-semibold text-slate-400">Questions {qStart}-{qEnd}</span>
+              <span className="text-[12px] font-semibold text-slate-400">Questions {qStart}–{qEnd}</span>
             </div>
 
             <h2 className="text-[23px] font-extrabold text-slate-900 leading-tight">
@@ -533,8 +531,10 @@ export default function ReadingPage() {
           </div>
         </div>
 
-        {/* Right Side: Scrollable Questions */}
-        <div className="lg:col-span-5 bg-[#f8f9fb] p-8 overflow-y-auto max-h-[calc(100vh-115px)] space-y-4 pb-28">
+        {/* Right Side: Questions — hidden on mobile when showing passage */}
+        <div className={`md:col-span-5 bg-[#f8f9fb] p-4 sm:p-8 overflow-y-auto max-h-[calc(100vh-115px)] space-y-4 pb-28 ${
+          showPassage ? "hidden md:block" : "block"
+        }`}>
           <div className="bg-amber-50 border border-amber-200/80 rounded-2xl p-4">
             <p className="text-[13.5px] font-bold text-amber-900 mb-0.5 flex items-center gap-2">
               <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
@@ -611,77 +611,54 @@ export default function ReadingPage() {
           })}
         </div>
       </div>
+      </div>
 
-      {/* BOTTOM NAVIGATOR BAR  matching mock layout */}
+      {/* BOTTOM NAVIGATOR BAR */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-30">
-        <div className="px-8 py-3 flex items-center justify-between gap-4">
+        <div className="px-3 sm:px-8 py-3 flex items-center justify-between gap-3">
           {/* Question Number Scroll Row */}
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider whitespace-nowrap mr-1">
-              Questions:
-            </span>
-            <div className="flex items-center gap-1 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+          <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
+            <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider whitespace-nowrap hidden sm:inline">Qs:</span>
+            <div className="flex items-center gap-1 overflow-x-auto flex-1" style={{ scrollbarWidth: "none" }}>
               {allQuestions.map((q, idx) => {
                 const hasAnswer = !!selectedAnswers[q.id];
                 const isCurrentPassage = currentPassage.questions.some((pq) => pq.id === q.id);
-
                 return (
-                  <button
-                    key={q.id}
-                    onClick={() => handleNavClick(idx)}
+                  <button key={q.id} onClick={() => { handleNavClick(idx); setShowPassage(false); }}
                     className={`w-7 h-7 flex-shrink-0 rounded-md text-[11px] font-bold transition-all border ${
-                      hasAnswer
-                        ? "text-white border-transparent"
-                        : isCurrentPassage
-                        ? "bg-white border-2"
+                      hasAnswer ? "text-white border-transparent"
+                        : isCurrentPassage ? "bg-white border-2"
                         : "bg-slate-100 text-slate-500 border-slate-200 opacity-60"
                     }`}
-                    style={
-                      hasAnswer
-                        ? { backgroundColor: theme.color }
-                        : isCurrentPassage
-                        ? { borderColor: theme.color, color: theme.color }
-                        : undefined
-                    }
-                  >
-                    {idx + 1}
-                  </button>
+                    style={hasAnswer ? { backgroundColor: theme.color } : isCurrentPassage ? { borderColor: theme.color, color: theme.color } : undefined}
+                  >{idx + 1}</button>
                 );
               })}
             </div>
           </div>
 
-          {/* Action buttons */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <button
-              disabled={activeSectionIdx === 0}
-              onClick={() => setActiveSectionIdx((prev) => prev - 1)}
-              className="flex items-center gap-1.5 px-4 py-2 border border-slate-300 rounded-lg text-[12.5px] font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          {/* Nav + Submit */}
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <button disabled={activeSectionIdx === 0}
+              onClick={() => { setActiveSectionIdx(p => p - 1); setShowPassage(true); }}
+              className="flex items-center gap-1 px-2 sm:px-4 py-2 border border-slate-300 rounded-lg text-[12px] font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
-              </svg>
-              Previous Passage
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
+              <span className="hidden sm:inline">Prev</span>
             </button>
-            <button
-              disabled={activeSectionIdx === passages.length - 1}
-              onClick={() => setActiveSectionIdx((prev) => prev + 1)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-[12.5px] font-bold text-white transition-all hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed"
+            <button disabled={activeSectionIdx === passages.length - 1}
+              onClick={() => { setActiveSectionIdx(p => p + 1); setShowPassage(true); }}
+              className="flex items-center gap-1 px-2 sm:px-4 py-2 rounded-lg text-[12px] font-bold text-white transition-all hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed"
               style={{ backgroundColor: "#1e293b" }}
             >
-              Next Passage
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/>
-              </svg>
+              <span className="hidden sm:inline">Next</span>
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
             </button>
             {activeSectionIdx === passages.length - 1 && (
-              <button
-                onClick={() => handleSubmit(false)}
-                className="px-5 py-2 text-white font-bold text-[12.5px] rounded-lg transition-all hover:opacity-90"
+              <button onClick={() => handleSubmit(false)}
+                className="px-3 sm:px-5 py-2 text-white font-bold text-[12px] sm:text-[12.5px] rounded-lg transition-all hover:opacity-90"
                 style={{ backgroundColor: theme.color }}
-              >
-                Finish Test
-              </button>
+              >Submit</button>
             )}
           </div>
         </div>

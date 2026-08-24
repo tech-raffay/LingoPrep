@@ -96,7 +96,7 @@ export default function WritingPage() {
 
   const loadRandomPrompt = async () => {
     try {
-      const res = await api.get("/api/writing/prompt/random");
+      const res = await api.get(`/api/writing/prompt/random?exam_type=${examType}`);
       const p = res.data?.data;
       if (p) {
         setSelectedPrompt(p);

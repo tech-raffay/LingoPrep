@@ -231,9 +231,38 @@ def _listening_raw_to_band(correct: int) -> float:
     return 0.0
 
 
+def _toefl_listening_raw_to_scaled(correct: int, total: int) -> float:
+    """Convert TOEFL iBT Listening raw score to 0-30 scaled score."""
+    if total <= 0:
+        return 0.0
+    ratio = correct / total
+    if ratio >= 1.0: return 30.0
+    elif ratio >= 0.95: return 29.0
+    elif ratio >= 0.90: return 27.0
+    elif ratio >= 0.85: return 26.0
+    elif ratio >= 0.80: return 25.0
+    elif ratio >= 0.75: return 23.0
+    elif ratio >= 0.70: return 22.0
+    elif ratio >= 0.65: return 20.0
+    elif ratio >= 0.60: return 18.0
+    elif ratio >= 0.55: return 16.0
+    elif ratio >= 0.50: return 15.0
+    elif ratio >= 0.45: return 13.0
+    elif ratio >= 0.40: return 11.0
+    elif ratio >= 0.35: return 9.0
+    elif ratio >= 0.30: return 7.0
+    elif ratio >= 0.25: return 5.0
+    elif ratio >= 0.20: return 4.0
+    elif ratio >= 0.15: return 3.0
+    elif ratio >= 0.10: return 2.0
+    elif ratio >= 0.05: return 1.0
+    return 0.0
+
+
 def score_full_test(submission: FullTestSubmission, user_id: str = None) -> FullTestResult:
-    """Score all 40 questions for a full Listening test, calculate band score, and log the session."""
+    """Score a full Listening test, calculate band/scaled score, and log the session."""
     client = get_client()
+    exam_type = getattr(submission, 'exam_type', 'ielts') or 'ielts'
 
     question_ids = [ans.question_id for ans in submission.answers]
     selected_option_ids = [ans.selected_option_id for ans in submission.answers if ans.selected_option_id]
@@ -302,19 +331,25 @@ def score_full_test(submission: FullTestSubmission, user_id: str = None) -> Full
     total = len(results)
     percentage = round((correct_count / total * 100) if total > 0 else 0, 1)
 
-    band_score = _listening_raw_to_band(correct_count)
+    # Use appropriate scoring scale
+    if exam_type == "toefl":
+        band_score = _toefl_listening_raw_to_scaled(correct_count, total)
+        max_score = 30.0
+    else:
+        band_score = _listening_raw_to_band(correct_count)
+        max_score = 9.0
 
     # Log the session
     try:
         client.table("session_logs").insert({
             "user_id": user_id,
             "module": "listening",
-            "passage_id": None,  # Full test is multi-passage / multi-section
+            "passage_id": None,
             "score": band_score,
-            "max_score": 9.0,
+            "max_score": max_score,
             "percentage": percentage,
             "band_score": band_score,
-            "details": {"exam_type": "ielts", "results": results, "is_full_test": True},
+            "details": {"exam_type": exam_type, "results": results, "is_full_test": True},
         })
     except Exception as e:
         print(f"Failed to log full listening session: {str(e)}")
@@ -326,4 +361,5 @@ def score_full_test(submission: FullTestSubmission, user_id: str = None) -> Full
         band_score=band_score,
         results=results,
     )
+
 

@@ -54,6 +54,40 @@ async def evaluate_essay(submission: EssaySubmissionSchema) -> EssayEvaluationSc
     Returns:
         Structured evaluation with band scores and feedback.
     """
+    is_toefl = submission.exam_type.value == "toefl"
+
+    if not settings.GROQ_API_KEY:
+        if is_toefl:
+            return EssayEvaluationSchema(
+                overall_band=26.0,
+                task_achievement=27.0,
+                coherence_cohesion=25.0,
+                lexical_resource=26.0,
+                grammatical_range=26.0,
+                feedback="Demo Mode: Your essay is well-structured and addresses the prompt effectively. The grammar is mostly accurate with only minor errors. Vocabulary usage is appropriate for a TOEFL iBT academic essay.",
+                suggestions=[
+                    "Expand on your supporting details with more concrete examples.",
+                    "Use more varied sentence structures to improve coherence.",
+                    "Pay closer attention to article usage (a, an, the)."
+                ],
+                improved_version="In my opinion, the arts and humanities deserve equal support compared to STEM subjects. While STEM fields are crucial for technological advancement, the arts foster critical thinking and empathy..."
+            )
+        else:
+            return EssayEvaluationSchema(
+                overall_band=7.0,
+                task_achievement=7.5,
+                coherence_cohesion=7.0,
+                lexical_resource=6.5,
+                grammatical_range=7.0,
+                feedback="Demo Mode: The essay displays a clear response to the prompt and maintains logical organization throughout. Some transition phrases can be polished.",
+                suggestions=[
+                    "Improve cohesion by using varied linking words.",
+                    "Include more complex sentence structures.",
+                    "Diversify vocabulary with synonyms of common words."
+                ],
+                improved_version="Some people believe that universities should focus on providing academic skills, while others think they should prepare students for employment. Discuss both views..."
+            )
+
     client = _get_groq_client()
 
     user_message = f"""
@@ -69,10 +103,37 @@ STUDENT'S ESSAY:
 Word count: {len(submission.essay_text.split())}
 """
 
+    is_toefl = submission.exam_type.value == "toefl"
+    max_score_text = "0-30" if is_toefl else "0-9"
+    score_rules_text = "Use integer scores (e.g. 25, 26, 28) for TOEFL." if is_toefl else "Use half-band scores (e.g., 6.5, 7.0)."
+    
+    system_prompt = f"""You are an expert {"TOEFL iBT" if is_toefl else "IELTS"} writing examiner. Evaluate the following essay based on these criteria:
+
+1. Task Achievement ({max_score_text}): How well does the essay address the prompt?
+2. Coherence & Cohesion ({max_score_text}): Is the essay logically organized with clear transitions?
+3. Lexical Resource ({max_score_text}): Does the essay use a wide range of vocabulary accurately?
+4. Grammatical Range & Accuracy ({max_score_text}): Does the essay demonstrate varied and accurate grammar?
+
+Provide your response as a JSON object with this exact structure:
+{{
+  "overall_band": <float>,
+  "task_achievement": <float>,
+  "coherence_cohesion": <float>,
+  "lexical_resource": <float>,
+  "grammatical_range": <float>,
+  "feedback": "<detailed paragraph of feedback>",
+  "suggestions": ["<suggestion 1>", "<suggestion 2>", "<suggestion 3>", "<suggestion 4>"],
+  "improved_version": null
+}}
+
+Be fair, constructive, and specific. {score_rules_text}
+Return ONLY the JSON object, no other text.
+"""
+
     try:
         chat_completion = client.chat.completions.create(
             messages=[
-                {"role": "system", "content": EVALUATION_SYSTEM_PROMPT},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message},
             ],
             model=settings.GROQ_MODEL,
