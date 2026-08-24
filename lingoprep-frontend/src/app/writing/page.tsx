@@ -317,7 +317,9 @@ export default function WritingPage() {
             <ul className="space-y-3">
               {evaluation.suggestions.map((s, i) => (
                 <li key={i} className="flex items-start gap-3 text-slate-800 text-[14px]">
-                  <span className="font-extrabold text-base" style={{ color: theme.color }}>✓</span>
+                  <svg className="w-4 h-4 flex-shrink-0 mt-1" fill="none" viewBox="0 0 24 24" stroke={theme.color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
                   <span className="leading-relaxed">{s}</span>
                 </li>
               ))}
