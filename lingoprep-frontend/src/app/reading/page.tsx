@@ -532,7 +532,7 @@ export default function ReadingPage() {
         </div>
 
         {/* Right Side: Questions — hidden on mobile when showing passage */}
-        <div className={`md:col-span-5 bg-[#f8f9fb] p-4 sm:p-8 overflow-y-auto max-h-[calc(100vh-115px)] space-y-4 pb-28 ${
+        <div className={`md:col-span-5 bg-[#f8f9fb] p-4 sm:p-8 overflow-y-auto max-h-[calc(100vh-65px)] space-y-4 ${
           showPassage ? "hidden md:block" : "block"
         }`}>
           <div className="bg-amber-50 border border-amber-200/80 rounded-2xl p-4">
@@ -609,59 +609,39 @@ export default function ReadingPage() {
               </div>
             );
           })}
-        </div>
-      </div>
-      </div>
 
-      {/* BOTTOM NAVIGATOR BAR */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-30">
-        <div className="px-3 sm:px-8 py-3 flex items-center justify-between gap-3">
-          {/* Question Number Scroll Row */}
-          <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
-            <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider whitespace-nowrap hidden sm:inline">Qs:</span>
-            <div className="flex items-center gap-1 overflow-x-auto flex-1" style={{ scrollbarWidth: "none" }}>
-              {allQuestions.map((q, idx) => {
-                const hasAnswer = !!selectedAnswers[q.id];
-                const isCurrentPassage = currentPassage.questions.some((pq) => pq.id === q.id);
-                return (
-                  <button key={q.id} onClick={() => { handleNavClick(idx); setShowPassage(false); }}
-                    className={`w-7 h-7 flex-shrink-0 rounded-md text-[11px] font-bold transition-all border ${
-                      hasAnswer ? "text-white border-transparent"
-                        : isCurrentPassage ? "bg-white border-2"
-                        : "bg-slate-100 text-slate-500 border-slate-200 opacity-60"
-                    }`}
-                    style={hasAnswer ? { backgroundColor: theme.color } : isCurrentPassage ? { borderColor: theme.color, color: theme.color } : undefined}
-                  >{idx + 1}</button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Nav + Submit */}
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            <button disabled={activeSectionIdx === 0}
+          {/* Clean Inline Navigation Bar below questions */}
+          <div className="pt-6 border-t border-slate-200 flex items-center justify-between gap-3 mt-6">
+            <button
+              disabled={activeSectionIdx === 0}
               onClick={() => { setActiveSectionIdx(p => p - 1); setShowPassage(true); }}
-              className="flex items-center gap-1 px-2 sm:px-4 py-2 border border-slate-300 rounded-lg text-[12px] font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-[13px] font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm"
             >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
-              <span className="hidden sm:inline">Prev</span>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
+              <span>Previous Section</span>
             </button>
-            <button disabled={activeSectionIdx === passages.length - 1}
-              onClick={() => { setActiveSectionIdx(p => p + 1); setShowPassage(true); }}
-              className="flex items-center gap-1 px-2 sm:px-4 py-2 rounded-lg text-[12px] font-bold text-white transition-all hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed"
-              style={{ backgroundColor: "#1e293b" }}
-            >
-              <span className="hidden sm:inline">Next</span>
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
-            </button>
-            {activeSectionIdx === passages.length - 1 && (
-              <button onClick={() => handleSubmit(false)}
-                className="px-3 sm:px-5 py-2 text-white font-bold text-[12px] sm:text-[12.5px] rounded-lg transition-all hover:opacity-90"
+
+            {activeSectionIdx < passages.length - 1 ? (
+              <button
+                onClick={() => { setActiveSectionIdx(p => p + 1); setShowPassage(true); }}
+                className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-[13px] font-bold text-white transition-all shadow-sm hover:opacity-90 active:scale-95"
+                style={{ backgroundColor: "#1e293b" }}
+              >
+                <span>Next Section</span>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
+              </button>
+            ) : (
+              <button
+                onClick={() => handleSubmit(false)}
+                className="flex items-center gap-1.5 px-6 py-2.5 text-white font-bold text-[13px] rounded-xl transition-all shadow-sm hover:opacity-90 active:scale-95"
                 style={{ backgroundColor: theme.color }}
-              >Submit</button>
+              >
+                <span>Submit Exam</span>
+              </button>
             )}
           </div>
         </div>
+      </div>
       </div>
 
       {/* CONFIRMATION MODAL */}

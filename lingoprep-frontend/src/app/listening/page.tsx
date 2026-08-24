@@ -781,7 +781,7 @@ export default function ListeningPage() {
         </div>
 
         {/* RIGHT PANEL - Questions */}
-        <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 space-y-4 pb-24">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 space-y-4">
           <div className="mb-4">
             <h2 className="text-[18px] font-bold text-slate-900">{currentExercise.title}</h2>
             <p className="text-[13px] text-slate-500 mt-1">
@@ -842,81 +842,41 @@ export default function ListeningPage() {
               </div>
             );
           })}
-        </div>
-      </div>
 
-      {/* BOTTOM NAVIGATOR BAR â€” matches mock: Q numbers left, buttons right */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-30">
-        <div className="px-8 py-3 flex items-center justify-between gap-4">
-          {/* Question number row â€” single scrollable row */}
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider whitespace-nowrap mr-1">
-              Questions:
-            </span>
-            <div className="flex items-center gap-1 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-              {allQuestions.map((q, idx) => {
-                const hasAnswer = !!selectedAnswers[q.id];
-                const isCurrent = currentExercise.questions.some((eq) => eq.id === q.id);
-                return (
-                  <button
-                    key={q.id}
-                    disabled={!isReviewPeriod && !isCurrent}
-                    onClick={() => handleNavClick(idx)}
-                    className={`w-7 h-7 flex-shrink-0 rounded-md text-[11px] font-bold transition-all disabled:cursor-not-allowed border ${
-                      hasAnswer
-                        ? "text-white border-transparent"
-                        : isCurrent
-                        ? "bg-white border-2"
-                        : "bg-slate-100 text-slate-500 border-slate-200 opacity-60"
-                    }`}
-                    style={
-                      hasAnswer
-                        ? { backgroundColor: theme.color }
-                        : isCurrent
-                        ? { borderColor: theme.color, color: theme.color }
-                        : undefined
-                    }
-                  >
-                    {idx + 1}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Navigation buttons */}
-          <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Clean Inline Navigation Bar below questions */}
+          <div className="pt-6 border-t border-slate-200 flex items-center justify-between gap-3 mt-6">
             <button
               disabled={activeSectionIdx === 0}
               onClick={() => setActiveSectionIdx((p) => p - 1)}
-              className="flex items-center gap-1.5 px-4 py-2 border border-slate-300 rounded-lg text-[12.5px] font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-[13px] font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm"
             >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
               </svg>
-              Previous
+              <span>Previous Section</span>
             </button>
-            <button
-              disabled={activeSectionIdx === totalSections - 1}
-              onClick={() => {
-                if (!isReviewPeriod) window.speechSynthesis.cancel();
-                setActiveSectionIdx((p) => p + 1);
-              }}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-[12.5px] font-bold text-white transition-all hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed"
-              style={{ backgroundColor: "#1e293b" }}
-            >
-              Next Section
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/>
-              </svg>
-            </button>
-            {(isReviewPeriod || activeSectionIdx === totalSections - 1) && (
+
+            {activeSectionIdx < totalSections - 1 ? (
+              <button
+                onClick={() => {
+                  if (!isReviewPeriod) window.speechSynthesis.cancel();
+                  setActiveSectionIdx((p) => p + 1);
+                }}
+                className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-[13px] font-bold text-white transition-all shadow-sm hover:opacity-90 active:scale-95"
+                style={{ backgroundColor: "#1e293b" }}
+              >
+                <span>Next Section</span>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/>
+                </svg>
+              </button>
+            ) : (
               <button
                 onClick={() => handleSubmit(false)}
-                className="px-5 py-2 text-white font-bold text-[12.5px] rounded-lg transition-all hover:opacity-90"
+                className="flex items-center gap-1.5 px-6 py-2.5 text-white font-bold text-[13px] rounded-xl transition-all shadow-sm hover:opacity-90 active:scale-95"
                 style={{ backgroundColor: theme.color }}
               >
-                Finish Test
+                <span>Finish Test</span>
               </button>
             )}
           </div>
