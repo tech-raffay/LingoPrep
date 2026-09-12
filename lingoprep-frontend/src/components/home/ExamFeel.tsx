@@ -3,23 +3,27 @@
 /**
  * "What the exam actually feels like" — from "LingoPrep Home.dc.html".
  *
- * The 16:10 panel is the design's video slot, and takes either source:
+ * The 16:9 panel holds the walkthrough clip, self-hosted from /public/media.
  *
- *  - `embedUrl` renders a third-party player in an iframe. This is what the
- *    Streamable clip uses. Streamable's direct .mp4 links are CloudFront URLs
- *    signed with a short-lived `Expires`/`Signature` pair (the one for this
- *    clip expired 2026-09-15), so hardcoding the file URL would have shown a
- *    broken player within days. The /o/ embed path is the stable, supported
- *    address and is what Streamable's own API hands back.
+ * ── Why the file is local, not a Streamable embed ───────────────────────────
+ * Two reasons. An embedded third-party player brings its own controls,
+ * scrubber, speed and settings chrome, and this panel wants a clip that simply
+ * plays. And Streamable's direct .mp4 links are CloudFront URLs signed with a
+ * short-lived `Expires` parameter, so they cannot be hardcoded at all.
+ * Serving the file ourselves solves both problems.
  *
- *  - `videoSrc` renders a real <video> for a file you host yourself. Prefer
- *    this once the clip lives in /public or on your own CDN: it can be muted,
- *    looped and posterised, and it drops the third-party frame.
+ * ── Playback ────────────────────────────────────────────────────────────────
+ * Muted, looping, no controls — moving illustration rather than media the
+ * visitor has to operate. It deliberately does NOT autoplay on load:
+ * `preload="none"` plus an IntersectionObserver means the 10 MB file is not
+ * fetched until this section is scrolled to, keeping it off the landing page's
+ * initial load.
  *
- * With neither, the panel shows the design's placeholder state, which reads as
- * a deliberate empty player rather than a broken image.
+ * §11 requires respecting prefers-reduced-motion, and for video the honest
+ * reading is not to move at all — so under that setting the clip never starts.
  */
 
+import { useEffect, useRef } from "react";
 import Icon from "@/components/brand/Icon";
 
 const POINTS = [
@@ -30,19 +34,37 @@ const POINTS = [
 
 export default function ExamFeel({
   videoSrc,
-  embedUrl,
   ctaHref,
 }: {
   videoSrc?: string;
-  /** Third-party player URL, rendered in an iframe. */
-  embedUrl?: string;
   ctaHref: string;
 }) {
+  const ref = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    // §11: no motion for anyone who has asked not to have any.
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+
+    // Fetch and play only once the panel is actually on screen.
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) void el.play().catch(() => {});
+        else el.pause();
+      },
+      { threshold: 0.25 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [videoSrc]);
+
   return (
     <section className="bg-n-0">
       <div className="mx-auto max-w-[1200px] px-5 sm:px-7 pt-20 sm:pt-24">
         <div className="grid lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] gap-10 items-center">
-          {/* ── Video slot ────────────────────────────────────────────────── */}
+          {/* ── Clip ──────────────────────────────────────────────────────── */}
           <div className="relative rounded-[22px] overflow-hidden bg-[#14100b] aspect-video shadow-[0_24px_54px_rgb(18_23_43/0.16)]">
             <div
               className="absolute inset-0"
@@ -55,21 +77,18 @@ export default function ExamFeel({
                 animation: "lp-drift 26s ease-in-out infinite",
               }}
             />
-            {embedUrl ? (
-              <iframe
-                src={embedUrl}
-                title="A full LingoPrep practice test, start to finish"
-                allow="autoplay; fullscreen; picture-in-picture"
-                allowFullScreen
-                loading="lazy"
-                className="absolute inset-0 w-full h-full border-0"
-              />
-            ) : videoSrc ? (
+            {videoSrc ? (
               <video
+                ref={ref}
                 src={videoSrc}
-                controls
+                muted
+                loop
                 playsInline
-                preload="metadata"
+                preload="none"
+                // Decorative: the three bullets beside it say the same thing
+                // in text, so there is nothing here to caption.
+                aria-hidden="true"
+                tabIndex={-1}
                 className="absolute inset-0 w-full h-full object-cover"
               />
             ) : (

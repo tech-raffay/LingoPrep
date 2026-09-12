@@ -38,11 +38,11 @@ import Questions from "@/components/home/Questions";
 import ExploreAll from "@/components/home/ExploreAll";
 
 /**
- * The walkthrough clip. Streamable's /o/ embed path rather than its .mp4,
- * because the direct file URLs are signed and expire within days.
- * Source: https://streamable.com/zkdzh4
+ * The walkthrough clip, served from /public so it plays without a third-party
+ * player's controls and without depending on a signed URL that expires.
+ * Original source: https://streamable.com/zkdzh4
  */
-const WALKTHROUGH_EMBED = "https://streamable.com/o/zkdzh4";
+const WALKTHROUGH_CLIP = "/media/exam-walkthrough.mp4";
 
 const MODULES: Array<{ key: string; title: string; icon: IconName; ielts: string; toefl: string }> = [
   { key: "listening", title: "Listening", icon: "listening",
@@ -92,7 +92,7 @@ export default function Home() {
         <Library href={pick} />
         <FreeForever ctaHref={pick} />
         <StartHere libraryHref={pick} practiceHref={pick} resultsHref={results} />
-        <ExamFeel embedUrl={WALKTHROUGH_EMBED} ctaHref={pick} />
+        <ExamFeel videoSrc={WALKTHROUGH_CLIP} ctaHref={pick} />
         <Questions ctaHref={pick} />
         <ExploreAll href={pick} />
       </>
