@@ -26,7 +26,7 @@ import Icon from "@/components/brand/Icon";
 
 const FACTS = [
   { value: "All 4", label: "Skills scored end to end" },
-  { value: "0", label: "Cost to practise, always" },
+  { value: "0", label: "Cost to practice, always" },
   { value: "AI", label: "Feedback the moment you submit" },
 ];
 
@@ -41,7 +41,7 @@ const FAQS = [
   },
   {
     q: "What score do I need for a UK student visa?",
-    a: "It depends on the course and the institution. Check the requirement on the official exam and university sites — this platform cannot confirm it.",
+    a: "It depends on the course and the institution. Check the requirement on the exam board and university sites. This platform cannot confirm it.",
   },
   {
     q: "How many practice tests should I do before test day?",
@@ -110,7 +110,7 @@ export default function Questions({ ctaHref }: { ctaHref: string }) {
                   href={ctaHref}
                   className="inline-flex h-[50px] items-center gap-2 rounded-full bg-accent px-7 text-[15px] font-bold text-accent-on shadow-accent transition-colors duration-[120ms] hover:bg-accent-strong"
                 >
-                  Start practising
+                  Start practicing
                   <Icon name="next" size={16} />
                 </a>
               </div>

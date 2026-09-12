@@ -128,7 +128,7 @@ export default function Footer() {
             {/* §01 "Free without asterisks" · §02 calm, plain statements */}
             <p className="text-[13px] leading-6 text-white/70 mb-4">
               An independent, free practice platform. All four skills, instant
-              AI-generated estimates, and no locked modules — built as a final
+              AI-generated estimates, and no locked modules. Built as a final
               year project.
             </p>
             <div className="flex gap-2.5">

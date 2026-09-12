@@ -224,7 +224,7 @@ export default function SpeakingPage() {
         </div>
         <div className="flex items-center gap-2.5">
           <span className="px-3.5 py-1 border text-[11.5px] font-extrabold rounded-full uppercase tracking-wider bg-slate-50" style={{ borderColor: `${theme.color}40`, color: theme.color }}>
-            {examType === "ielts" ? "Part 2 — Individual Long Turn" : "Task 1 — Independent Speaking"}
+            {examType === "ielts" ? "Part 2: Individual Long Turn" : "Task 1: Independent Speaking"}
           </span>
         </div>
       </div>

@@ -99,7 +99,7 @@ export default function ExamFeel({
                 </div>
                 <div className="text-[13px] leading-[1.6] text-white/60 max-w-[20rem]">
                   Drop in the clip of a student working through a test at their
-                  screen — it fills this whole panel.
+                  screen. It fills this whole panel.
                 </div>
               </div>
             )}
@@ -115,8 +115,9 @@ export default function ExamFeel({
             </h2>
             <p className="text-[15.5px] leading-[1.72] text-n-600">
               Most candidates lose marks to the format, not the English. Watch
-              someone sit a full test the way you will — same screens, same
-              timer, same single-play audio — so nothing on the day is new.
+              someone sit a full test the way you will, with the same screens,
+              the same timer and the same single-play audio, so nothing on the
+              day is new.
             </p>
             <ul className="flex flex-col gap-3.5 m-0 p-0 list-none">
               {POINTS.map((p) => (

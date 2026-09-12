@@ -75,7 +75,7 @@ export default function Home() {
      A · Landing — the design file, section by section.
      ═══════════════════════════════════════════════════════════════════════ */
   if (unset) {
-    // Nothing is chosen yet, so "practise" links go to the picker rather than
+    // Nothing is chosen yet, so "practice" links go to the picker rather than
     // silently committing the visitor to the default exam.
     const pick = "#choose-path";
     const results = "/dashboard";

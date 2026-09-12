@@ -51,13 +51,13 @@ export default function StartHere({
     },
     {
       title: "Score requirements by country",
-      desc: "What universities and visa routes ask for on the official exams — not on practice estimates.",
+      desc: "What universities and visa routes ask for on the real exams, not on practice estimates.",
       icon: "globe",
       href: libraryHref,
     },
     {
       title: "Computer-delivered sample test",
-      desc: "Practise the on-screen format before test day.",
+      desc: "Practice the on-screen format before test day.",
       icon: "monitor",
       href: practiceHref,
     },
@@ -68,7 +68,7 @@ export default function StartHere({
       href: practiceHref,
     },
     {
-      title: "Practise on mobile",
+      title: "Practice on mobile",
       desc: "Reading, writing and results work on a phone-sized screen.",
       icon: "mobile",
       href: practiceHref,

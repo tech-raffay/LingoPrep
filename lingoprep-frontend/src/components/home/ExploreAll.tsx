@@ -33,7 +33,7 @@ export default function ExploreAll({ href }: { href: string }) {
             Didn&rsquo;t find what you were looking for?
           </h2>
           <p className="text-[15.5px] leading-[1.72] text-n-600 max-w-[34rem]">
-            Browse the whole library — practice tests, band descriptors,
+            Browse the whole library: practice tests, band descriptors,
             walkthrough videos and worked model answers for every task type.
           </p>
           <a

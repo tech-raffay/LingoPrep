@@ -9,9 +9,9 @@ import ChromeSkeleton from "@/components/layout/ChromeSkeleton";
 import { DEFAULT_EXAM } from "@/lib/exam";
 
 export const metadata: Metadata = {
-  title: "LingoPrep — Free IELTS & TOEFL practice tests",
+  title: "LingoPrep | Free IELTS & TOEFL practice tests",
   description:
-    "Practice IELTS and TOEFL with computer-based test simulations. AI-generated practice estimates for Reading, Listening, Writing and Speaking — free, no account needed.",
+    "Practice IELTS and TOEFL with computer-based test simulations. AI-generated practice estimates for Reading, Listening, Writing and Speaking. Free, with no account needed.",
   keywords: ["IELTS", "TOEFL", "English test preparation", "practice tests", "band score"],
 };
 

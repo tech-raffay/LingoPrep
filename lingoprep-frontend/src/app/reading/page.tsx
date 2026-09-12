@@ -262,11 +262,11 @@ export default function ReadingPage() {
                 </li>
                 <li className="flex items-start gap-2.5">
                   <svg className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  <span><strong>Sections:</strong> {examConfig.sections} — {examType === "toefl" ? "academic passages on science and social science topics" : "3 distinct passages increasing in academic complexity"}.</span>
+                  <span><strong>Sections:</strong> {examConfig.sections} covering {examType === "toefl" ? "science and social science topics" : "topics of increasing academic complexity"}.</span>
                 </li>
                 <li className="flex items-start gap-2.5">
                   <svg className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  <span><strong>Questions:</strong> {examConfig.questions} — detail, inference, vocabulary-in-context, and purpose questions.</span>
+                  <span><strong>Questions:</strong> {examConfig.questions} covering detail, inference, vocabulary in context and purpose.</span>
                 </li>
                 <li className="flex items-start gap-2.5">
                   <svg className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -311,7 +311,7 @@ export default function ReadingPage() {
               Test Completed
             </span>
             <h1 className="text-[28px] font-bold text-slate-900 mt-4">Your Reading Score Report</h1>
-            <p className="text-[13px] text-[#999] mt-1">{examType === "toefl" ? "TOEFL iBT Reading — Scored 0 to 30" : "Official IELTS Academic Reading Criteria"}</p>
+            <p className="text-[13px] text-[#999] mt-1">{examType === "toefl" ? "TOEFL iBT Reading, scored 0 to 30" : "Scored on the IELTS Academic Reading criteria"}</p>
 
             <div className="flex flex-col sm:flex-row justify-center items-center gap-6 sm:gap-16 my-8">
               {/* Band Score Circle */}

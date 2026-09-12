@@ -91,7 +91,7 @@ export default function Walkthrough({
             </h2>
             <p className="text-[16px] leading-[1.75] text-n-400 max-w-[29rem]">
               See the reading split-screen, the single-play listening player,
-              the essay workspace and the band report the AI returns — the real
+              the essay workspace and the band report the AI returns. The real
               interface, nothing staged.
             </p>
 

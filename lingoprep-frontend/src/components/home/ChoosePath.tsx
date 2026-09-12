@@ -46,9 +46,8 @@ export default function ChoosePath() {
           Choose your path
         </h2>
         <p className="text-[15.5px] leading-[1.72] text-n-600 max-w-[34rem] mb-9">
-          Pick your target examination. Everything after this point — timings,
-          question types, scoring scale and the colour of the interface —
-          follows the exam you choose.
+          Pick your target examination. Timings, question types, scoring
+          scale and the colour of the interface all follow the exam you choose.
         </p>
 
         <div className="grid gap-6 sm:grid-cols-2">

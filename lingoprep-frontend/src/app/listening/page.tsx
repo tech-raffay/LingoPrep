@@ -409,7 +409,7 @@ export default function ListeningPage() {
               Test Completed
             </span>
             <h1 className="text-[28px] font-bold text-slate-900 mt-4">Your Listening Score Report</h1>
-            <p className="text-[13px] text-[#999] mt-1">{examType === "toefl" ? "TOEFL iBT Listening — Scored 0 to 30" : "Official IELTS Listening Band Scaling"}</p>
+            <p className="text-[13px] text-[#999] mt-1">{examType === "toefl" ? "TOEFL iBT Listening, scored 0 to 30" : "Scored on the IELTS Listening band scale"}</p>
 
             <div className="flex flex-col sm:flex-row justify-center items-center gap-6 sm:gap-16 my-8">
               {/* Score Circle */}
