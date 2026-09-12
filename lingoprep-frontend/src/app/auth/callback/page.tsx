@@ -26,7 +26,7 @@ export default function AuthCallbackPage() {
 
   return (
     <div className="flex items-center justify-center min-h-[50vh] flex-col gap-3">
-      <div className="w-7 h-7 border-2 border-[#c8102e] border-t-transparent rounded-full animate-spin" />
+      <div className="w-7 h-7 border-2 border-accent border-t-transparent rounded-full animate-spin" />
       <p className="text-[14px] text-[#666] font-medium">{status}</p>
     </div>
   );

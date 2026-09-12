@@ -1,96 +1,305 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=Open+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
+/* ═══════════════════════════════════════════════════════════════════════════
+   LingoPrep — Design tokens
+   Implements "The LingoPrep Brand Book" v1.0 (September 2026).
+
+   THEME ISOLATION RULE (brand book §07):
+   "The interface reads one accent token. Selecting TOEFL swaps crimson for
+    blue across buttons, badges, radios, progress bars and score circles —
+    layout and neutrals never change. Never mix both accents on one screen."
+
+   Therefore no component may hardcode #C8102E or #0057B8. Everything
+   accent-coloured reads var(--accent) / --accent-strong / --accent-tint,
+   which are re-bound once by [data-exam] on <html>. Overlap is structurally
+   impossible — there is exactly one accent, set in exactly one place.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@500;700&family=JetBrains+Mono:wght@500;700&display=swap');
 @import "tailwindcss";
 
-
 :root {
-  --background: #f5f5f5;
-  --foreground: #333541;
-  --heading: #000000;
-  --primary: #c8102e;
-  --primary-light: #fef2f2;
-  --primary-dark: #a50d24;
-  --secondary: #333541;
-  --accent: #c8102e;
-  --success: #2e7d32;
-  --danger: #c8102e;
-  --surface: #ffffff;
-  --surface-hover: #fafafa;
-  --border: #e0e0e0;
-  --text-muted: #666666;
-  --gradient-start: #c8102e;
-  --gradient-end: #333333;
+  /* ── Core brand (§07) ────────────────────────────────────────────────── */
+  --crimson:      #C8102E;
+  --crimson-deep: #96091F;
+  --crimson-tint: #FEF2F4;
+  --toefl:        #0057B8;
+  --toefl-deep:   #004494;
+  --toefl-tint:   #EFF6FF;
+  --ink:          #12172B;
 
-  /* Font families — matches IDP IELTS official typography */
-  --font-heading: 'Proxima Nova', 'Montserrat', 'Inter', system-ui, -apple-system, sans-serif;
-  --font-body: 'Open Sans', system-ui, -apple-system, sans-serif;
+  /* ── Neutral scale (§07) ─────────────────────────────────────────────── */
+  /* page, subtle surface, panel, divider-light, border, border-strong,
+     muted text, secondary text, body text, headings */
+  --n-0:   #FFFFFF;
+  --n-50:  #F9FAFC;
+  --n-100: #F6F7FA;
+  --n-200: #EEF0F5;
+  --n-300: #E3E6EE;
+  --n-400: #C9CFDD;
+  --n-500: #8B91A4;
+  --n-600: #5A6178;
+  --n-700: #333B52;
+  --n-900: #12172B;
+
+  /* ── Semantic colours (§07) ──────────────────────────────────────────── */
+  /* "Semantic colours never carry brand meaning. Correct answers are always
+      green, the user's wrong choice always red — regardless of exam theme." */
+  --success:      #059669;
+  --success-tint: #ECFDF5;
+  --warning:      #F59E0B;
+  --warning-tint: #FFFBEB;
+  --error:        #DC2626;
+  --error-tint:   #FEF2F2;
+  --info:         #0057B8;
+  --info-tint:    #EFF6FF;
+  --ai:           #7C3AED;
+  --ai-tint:      #F5F3FF;
+
+  /* ── Exam accent — DEFAULT: IELTS crimson ────────────────────────────── */
+  --accent:         var(--crimson);
+  --accent-strong:  var(--crimson-deep);
+  --accent-tint:    var(--crimson-tint);
+  --accent-on:      #FFFFFF;              /* text on accent — 6.2:1 */
+  --accent-on-tint: var(--crimson-deep);  /* text on tint  — 8.9:1 */
+
+  /* ── Typography (§08) ────────────────────────────────────────────────── */
+  /* Proxima Nova is licensed; Figtree is the substitute the brand book
+     itself names. Two weights only — 500 body, 700 headings. */
+  --font-brand: 'proxima-nova', 'Proxima Nova', 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-numeric: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+  /* ── Radius (§10) — one scale ────────────────────────────────────────── */
+  --r-input:   8px;   /* the one place radius is not a pill */
+  --r-card:    16px;
+  --r-feature: 24px;
+  --r-pill:    999px;
+
+  /* ── Elevation (§10) ─────────────────────────────────────────────────── */
+  /* "Borders carry structure; shadows are a light accent on hover and
+      modals only. Never both a heavy border and a heavy shadow." */
+  --shadow-1: 0 1px 2px rgb(0 0 0 / .05);
+  --shadow-2: 0 8px 30px rgb(0 0 0 / .06);
+
+  /* ── Motion (§11) ────────────────────────────────────────────────────── */
+  --t-micro: 120ms;   /* hover, toggle */
+  --t-panel: 220ms;   /* panels, modals */
+  --ease: cubic-bezier(.2, .8, .3, 1);
 }
 
+/* ═══ THE THEME SWITCH ═══════════════════════════════════════════════════
+   One attribute on <html> re-binds the accent for the whole document.
+   Set pre-paint by the inline script in layout.tsx, so there is no
+   crimson→blue flash on TOEFL pages.
+   ═══════════════════════════════════════════════════════════════════════ */
+html[data-exam="ielts"] {
+  --accent:         var(--crimson);
+  --accent-strong:  var(--crimson-deep);
+  --accent-tint:    var(--crimson-tint);
+  --accent-on:      #FFFFFF;
+  --accent-on-tint: var(--crimson-deep);
+}
+
+html[data-exam="toefl"] {
+  --accent:         var(--toefl);
+  --accent-strong:  var(--toefl-deep);
+  --accent-tint:    var(--toefl-tint);
+  --accent-on:      #FFFFFF;       /* 6.7:1 on #0057B8 */
+  --accent-on-tint: var(--toefl-deep);
+}
+
+/* ═══ NO CROSS-FADE BETWEEN EXAMS ════════════════════════════════════════
+   Buttons and links carry `transition-colors` for their hover states. When
+   --accent is re-bound, that same transition interpolates between the two
+   exam colours — so switching exam swept the CTA through purple and magenta
+   on its way from #0057B8 to #C8102E, which read as the interface showing two
+   different themes at once.
+
+   `paint()` stamps data-theme-switching for one frame while it changes the
+   attribute, so the accent snaps instead of cross-fading. Hover transitions
+   are untouched the rest of the time.
+   ═══════════════════════════════════════════════════════════════════════ */
+html[data-theme-switching] *,
+html[data-theme-switching] *::before,
+html[data-theme-switching] *::after {
+  transition: none !important;
+}
+
+/* ── Tailwind v4 token bridge — gives bg-accent, text-ink, border-n-300 … ── */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-primary: var(--primary);
-  --color-primary-light: var(--primary-light);
-  --color-primary-dark: var(--primary-dark);
-  --color-secondary: var(--secondary);
-  --color-accent: var(--accent);
-  --color-success: var(--success);
-  --color-danger: var(--danger);
-  --color-surface: var(--surface);
-  --color-surface-hover: var(--surface-hover);
-  --color-border: var(--border);
-  --color-text-muted: var(--text-muted);
-  --font-sans: 'Open Sans', system-ui, -apple-system, sans-serif;
-  --font-mono: var(--font-geist-mono);
+  --color-accent:         var(--accent);
+  --color-accent-strong:  var(--accent-strong);
+  --color-accent-tint:    var(--accent-tint);
+  --color-accent-on:      var(--accent-on);
+  --color-accent-on-tint: var(--accent-on-tint);
+
+  --color-ink:   var(--ink);
+  --color-n-0:   var(--n-0);
+  --color-n-50:  var(--n-50);
+  --color-n-100: var(--n-100);
+  --color-n-200: var(--n-200);
+  --color-n-300: var(--n-300);
+  --color-n-400: var(--n-400);
+  --color-n-500: var(--n-500);
+  --color-n-600: var(--n-600);
+  --color-n-700: var(--n-700);
+  --color-n-900: var(--n-900);
+
+  --color-success:      var(--success);
+  --color-success-tint: var(--success-tint);
+  --color-warning:      var(--warning);
+  --color-warning-tint: var(--warning-tint);
+  --color-error:        var(--error);
+  --color-error-tint:   var(--error-tint);
+  --color-info:         var(--info);
+  --color-info-tint:    var(--info-tint);
+  --color-ai:           var(--ai);
+  --color-ai-tint:      var(--ai-tint);
+
+  --radius-input:   var(--r-input);
+  --radius-card:    var(--r-card);
+  --radius-feature: var(--r-feature);
+
+  --shadow-e1: var(--shadow-1);
+  --shadow-e2: var(--shadow-2);
+
+  --font-sans: var(--font-brand);
+  --font-mono: var(--font-numeric);
 }
 
-* {
-  box-sizing: border-box;
+/* ═══ BASE LAYER ══════════════════════════════════════════════════════════
+   These are element-level defaults, so they MUST sit in @layer base.
+   Unlayered CSS outranks every layered rule in the cascade regardless of
+   specificity, so an unlayered `a { color: var(--accent) }` would beat
+   Tailwind's own text-* utilities (which live in @layer utilities) and
+   force every link to the accent colour — including white-on-accent
+   buttons, which then rendered invisible.
+   ═══════════════════════════════════════════════════════════════════════ */
+@layer base {
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--n-0);
+    color: var(--n-700);        /* body text — 10.3:1 on white */
+    font-family: var(--font-brand);
+    font-weight: 500;           /* §08: body is Medium, always */
+    font-size: 14px;
+    line-height: 24px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ── Type scale (§08) ─────────────────────────────────────────────────────
+     token     family / weight      size / line   tracking   use
+     display   brand 700            48 / 52       −0.02em    hero headline
+     h1        brand 700            40 / 46       −0.02em    page titles
+     h2        brand 700            28 / 34       −0.02em    section headings
+     h3        brand 700            20 / 26       −0.01em    card titles
+     body-lg   brand 500            16 / 30       0          passages, essays
+     body      brand 500            14 / 24       0          interface text
+     label     brand 700            11 / 16       +0.12em    eyebrows, badges
+     numeric   JetBrains Mono 700   14 / 20       +0.02em    timers, bands
+     ──────────────────────────────────────────────────────────────────────── */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-brand);
+    font-weight: 700;           /* §08: never a weight other than 500/700 */
+    color: var(--ink);
+    margin: 0;
+  }
+  h1 { font-size: 40px; line-height: 46px; letter-spacing: -0.02em; }
+  h2 { font-size: 28px; line-height: 34px; letter-spacing: -0.02em; }
+  h3 { font-size: 20px; line-height: 26px; letter-spacing: -0.01em; }
+
+  .t-display { font-size: 48px; line-height: 52px; letter-spacing: -0.02em; font-weight: 700; color: var(--ink); }
+  .t-body-lg { font-size: 16px; line-height: 30px; font-weight: 500; }
+  .t-body    { font-size: 14px; line-height: 24px; font-weight: 500; }
+  .t-label   { font-size: 11px; line-height: 16px; letter-spacing: .12em; text-transform: uppercase; font-weight: 700; }
+  .t-numeric { font-family: var(--font-numeric); font-weight: 700; letter-spacing: .02em; font-variant-numeric: tabular-nums; }
+
+  /* §08: "Use tabular figures for any column of numbers." */
+  table td, table th { font-variant-numeric: tabular-nums; }
+
+  /* §08: passages never below 15px; measure caps at 72 characters. */
+  .passage {
+    font-size: 16px;
+    line-height: 30px;
+    font-weight: 500;
+    color: var(--n-700);
+    max-width: 72ch;
+  }
+
+  p { margin: 0; }
+
+  /* §08: "No italics in the interface; use weight for emphasis." */
+  em, i { font-style: normal; font-weight: 700; }
+  strong, b { font-weight: 700; }
+
+  a {
+    font-family: var(--font-brand);
+    color: var(--accent);
+    text-decoration: none;
+    transition: color var(--t-micro) var(--ease);
+  }
+  a:hover { color: var(--accent-strong); }
+
+  /* ── Focus ring (§10): 2px accent, 2px offset ────────────────────────────── */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-body);
-  font-size: 16px;
-  line-height: 1.7;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* ═══ COMPONENT LAYER ════════════════════════════════════════════════════
+   Reusable brand classes. In @layer components so a utility can still
+   override them at the call site.
+   ═══════════════════════════════════════════════════════════════════════ */
+@layer components {
+  /* ── Background textures (§13) — 4–8% contrast, one per screen ───────────── */
+  .tx-dots {
+    background-color: var(--n-0);
+    background-image: radial-gradient(var(--n-300) 1.1px, transparent 1.1px);
+    background-size: 22px 22px;
+  }
+  .tx-graph {
+    background-color: var(--n-0);
+    background-image:
+      linear-gradient(to right, var(--n-200) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--n-200) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  .tx-hatch {
+    background-color: var(--accent-tint);
+    background-image: repeating-linear-gradient(
+      45deg, transparent, transparent 7px,
+      color-mix(in srgb, var(--accent) 8%, transparent) 7px,
+      color-mix(in srgb, var(--accent) 8%, transparent) 9px
+    );
+  }
 }
 
-html {
-  scroll-behavior: smooth;
-}
-
-/* ─── Heading typography — IDP IELTS Proxima Nova / Montserrat style ─── */
-h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-heading) !important;
-  color: var(--heading);
-  line-height: 1.25;
-  letter-spacing: -0.02em;
-}
-
-/* ─── Body text — Open Sans (matches IDP exactly) ─── */
-p, span, label, li, td, th, input, textarea, select, button {
-  font-family: var(--font-body);
-}
-
-/* ─── Links ─── */
-a {
-  font-family: var(--font-body);
-  text-decoration: none;
-}
-
-/* ─── Clean scrollbar ─── */
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #f5f5f5;
-}
+/* ── Scrollbar ───────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--n-100); }
 ::-webkit-scrollbar-thumb {
-  background: #ccc;
-  border-radius: 3px;
+  background: var(--n-400);
+  border-radius: var(--r-pill);
+  border: 3px solid var(--n-100);
 }
-::-webkit-scrollbar-thumb:hover {
-  background: #999;
+::-webkit-scrollbar-thumb:hover { background: var(--n-500); }
+
+/* ── §11: "Respect prefers-reduced-motion." ──────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
+
+/* §11: the recording pulse and audio waveform are the only in-test motion */
+@keyframes lp-rise  { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes lp-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+@keyframes lp-spin  { to { transform: rotate(360deg); } }

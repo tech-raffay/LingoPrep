@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import api from "@/lib/api";
+import { useExam } from "@/components/theme/ExamThemeProvider";
 
 interface Option {
   id: string;
@@ -29,16 +30,18 @@ interface Passage {
   questions: Question[];
 }
 
-const examColors: Record<string, { color: string; colorDark: string; colorLight: string; name: string }> = {
-  ielts: { color: "#c8102e", colorDark: "#a50d24", colorLight: "#fef2f2", name: "IELTS" },
-  toefl: { color: "#0057b8", colorDark: "#004494", colorLight: "#eff6ff", name: "TOEFL" },
-};
 
 export default function ReadingPage() {
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const examType = searchParams.get("exam") === "toefl" ? "toefl" : "ielts";
-  const theme = examColors[examType];
+  // Exam theme comes from the shared provider (src/lib/exam.ts), never a
+  // local copy — see brand book §07: one accent token, set in one place.
+  const { exam: examType, theme: examTheme } = useExam();
+  const theme = {
+    color: examTheme.accent,
+    colorDark: examTheme.accentStrong,
+    colorLight: examTheme.accentTint,
+    name: examTheme.name,
+  };
 
   const [passages, setPassages] = useState<Passage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -219,7 +222,7 @@ export default function ReadingPage() {
     return (
       <div className="mx-auto max-w-md px-4 py-16 text-center">
         <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#c8102e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
           </svg>
         </div>
@@ -399,7 +402,9 @@ export default function ReadingPage() {
                   <div
                     key={q.id}
                     className={`border rounded-xl p-5 ${
-                      isCorrect ? "border-[#2e7d32] bg-[#f8fdf9]" : "border-[#c8102e] bg-[#fffdfd]"
+                      isCorrect
+                        ? "border-[var(--success)] bg-[var(--success-tint)]"
+                        : "border-[var(--error)] bg-[var(--error-tint)]"
                     }`}
                   >
                     <p className="text-[14px] font-bold text-slate-800 mb-4 flex items-start">
@@ -419,9 +424,9 @@ export default function ReadingPage() {
 
                         let optionStyle = "border-slate-200 hover:bg-[#fafafa] text-slate-600";
                         if (isCorrectOption) {
-                          optionStyle = "bg-[#e8f5e9] text-[#2e7d32] font-semibold border-[#a5d6a7]";
+                          optionStyle = "bg-[var(--success-tint)] text-[var(--success)] font-bold border-[var(--success)]";
                         } else if (isUserSelected && !isCorrect) {
-                          optionStyle = "bg-[#fce4ec] text-[#c8102e] font-semibold border-[#f8bbd0]";
+                          optionStyle = "bg-[var(--error-tint)] text-[var(--error)] font-bold border-[var(--error)]";
                         }
 
                         return (
@@ -431,8 +436,8 @@ export default function ReadingPage() {
                           >
                             <span className="font-bold text-[#888]">{opt.label}.</span>
                             <span>{opt.text}</span>
-                            {isCorrectOption && <span className="ml-auto text-[11px] font-bold text-[#2e7d32] uppercase">Correct</span>}
-                            {isUserSelected && !isCorrect && <span className="ml-auto text-[11px] font-bold text-[#c8102e] uppercase">Your Choice</span>}
+                            {isCorrectOption && <span className="ml-auto text-[11px] font-bold text-[var(--success)] uppercase tracking-[.12em]">Correct</span>}
+                            {isUserSelected && !isCorrect && <span className="ml-auto text-[11px] font-bold text-[var(--error)] uppercase tracking-[.12em]">Your answer</span>}
                           </div>
                         );
                       })}
@@ -488,7 +493,9 @@ export default function ReadingPage() {
           >{showPassage ? "Questions" : "Passage"}</button>
 
           <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border font-mono font-bold text-[13px] transition-all ${
-            timeLeft < 300 ? "bg-red-50 text-[#c8102e] border-red-200 animate-pulse" : "bg-slate-50 text-slate-700 border-slate-200"
+            timeLeft < 300
+              ? "bg-[var(--error-tint)] text-[var(--error)] border-[var(--error)]"
+              : "bg-[var(--n-100)] text-[var(--ink)] border-[var(--n-300)]"
           }`}>
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />

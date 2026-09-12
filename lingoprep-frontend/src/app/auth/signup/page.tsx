@@ -53,7 +53,7 @@ export default function SignupPage() {
           <p className="text-[13px] text-[#666] mb-5">
             We sent a confirmation link to <strong>{email}</strong>. Click the link to verify your account.
           </p>
-          <Link href="/auth/login" className="text-[13px] text-[#c8102e] font-semibold hover:underline">
+          <Link href="/auth/login" className="text-[13px] text-accent font-semibold hover:underline">
             Back to Sign In
           </Link>
         </div>
@@ -101,7 +101,7 @@ export default function SignupPage() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 required
-                className="w-full px-3 py-2.5 border border-[#ddd] rounded text-[14px] focus:outline-none focus:border-[#c8102e] transition-colors"
+                className="w-full px-3 py-2.5 border border-[#ddd] rounded text-[14px] focus:outline-none focus:border-accent transition-colors"
                 placeholder="Your full name"
               />
             </div>
@@ -112,7 +112,7 @@ export default function SignupPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-3 py-2.5 border border-[#ddd] rounded text-[14px] focus:outline-none focus:border-[#c8102e] transition-colors"
+                className="w-full px-3 py-2.5 border border-[#ddd] rounded text-[14px] focus:outline-none focus:border-accent transition-colors"
                 placeholder="you@example.com"
               />
             </div>
@@ -124,14 +124,14 @@ export default function SignupPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
-                className="w-full px-3 py-2.5 border border-[#ddd] rounded text-[14px] focus:outline-none focus:border-[#c8102e] transition-colors"
+                className="w-full px-3 py-2.5 border border-[#ddd] rounded text-[14px] focus:outline-none focus:border-accent transition-colors"
                 placeholder="Min. 6 characters"
               />
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 bg-[#c8102e] text-white font-semibold text-[13px] rounded-full hover:bg-[#a50d24] disabled:opacity-50 transition-colors"
+              className="w-full py-2.5 bg-accent text-white font-semibold text-[13px] rounded-full hover:bg-accent-strong disabled:opacity-50 transition-colors"
             >
               {loading ? "Creating account..." : "Create account"}
             </button>
@@ -139,7 +139,7 @@ export default function SignupPage() {
 
           <p className="text-center text-[13px] text-[#666] mt-5">
             Already have an account?{" "}
-            <Link href="/auth/login" className="text-[#c8102e] font-semibold hover:underline">
+            <Link href="/auth/login" className="text-accent font-semibold hover:underline">
               Sign in
             </Link>
           </p>

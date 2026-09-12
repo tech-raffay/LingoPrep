@@ -39,3 +39,6 @@ desktop.ini
 *.log
 coverage/
 .vercel
+
+# Design canvas editor artifact
+.thumbnail

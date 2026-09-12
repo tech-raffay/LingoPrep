@@ -1,0 +1,1564 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Open+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  body{margin:0;background:#f5f5f5;color:#333541;font-family:'Open Sans',system-ui,-apple-system,sans-serif;font-size:16px;line-height:1.7;-webkit-font-smoothing:antialiased}
+  h1,h2,h3,h4{font-family:'Montserrat','Open Sans',sans-serif;color:#000;line-height:1.25;letter-spacing:-0.02em;margin:0}
+  p,ul{margin:0}
+  ul{padding:0;list-style:none}
+  a{color:#c8102e;text-decoration:none}
+  a:hover{color:#a50d24}
+  button{font-family:'Open Sans',sans-serif;cursor:pointer}
+  textarea{font-family:'Open Sans',sans-serif}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes pulsefade{0%,100%{opacity:1}50%{opacity:.45}}
+</style>
+</helmet>
+
+<div style="min-height:100%;background:#f5f5f5;display:flex;flex-direction:column">
+
+  <div style="background:#1e293b;padding:9px 16px;display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+    <span style="font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#94a3b8;margin-right:4px">Screens</span>
+    <sc-for list="{{ screenNav }}" as="s" hint-placeholder-count="11">
+      <button onClick="{{ s.go }}" style="{{ s.style }}">{{ s.label }}</button>
+    </sc-for>
+  </div>
+
+  <sc-if value="{{ showChrome }}" hint-placeholder-val="{{ true }}">
+    <nav style="position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid #e0e0e0">
+      <div style="margin:0 auto;max-width:1152px;padding:0 24px">
+        <div style="display:flex;height:56px;align-items:center;justify-content:space-between;gap:16px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div onClick="{{ goLanding }}" style="display:flex;align-items:center;gap:8px;cursor:pointer">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{ accent }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
+              <span style="{{ st.logo }}">LingoPrep</span>
+            </div>
+            <sc-if value="{{ showExamBadge }}">
+              <span style="{{ st.navBadge }}">{{ exam }}</span>
+            </sc-if>
+          </div>
+          <div style="display:flex;align-items:center;gap:20px">
+            <span onClick="{{ goDashboard }}" style="font-size:13px;font-weight:600;color:#333;cursor:pointer">View your results</span>
+            <span onClick="{{ goLogin }}" style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#333;cursor:pointer">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+              Sign In
+            </span>
+            <button onClick="{{ goSignup }}" style="{{ st.navCta }}">Book your test</button>
+          </div>
+        </div>
+      </div>
+    </nav>
+  </sc-if>
+
+  <main style="flex:1">
+
+  <sc-if value="{{ isLanding }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;flex-direction:column;background:#f5f5f5">
+      <section style="background:#fff;border-bottom:1px solid #e5e5e5;padding:72px 0">
+        <div style="margin:0 auto;max-width:1152px;padding:0 24px">
+          <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:40px;align-items:center">
+            <div style="display:flex;flex-direction:column;gap:20px">
+              <h1 style="font-size:48px;font-weight:800;color:#000;line-height:1.1;letter-spacing:-0.02em">Achieve Your <span style="position:relative;display:inline-block;color:#c8102e">Dream Score<svg style="position:absolute;left:0;bottom:-6px;width:100%;height:12px;color:#c8102e" viewBox="0 0 100 10" preserveAspectRatio="none" fill="none"><path d="M3 7 C 30 3, 70 3, 97 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" /></svg></span> with LingoPrep</h1>
+              <p style="font-size:15px;color:#555;line-height:1.7;max-width:512px">AI-powered practice tests, instant scoring, and expert feedback tailored to IELTS and TOEFL. Start preparing smarter today.</p>
+              <div>
+                <button onClick="{{ scrollToPath }}" style="display:inline-flex;align-items:center;padding:13px 24px;background:#c8102e;color:#fff;font-weight:700;font-size:14px;border:none;border-radius:999px;box-shadow:0 1px 2px rgba(0,0,0,.06)">Get Started →</button>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding-top:8px">
+                <div style="display:flex">
+                  <div style="width:32px;height:32px;border-radius:999px;border:2px solid #fff;background:repeating-linear-gradient(45deg,#e4e4e4,#e4e4e4 3px,#f4f4f4 3px,#f4f4f4 6px)"></div>
+                  <div style="width:32px;height:32px;border-radius:999px;border:2px solid #fff;margin-left:-8px;background:repeating-linear-gradient(45deg,#dedede,#dedede 3px,#efefef 3px,#efefef 6px)"></div>
+                  <div style="width:32px;height:32px;border-radius:999px;border:2px solid #fff;margin-left:-8px;background:repeating-linear-gradient(45deg,#e4e4e4,#e4e4e4 3px,#f4f4f4 3px,#f4f4f4 6px)"></div>
+                </div>
+                <span style="font-size:13px;font-weight:600;color:#777">Trusted by students worldwide</span>
+              </div>
+            </div>
+            <div style="position:relative">
+              <div style="border-radius:16px;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,.12);border:1px solid #e5e5e5;position:relative">
+                <div style="width:100%;height:380px;background:repeating-linear-gradient(135deg,#ececec,#ececec 8px,#f6f6f6 8px,#f6f6f6 16px);display:flex;align-items:center;justify-content:center">
+                  <span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#8a8a8a">photo — students studying</span>
+                </div>
+                <div style="position:absolute;bottom:16px;left:16px;right:16px;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);border-radius:12px;padding:14px;box-shadow:0 10px 20px rgba(0,0,0,.12);display:flex;align-items:center;justify-content:space-between">
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <div style="width:36px;height:36px;border-radius:8px;background:#e8f5e9;display:flex;align-items:center;justify-content:center">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2e7d32" stroke-width="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" /></svg>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.08em">Target Score</div>
+                      <div style="font-size:15px;font-weight:700;color:#1a1a1a">IELTS 8.0</div>
+                    </div>
+                  </div>
+                  <div style="text-align:right;border-left:1px solid #e5e5e5;padding-left:14px">
+                    <div style="font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.08em">Probability</div>
+                    <div style="font-size:17px;font-weight:800;color:#2e7d32">92%</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="choose-path" style="padding:64px 0;background:#f5f5f5">
+        <div style="margin:0 auto;max-width:1152px;padding:0 24px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <div style="width:4px;height:28px;background:#c8102e;border-radius:999px"></div>
+            <h2 style="font-size:28px;font-weight:800;color:#000">Choose Your Path</h2>
+          </div>
+          <p style="font-size:14px;color:#777;margin:0 0 40px 12px">Select your target examination to access tailored practice materials.</p>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:24px">
+            <div style="background:#fff;border:1px solid #e5e5e5;border-radius:16px;padding:28px;display:flex;flex-direction:column;justify-content:space-between">
+              <div>
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+                  <div style="width:40px;height:40px;border-radius:12px;background:#c8102e;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:16px">I</div>
+                  <h3 style="font-size:18px;font-weight:700;color:#000">IELTS Preparation</h3>
+                </div>
+                <p style="font-size:13px;color:#666;line-height:1.7;margin-bottom:24px">Comprehensive modules for Academic and General Training. Master the 4 skills with realistic test scenarios.</p>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:24px">
+                  <sc-for list="{{ ieltsFeatures }}" as="f" hint-placeholder-count="4">
+                    <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#f5f5f5;border-radius:8px;font-size:12px;font-weight:600;color:#555">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2"><polyline points="20 6 9 17 4 12" /></svg>{{ f }}
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+              <button onClick="{{ pickIelts }}" style="width:100%;padding:13px;background:#c8102e;color:#fff;font-weight:700;font-size:13px;border:none;border-radius:999px">Start IELTS Practice →</button>
+            </div>
+
+            <div style="background:#fff;border:1px solid #e5e5e5;border-radius:16px;padding:28px;display:flex;flex-direction:column;justify-content:space-between">
+              <div>
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+                  <div style="width:40px;height:40px;border-radius:12px;background:#0057b8;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:16px">T</div>
+                  <h3 style="font-size:18px;font-weight:700;color:#000">TOEFL iBT® Preparation</h3>
+                </div>
+                <p style="font-size:13px;color:#666;line-height:1.7;margin-bottom:24px">Integrated tasks and authentic academic content designed to boost your iBT score efficiently.</p>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:24px">
+                  <sc-for list="{{ toeflFeatures }}" as="f" hint-placeholder-count="4">
+                    <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#f5f5f5;border-radius:8px;font-size:12px;font-weight:600;color:#555">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2"><polyline points="20 6 9 17 4 12" /></svg>{{ f }}
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+              <button onClick="{{ pickToefl }}" style="width:100%;padding:13px;background:#0057b8;color:#fff;font-weight:700;font-size:13px;border:none;border-radius:999px">Start TOEFL Practice →</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isExamHome }}">
+    <div style="display:flex;flex-direction:column;background:#f5f5f5">
+      <section style="background:#fff;border-bottom:1px solid #e5e5e5">
+        <div style="margin:0 auto;max-width:1152px;padding:56px 24px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap">
+            <div>
+              <button onClick="{{ goLanding }}" style="{{ st.changeExam }}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6" /></svg>
+                Change exam
+              </button>
+              <h1 style="font-size:40px;font-weight:800;color:#000;line-height:1.15;margin-bottom:8px">{{ examName }} Practice Tests</h1>
+              <p style="font-size:14px;color:#666;max-width:512px;line-height:1.7">{{ examDescription }}</p>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="{{ st.pill }}">{{ examName }}</span>
+              <button onClick="{{ goDashboard }}" style="padding:6px 16px;border:1px solid #ddd;background:#fff;color:#333;font-weight:700;border-radius:999px;font-size:12px">View results</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section style="padding:56px 0;flex:1">
+        <div style="margin:0 auto;max-width:1152px;padding:0 24px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:32px">
+            <div style="{{ st.bar }}"></div>
+            <h2 style="font-size:24px;font-weight:800;color:#000">Search by {{ examName }} skill</h2>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:20px">
+            <sc-for list="{{ modules }}" as="mod" hint-placeholder-count="4">
+              <div onClick="{{ mod.go }}" style="background:#fff;border:1px solid #e5e5e5;border-radius:12px;padding:24px;display:flex;flex-direction:column;justify-content:space-between;min-height:200px;cursor:pointer" style-hover="box-shadow:0 10px 24px rgba(0,0,0,.09)">
+                <div>
+                  <div style="width:44px;height:44px;border-radius:8px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;margin-bottom:20px">
+                    <span style="{{ mod.iconHolder }}">{{ mod.icon }}</span>
+                  </div>
+                  <h3 style="font-size:16px;font-weight:700;color:#000;margin-bottom:6px">{{ mod.title }}</h3>
+                  <p style="font-size:13px;color:#777;line-height:1.7">{{ mod.desc }}</p>
+                </div>
+                <div style="display:flex;justify-content:flex-end;margin-top:20px">
+                  <div style="width:36px;height:36px;border-radius:999px;border:1px solid #e0e0e0;display:flex;align-items:center;justify-content:center;color:#999">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+                  </div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </section>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isIntro }}">
+    <div style="margin:0 auto;max-width:768px;padding:48px 16px">
+      <div style="background:#fff;border:1px solid #e0e0e0;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.05);overflow:hidden">
+        <div style="{{ st.introHead }}">
+          <span style="{{ st.pillSm }}">{{ examName }} Academic</span>
+          <h1 style="font-size:32px;font-weight:700;color:#0f172a;margin-top:12px">{{ introTitle }}</h1>
+          <p style="font-size:14px;color:#475569;margin-top:4px">{{ introMeta }}</p>
+        </div>
+        <div style="padding:40px;display:flex;flex-direction:column;gap:24px">
+          <div>
+            <h2 style="font-size:16px;font-weight:700;color:#1e293b;margin-bottom:12px">{{ introSubhead }}</h2>
+            <ul style="display:flex;flex-direction:column;gap:12px;font-size:14px;color:#475569">
+              <sc-for list="{{ introBullets }}" as="b" hint-placeholder-count="4">
+                <li style="display:flex;align-items:flex-start;gap:10px">
+                  <svg style="width:20px;height:20px;color:#059669;flex-shrink:0;margin-top:2px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <span><strong>{{ b.label }}</strong> {{ b.text }}</span>
+                </li>
+              </sc-for>
+            </ul>
+          </div>
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:20px;font-size:13px;color:#64748b;line-height:1.7">
+            <strong>Instructions:</strong> {{ introInstructions }}
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:12px;padding-top:16px;border-top:1px solid #f1f5f9">
+            <button onClick="{{ goExamHome }}" style="padding:11px 20px;border:1px solid #cbd5e1;background:#fff;color:#334155;font-weight:600;font-size:13px;border-radius:999px">Back to Dashboard</button>
+            <button onClick="{{ startTest }}" style="{{ st.btnPrimary }}">Start Exam</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isReadingTest }}">
+    <div style="min-height:100%;background:#f4f5f7;display:flex;flex-direction:column">
+      <header style="background:#fff;border-bottom:1px solid #e2e8f0;padding:12px 32px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)">
+        <div style="display:flex;align-items:center;gap:8px;min-width:0">
+          <span style="{{ st.testLogo }}">LingoPrep</span>
+          <span style="color:#cbd5e1">|</span>
+          <span style="font-size:14px;font-weight:600;color:#475569">{{ examName }} Reading Test</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="display:flex;align-items:center;gap:4px;background:rgba(241,245,249,.9);border:1px solid #e2e8f0;padding:4px;border-radius:12px">
+            <sc-for list="{{ passageTabs }}" as="t" hint-placeholder-count="2">
+              <button onClick="{{ t.go }}" style="{{ t.style }}">{{ t.label }}</button>
+            </sc-for>
+          </div>
+          <div style="{{ st.timer }}">
+            <svg style="width:16px;height:16px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <span>{{ readingClock }}</span>
+          </div>
+          <button onClick="{{ askSubmitReading }}" style="{{ st.finishBtn }}">Finish</button>
+        </div>
+      </header>
+
+      <div style="flex:1;display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr)">
+        <div style="background:#fff;border-right:1px solid #e2e8f0;padding:32px;overflow-y:auto;max-height:calc(100vh - 115px)">
+          <div style="max-width:768px;margin:0 auto;display:flex;flex-direction:column;gap:24px">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+              <span style="padding:4px 14px;background:#f1f5f9;border:1px solid #e2e8f0;color:#475569;font-weight:800;border-radius:999px;font-size:10.5px;text-transform:uppercase;letter-spacing:.08em">Passage {{ readingSectionNo }} of {{ readingTotal }}</span>
+              <span style="font-size:12px;font-weight:600;color:#94a3b8">Questions {{ rQStart }}–{{ rQEnd }}</span>
+            </div>
+            <h2 style="font-size:23px;font-weight:800;color:#0f172a;line-height:1.2">{{ readingTitle }}</h2>
+            <div style="font-size:15px;color:#1e293b;line-height:1.85;display:flex;flex-direction:column;gap:20px">
+              <sc-for list="{{ readingParagraphs }}" as="p" hint-placeholder-count="3">
+                <p>{{ p }}</p>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:#f8f9fb;padding:32px;overflow-y:auto;max-height:calc(100vh - 115px);display:flex;flex-direction:column;gap:16px">
+          <div style="background:#fffbeb;border:1px solid rgba(253,230,138,.8);border-radius:16px;padding:16px">
+            <p style="font-size:13.5px;font-weight:700;color:#78350f;margin-bottom:2px;display:flex;align-items:center;gap:8px">
+              <svg style="width:16px;height:16px;color:#d97706" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <span>Questions {{ rQStart }}-{{ rQEnd }}</span>
+            </p>
+            <p style="font-size:12.5px;color:rgba(146,64,14,.9)">Read Passage {{ readingSectionNo }} and choose the correct option (A, B, C, or D) for each question below.</p>
+          </div>
+
+          <sc-for list="{{ readingQuestions }}" as="q" hint-placeholder-count="4">
+            <div style="background:#fff;border-radius:16px;border:1px solid #e2e8f0;padding:20px;box-shadow:0 1px 2px rgba(0,0,0,.04)">
+              <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:16px">
+                <span style="{{ st.numBadge }}">{{ q.num }}</span>
+                <p style="font-size:14.5px;font-weight:600;color:#0f172a;line-height:1.4;padding-top:2px">{{ q.text }}</p>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;padding-left:40px">
+                <sc-for list="{{ q.options }}" as="opt" hint-placeholder-count="4">
+                  <label onClick="{{ opt.pick }}" style="{{ opt.rowStyle }}">
+                    <span style="{{ opt.dotStyle }}">
+                      <sc-if value="{{ opt.selected }}"><span style="{{ opt.dotInner }}"></span></sc-if>
+                    </span>
+                    <span style="font-weight:700;width:16px;color:#94a3b8">{{ opt.label }}.</span>
+                    <span style="flex:1">{{ opt.text }}</span>
+                  </label>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+
+          <div style="padding-top:24px;border-top:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:8px">
+            <button onClick="{{ prevReading }}" style="{{ st.prevBtn }}">
+              <svg style="width:16px;height:16px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
+              <span>Previous Section</span>
+            </button>
+            <sc-if value="{{ readingHasNext }}">
+              <button onClick="{{ nextReading }}" style="display:flex;align-items:center;gap:6px;padding:11px 20px;border:none;border-radius:12px;font-size:13px;font-weight:700;color:#fff;background:#1e293b;box-shadow:0 1px 2px rgba(0,0,0,.08)">
+                <span>Next Section</span>
+                <svg style="width:16px;height:16px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+              </button>
+            </sc-if>
+            <sc-if value="{{ readingIsLast }}">
+              <button onClick="{{ askSubmitReading }}" style="{{ st.submitExamBtn }}">Submit Exam</button>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isListeningTest }}">
+    <div style="min-height:100%;background:#f4f5f7;display:flex;flex-direction:column">
+      <header style="background:#fff;border-bottom:1px solid #e2e8f0;padding:12px 32px;display:flex;align-items:center;justify-content:space-between;gap:8px;box-shadow:0 1px 2px rgba(0,0,0,.04)">
+        <div style="display:flex;align-items:center;gap:8px;min-width:0">
+          <span style="{{ st.testLogo }}">LingoPrep</span>
+          <span style="color:#cbd5e1">|</span>
+          <span style="font-size:14px;font-weight:600;color:#475569">{{ examName }} Listening Test</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <sc-if value="{{ listeningReview }}">
+            <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-family:ui-monospace,Menlo,monospace;font-weight:700;color:#dc2626;background:#fef2f2;border:1px solid #fecaca;padding:6px 12px;border-radius:8px;animation:pulsefade 2s infinite">
+              <svg style="width:14px;height:14px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+              {{ reviewClock }}
+            </div>
+          </sc-if>
+          <button onClick="{{ askSubmitListening }}" style="{{ st.finishBtn }}">Finish</button>
+        </div>
+      </header>
+
+      <div style="flex:1;display:flex">
+        <div style="width:288px;flex-shrink:0;background:#fff;border-right:1px solid #e2e8f0;display:flex;flex-direction:column;gap:16px;padding:20px;overflow-y:auto">
+          <div style="border-radius:16px;overflow:hidden;border:1px solid #e2e8f0">
+            <div style="{{ st.sectionCard }}">
+              <span style="{{ st.sectionIcon }}">{{ listeningCardIcon }}</span>
+              <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.08em">{{ listeningCardLabel }}</span>
+            </div>
+            <div style="padding:10px 16px;background:#fff;border-top:1px solid #f1f5f9;text-align:center">
+              <p style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.08em">Part {{ listeningSectionNo }}: Questions {{ lQStart }}-{{ lQEnd }}</p>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+            <div>
+              <p style="font-size:15px;font-weight:700;color:#1e293b">Section {{ listeningSectionNo }}</p>
+              <p style="font-size:12px;color:#64748b;margin-top:2px;line-height:1.4">{{ listeningTitle }}</p>
+            </div>
+            <span style="{{ st.qPill }}">Q {{ lQStart }}-{{ lQEnd }}</span>
+          </div>
+
+          <sc-if value="{{ listeningReview }}">
+            <div style="border-radius:12px;background:#ecfdf5;border:1px solid #a7f3d0;padding:16px;text-align:center;display:flex;flex-direction:column;gap:6px">
+              <div style="width:36px;height:36px;border-radius:999px;background:#d1fae5;display:flex;align-items:center;justify-content:center;margin:0 auto">
+                <svg style="width:20px;height:20px;color:#059669" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+              </div>
+              <p style="font-size:13px;font-weight:700;color:#065f46">All Recordings Complete</p>
+              <p style="font-size:11.5px;color:#059669">Review your answers before submitting.</p>
+            </div>
+          </sc-if>
+          <sc-if value="{{ listeningPlaying2 }}">
+            <div style="border-radius:12px;border:1px solid #e2e8f0;background:#f8fafc;padding:16px;display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;justify-content:center;align-items:flex-end;gap:4px;height:32px">
+                <sc-for list="{{ waveBars }}" as="bar" hint-placeholder-count="13">
+                  <div style="{{ bar }}"></div>
+                </sc-for>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px">
+                <button onClick="{{ togglePlay }}" style="{{ st.playBtn }}">
+                  <span style="{{ st.playIcon }}">{{ playGlyph }}</span>
+                </button>
+                <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+                  <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:600">
+                    <span style="color:#475569">{{ audioStatus }}</span>
+                    <span style="color:#94a3b8;font-family:ui-monospace,Menlo,monospace">{{ audioPct }}%</span>
+                  </div>
+                  <div style="height:6px;background:#e2e8f0;border-radius:999px;overflow:hidden">
+                    <div style="{{ st.audioBar }}"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <div style="border-radius:12px;border:1px solid #e2e8f0;background:#fff;padding:16px">
+            <p style="font-size:13px;font-weight:700;color:#1e293b;margin-bottom:8px">Instructions</p>
+            <p style="font-size:12.5px;color:#475569;line-height:1.6">{{ listeningInstruction }}</p>
+            <sc-if value="{{ listeningPlaying2 }}">
+              <p style="{{ st.noteAccent }}">Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.</p>
+            </sc-if>
+          </div>
+
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <sc-for list="{{ listeningPills }}" as="p" hint-placeholder-count="2">
+              <button onClick="{{ p.go }}" style="{{ p.style }}">{{ p.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="flex:1;overflow-y:auto;padding:24px 32px;display:flex;flex-direction:column;gap:16px">
+          <div style="margin-bottom:8px">
+            <h2 style="font-size:18px;font-weight:700;color:#0f172a">{{ listeningTitle }}</h2>
+            <p style="font-size:13px;color:#64748b;margin-top:4px">Questions {{ lQStart }}-{{ lQEnd }} - Choose the correct letter A, B, C or D.</p>
+          </div>
+
+          <sc-for list="{{ listeningQuestions }}" as="q" hint-placeholder-count="4">
+            <div style="background:#fff;border-radius:16px;border:1px solid #e2e8f0;padding:20px;box-shadow:0 1px 2px rgba(0,0,0,.04)">
+              <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:16px">
+                <span style="{{ st.numBadge }}">{{ q.num }}</span>
+                <p style="font-size:14.5px;font-weight:600;color:#0f172a;line-height:1.4;padding-top:2px">{{ q.text }}</p>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;padding-left:40px">
+                <sc-for list="{{ q.options }}" as="opt" hint-placeholder-count="4">
+                  <label onClick="{{ opt.pick }}" style="{{ opt.rowStyle }}">
+                    <span style="{{ opt.dotStyle }}">
+                      <sc-if value="{{ opt.selected }}"><span style="{{ opt.dotInner }}"></span></sc-if>
+                    </span>
+                    <span style="font-weight:700;width:16px;color:#94a3b8">{{ opt.label }}.</span>
+                    <span style="flex:1">{{ opt.text }}</span>
+                  </label>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+
+          <div style="padding-top:24px;border-top:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:8px">
+            <button onClick="{{ prevListening }}" style="{{ st.prevBtn }}">
+              <svg style="width:16px;height:16px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
+              <span>Previous Section</span>
+            </button>
+            <sc-if value="{{ listeningHasNext }}">
+              <button onClick="{{ nextListening }}" style="display:flex;align-items:center;gap:6px;padding:11px 20px;border:none;border-radius:12px;font-size:13px;font-weight:700;color:#fff;background:#1e293b;box-shadow:0 1px 2px rgba(0,0,0,.08)">
+                <span>Next Section</span>
+                <svg style="width:16px;height:16px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+              </button>
+            </sc-if>
+            <sc-if value="{{ listeningIsLast }}">
+              <button onClick="{{ askSubmitListening }}" style="{{ st.submitExamBtn }}">Finish Test</button>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isMcqResults }}">
+    <div style="margin:0 auto;max-width:1152px;padding:32px 16px">
+      <div style="background:#fff;border:1px solid #e0e0e0;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.05);overflow:hidden;margin-bottom:32px">
+        <div style="padding:40px;text-align:center;border-bottom:1px solid #f0f0f0">
+          <span style="{{ st.pillSm }}">Test Completed</span>
+          <h1 style="font-size:28px;font-weight:700;color:#0f172a;margin-top:16px">Your {{ resultModule }} Score Report</h1>
+          <p style="font-size:13px;color:#999;margin-top:4px">{{ resultScaleNote }}</p>
+          <div style="display:flex;justify-content:center;align-items:center;gap:64px;margin:32px 0;flex-wrap:wrap">
+            <div style="{{ st.scoreCircle }}">
+              <span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b">{{ bandLabel }}</span>
+              <span style="font-size:42px;font-weight:800;color:#0f172a;line-height:1;margin-top:4px">{{ bandValue }}</span>
+              <sc-if value="{{ isToefl }}"><span style="font-size:11px;color:#94a3b8;font-weight:600">out of 30</span></sc-if>
+            </div>
+            <div style="text-align:left;display:flex;flex-direction:column;gap:8px">
+              <sc-for list="{{ resultStats }}" as="row" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;gap:32px">
+                  <span style="font-size:14px;color:#64748b;font-weight:500">{{ row.label }}</span>
+                  <span style="font-size:16px;font-weight:700;color:#1e293b">{{ row.value }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:center;gap:16px">
+            <button onClick="{{ restartTest }}" style="padding:11px 24px;border:1px solid #cbd5e1;background:#fff;color:#334155;font-weight:700;font-size:13px;border-radius:999px">Restart Test</button>
+            <button onClick="{{ goExamHome }}" style="{{ st.btnPrimary }}">Dashboard</button>
+          </div>
+        </div>
+      </div>
+
+      <h2 style="font-size:20px;font-weight:700;color:#1e293b;margin-bottom:16px">{{ reviewHeading }}</h2>
+      <div style="border:1px solid #e0e0e0;border-radius:16px;background:#fff;padding:24px;margin-bottom:24px">
+        <div style="display:flex;gap:8px;border-bottom:1px solid #f0f0f0;padding-bottom:16px;margin-bottom:24px;overflow-x:auto">
+          <sc-for list="{{ reviewTabs }}" as="t" hint-placeholder-count="2">
+            <button onClick="{{ t.go }}" style="{{ t.style }}">{{ t.label }}</button>
+          </sc-for>
+        </div>
+
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;align-items:start">
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:24px;max-height:600px;overflow-y:auto">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+              <h3 style="{{ st.reviewTitle }}">{{ reviewSourceTitle }}</h3>
+              <sc-if value="{{ isListeningResults }}">
+                <button onClick="{{ toggleTranscript }}" style="{{ st.linkBtn }}">{{ transcriptToggleLabel }}</button>
+              </sc-if>
+            </div>
+            <div style="font-size:14px;color:#334155;line-height:1.8;display:flex;flex-direction:column;gap:16px;font-weight:500">
+              <sc-for list="{{ reviewParagraphs }}" as="p" hint-placeholder-count="3">
+                <p>{{ p }}</p>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:24px">
+            <sc-for list="{{ reviewQuestions }}" as="q" hint-placeholder-count="4">
+              <div style="{{ q.wrapStyle }}">
+                <p style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:16px;display:flex;align-items:flex-start">
+                  <span style="{{ st.numBadgeSm }}">{{ q.num }}</span>
+                  {{ q.text }}
+                </p>
+                <div style="display:flex;flex-direction:column;gap:10px;padding-left:32px">
+                  <sc-for list="{{ q.options }}" as="opt" hint-placeholder-count="4">
+                    <div style="{{ opt.rowStyle }}">
+                      <span style="font-weight:700;color:#888">{{ opt.label }}.</span>
+                      <span>{{ opt.text }}</span>
+                      <span style="{{ opt.tagStyle }}">{{ opt.tag }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="margin:16px 0 0 32px;padding:12px;background:#fff;border-left:4px solid #10b981;border-radius:0 8px 8px 0;font-size:13px;color:#475569">
+                  <strong style="color:#047857">Explanation:</strong> {{ q.explanation }}
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isWriting }}">
+    <div style="margin:0 auto;max-width:1024px;padding:32px 24px">
+      <div style="margin-bottom:32px;padding-bottom:20px;border-bottom:1px solid rgba(226,232,240,.8)">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:40px;height:40px;border-radius:999px;background:#f1f5f9;display:flex;align-items:center;justify-content:center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>
+          </div>
+          <div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <h1 style="font-size:28px;font-weight:800;color:#0f172a;letter-spacing:-0.02em">{{ examName }} Writing Assessment</h1>
+              <span style="{{ st.tinyPill }}">{{ examName }}</span>
+            </div>
+            <p style="color:#64748b;font-size:13.5px;font-weight:500;margin-top:2px">Draft a formal academic response based on the prompt instructions.</p>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:32px">
+        <sc-for list="{{ writingTabs }}" as="t" hint-placeholder-count="3">
+          <button onClick="{{ t.go }}" style="{{ t.style }}">{{ t.label }}</button>
+        </sc-for>
+        <button onClick="{{ randomPrompt }}" style="{{ st.randomBtn }}">🔀 Random Topic</button>
+      </div>
+
+      <div style="background:#fff;border:1px solid rgba(226,232,240,.7);border-radius:24px;padding:28px;margin-bottom:32px;box-shadow:0 8px 30px rgba(0,0,0,.03)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+          <span style="{{ st.softPill }}">{{ examName }} Writing</span>
+          <span style="padding:4px 12px;border-radius:999px;font-size:10.5px;font-weight:800;background:#f1f5f9;color:#334155;text-transform:uppercase;letter-spacing:.08em">Task {{ writingTaskType }}</span>
+          <span style="padding:4px 12px;border-radius:999px;font-size:10.5px;font-weight:800;background:#ecfdf5;color:#047857;border:1px solid rgba(167,243,208,.6);text-transform:uppercase;letter-spacing:.08em">Ref Score: {{ writingRefScore }}</span>
+        </div>
+        <p style="color:#1e293b;line-height:1.7;font-weight:500;font-size:15.5px">{{ writingQuestion }}</p>
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid #f1f5f9;font-size:12px;color:#94a3b8;font-weight:600;display:flex;align-items:center;gap:8px">
+          <svg style="width:16px;height:16px;color:#94a3b8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+          <span>{{ writingTargetNote }}</span>
+        </div>
+      </div>
+
+      <div style="background:#fff;border:1px solid rgba(226,232,240,.7);border-radius:24px;overflow:hidden;margin-bottom:32px;box-shadow:0 8px 30px rgba(0,0,0,.03)">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 28px;border-bottom:1px solid #f1f5f9;background:rgba(248,250,252,.5);font-size:12px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.08em">
+          <span>Writing Workspace</span>
+          <span style="{{ st.wordPill }}">{{ wordCountLabel }}</span>
+        </div>
+        <textarea value="{{ essay }}" onChange="{{ onEssay }}" placeholder="Type your essay response here..." rows="14" style="width:100%;padding:28px;background:transparent;resize:none;outline:none;border:none;color:#0f172a;font-size:16px;line-height:1.8;box-sizing:border-box"></textarea>
+      </div>
+
+      <sc-if value="{{ writingNotEvaluated }}">
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:32px;flex-wrap:wrap">
+          <button onClick="{{ evaluateEssay }}" style="{{ st.evaluateBtn }}">{{ evaluateLabel }}</button>
+          <sc-if value="{{ showMinWordsHint }}">
+            <p style="font-size:13px;color:#64748b;font-weight:600">Please write at least 50 words to enable evaluation.</p>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ hasWritingEval }}">
+        <div style="display:flex;flex-direction:column;gap:24px">
+          <div style="background:#fff;border:1px solid rgba(226,232,240,.7);border-radius:24px;padding:32px;box-shadow:0 8px 30px rgba(0,0,0,.03);display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap">
+            <div>
+              <h3 style="font-size:20px;font-weight:800;color:#0f172a">{{ examName }} Writing Band Score</h3>
+              <p style="color:#64748b;font-size:13px;margin-top:4px">Evaluated based on official criteria</p>
+            </div>
+            <div style="display:flex;align-items:center;gap:16px;background:#f8fafc;border:1px solid rgba(226,232,240,.8);padding:16px 24px;border-radius:16px">
+              <div style="text-align:center">
+                <div style="{{ st.bigScore }}">{{ writingOverall }}</div>
+                <div style="font-size:10.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-top:6px">{{ writingScaleLabel }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px">
+            <sc-for list="{{ writingSubscores }}" as="s" hint-placeholder-count="4">
+              <div style="background:#fff;border:1px solid rgba(226,232,240,.7);border-radius:24px;padding:24px;box-shadow:0 4px 20px rgba(0,0,0,.02)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                  <span style="font-size:14px;font-weight:700;color:#1e293b">{{ s.label }}</span>
+                  <span style="font-weight:800;font-size:16px;color:#0f172a">{{ s.value }}</span>
+                </div>
+                <div style="height:8px;background:#f1f5f9;border-radius:999px;overflow:hidden">
+                  <div style="{{ s.barStyle }}"></div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="background:#fff;border:1px solid rgba(226,232,240,.7);border-radius:24px;padding:28px;box-shadow:0 8px 30px rgba(0,0,0,.03)">
+            <h4 style="font-weight:700;color:#0f172a;font-size:16px;margin-bottom:16px;border-bottom:1px solid #f1f5f9;padding-bottom:12px">Assessment Feedback</h4>
+            <p style="color:#1e293b;line-height:1.7;font-size:14px">{{ writingFeedback }}</p>
+          </div>
+
+          <div style="background:#fff;border:1px solid rgba(226,232,240,.7);border-radius:24px;padding:28px;box-shadow:0 8px 30px rgba(0,0,0,.03)">
+            <h4 style="font-weight:700;color:#0f172a;font-size:16px;margin-bottom:16px;border-bottom:1px solid #f1f5f9;padding-bottom:12px">Improvement Suggestions</h4>
+            <ul style="display:flex;flex-direction:column;gap:12px">
+              <sc-for list="{{ writingSuggestions }}" as="s" hint-placeholder-count="3">
+                <li style="display:flex;align-items:flex-start;gap:12px;color:#1e293b;font-size:14px">
+                  <svg style="width:16px;height:16px;flex-shrink:0;margin-top:4px" fill="none" viewBox="0 0 24 24" stroke="{{ accent }}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                  <span style="line-height:1.7">{{ s }}</span>
+                </li>
+              </sc-for>
+            </ul>
+          </div>
+
+          <div>
+            <button onClick="{{ resetWriting }}" style="padding:12px 24px;border:1px solid #e2e8f0;background:#fff;color:#334155;font-weight:700;font-size:13px;border-radius:999px;box-shadow:0 1px 2px rgba(0,0,0,.04)">Start New Practice Essay</button>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isSpeaking }}">
+    <div style="margin:0 auto;max-width:1152px;padding:32px 24px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:32px;padding-bottom:20px;border-bottom:1px solid rgba(226,232,240,.8);flex-wrap:wrap">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <span style="{{ st.tinyPill }}">{{ examName }} Academic</span>
+            <span style="font-size:12px;font-weight:600;color:#94a3b8">•</span>
+            <span style="font-size:13px;color:#64748b;font-weight:500">Speaking Assessment</span>
+          </div>
+          <h1 style="font-size:28px;font-weight:800;color:#0f172a;letter-spacing:-0.02em">{{ examName }} Speaking Test</h1>
+        </div>
+        <span style="{{ st.outlinePill }}">{{ speakingPartLabel }}</span>
+      </div>
+
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:32px">
+        <sc-for list="{{ speakingTabs }}" as="t" hint-placeholder-count="2">
+          <button onClick="{{ t.go }}" style="{{ t.style }}">{{ t.label }}</button>
+        </sc-for>
+      </div>
+
+      <div style="display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:32px;align-items:start">
+        <div style="background:#fff;border:1px solid rgba(226,232,240,.7);border-radius:24px;padding:28px;box-shadow:0 8px 30px rgba(0,0,0,.03)">
+          <div style="background:linear-gradient(to bottom,#0f172a,#020617);border-radius:16px;aspect-ratio:16/9;margin-bottom:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px solid #1e293b;position:relative;overflow:hidden">
+            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;gap:12px">
+              <div style="position:relative">
+                <div style="width:64px;height:64px;border-radius:999px;background:rgba(30,41,59,.8);border:1px solid rgba(51,65,85,.8);display:flex;align-items:center;justify-content:center;color:#cbd5e1;box-shadow:0 10px 20px rgba(0,0,0,.3)">
+                  <svg style="width:32px;height:32px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
+                </div>
+              </div>
+              <div>
+                <h4 style="color:#fff;font-size:14px;font-weight:700">AI Examiner Console</h4>
+                <p style="color:#94a3b8;font-size:12px">Listening &amp; Evaluating spoken responses</p>
+              </div>
+              <div style="display:flex;align-items:center;gap:4px;height:24px;padding-top:8px">
+                <sc-for list="{{ speakingBars }}" as="bar" hint-placeholder-count="9">
+                  <div style="{{ bar }}"></div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="position:absolute;bottom:12px;left:12px;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);color:#fff;font-size:11px;padding:4px 10px;border-radius:999px;font-weight:600;border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:6px">
+              <span style="width:8px;height:8px;border-radius:999px;background:#34d399;animation:pulsefade 2s infinite"></span>
+              <span>Session Active</span>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px 0">
+            <sc-if value="{{ recIdle }}">
+              <div style="text-align:center;display:flex;flex-direction:column;gap:16px">
+                <button onClick="{{ startRecording }}" style="{{ st.micBtn }}">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" /><path d="M19 10v1a7 7 0 0 1-14 0v-1" /><line x1="12" x2="12" y1="19" y2="22" /></svg>
+                </button>
+                <p style="font-size:12.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.08em">Click mic to record response</p>
+                <button onClick="{{ enableManual }}" style="{{ st.linkBtn }}">Or type spoken transcript manually</button>
+              </div>
+            </sc-if>
+            <sc-if value="{{ recRecording }}">
+              <div style="text-align:center;display:flex;flex-direction:column;gap:16px">
+                <button onClick="{{ stopRecording }}" style="width:64px;height:64px;border-radius:999px;background:#dc2626;border:none;color:#fff;display:flex;align-items:center;justify-content:center;margin:0 auto;animation:pulsefade 1.6s infinite;box-shadow:0 10px 20px rgba(0,0,0,.15)">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="5" width="14" height="14" rx="2" /></svg>
+                </button>
+                <div style="color:#dc2626;font-weight:700;font-size:20px;font-family:ui-monospace,Menlo,monospace;letter-spacing:.05em">{{ recClock }}</div>
+                <p style="font-size:12px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em">Recording response... Click button to finish</p>
+              </div>
+            </sc-if>
+            <sc-if value="{{ recRecorded }}">
+              <div style="text-align:center;display:flex;flex-direction:column;gap:16px">
+                <div style="padding:8px 16px;border-radius:999px;background:#f1f5f9;border:1px solid #e2e8f0;font-size:13px;font-weight:600;color:#334155;display:inline-block">Audio Duration: {{ recClock }}</div>
+                <div style="display:flex;gap:12px;justify-content:center">
+                  <button onClick="{{ transcribe }}" style="{{ st.btnPrimary }}">Transcribe Recording</button>
+                  <button onClick="{{ resetSpeaking }}" style="padding:11px 20px;border:1px solid #e2e8f0;background:#fff;color:#334155;font-weight:700;font-size:13px;border-radius:999px">Re-record</button>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ recBusy }}">
+              <div style="text-align:center;display:flex;flex-direction:column;gap:12px;padding:16px 0">
+                <div style="{{ st.spinner }}"></div>
+                <p style="font-size:12.5px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em">Analyzing speaking metrics with AI...</p>
+              </div>
+            </sc-if>
+          </div>
+
+          <sc-if value="{{ showManual }}">
+            <div style="margin-top:24px;padding-top:24px;border-top:1px solid rgba(226,232,240,.8)">
+              <textarea value="{{ transcript }}" onChange="{{ onTranscript }}" placeholder="Enter what you would say in response to the prompt..." rows="5" style="width:100%;padding:16px;border-radius:16px;border:1px solid #e2e8f0;background:rgba(248,250,252,.5);outline:none;font-size:14.5px;line-height:1.7;color:#0f172a;box-sizing:border-box;resize:vertical"></textarea>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px">
+                <span style="font-size:12px;color:#64748b;font-weight:600">{{ transcriptWords }} words</span>
+                <button onClick="{{ evaluateSpeaking }}" style="{{ st.btnPrimary }}">Evaluate Transcript</button>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:24px">
+          <div style="background:#fff;border:1px solid rgba(226,232,240,.7);border-radius:24px;padding:28px;box-shadow:0 8px 30px rgba(0,0,0,.03)">
+            <h3 style="font-size:16px;font-weight:700;color:#0f172a;border-bottom:1px solid #f1f5f9;padding-bottom:12px;margin-bottom:20px;display:flex;align-items:center;gap:10px">
+              <div style="width:28px;height:28px;border-radius:999px;background:#f1f5f9;color:#334155;display:flex;align-items:center;justify-content:center">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>
+              </div>
+              <span>{{ cueCardTitle }}</span>
+            </h3>
+            <div style="background:rgba(248,250,252,.7);padding:20px;border-radius:16px;border:1px solid rgba(226,232,240,.6);margin-bottom:16px">
+              <p style="font-size:14.5px;color:#1e293b;line-height:1.7;font-weight:500">{{ speakingPromptText }}</p>
+            </div>
+            <div style="font-size:12px;color:#94a3b8;font-weight:600;display:flex;align-items:center;gap:6px">
+              <svg style="width:16px;height:16px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+              <span>Suggested speaking duration: 1–2 minutes</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <sc-if value="{{ showTranscriptReview }}">
+        <div style="background:#fff;border:1px solid rgba(226,232,240,.7);border-radius:24px;padding:28px;margin-top:32px;box-shadow:0 8px 30px rgba(0,0,0,.03)">
+          <h3 style="font-weight:700;font-size:15px;color:#0f172a;border-bottom:1px solid #f1f5f9;padding-bottom:12px;margin-bottom:16px">Transcribed Spoken Response</h3>
+          <p style="font-size:14.5px;color:#1e293b;line-height:1.7;margin-bottom:24px;background:rgba(248,250,252,.6);padding:20px;border-radius:16px;border:1px solid rgba(226,232,240,.6)">{{ transcript }}</p>
+          <div style="display:flex;gap:12px">
+            <button onClick="{{ evaluateSpeaking }}" style="{{ st.btnPrimary }}">Evaluate Response</button>
+            <button onClick="{{ resetSpeaking }}" style="padding:11px 20px;border:1px solid #e2e8f0;background:#fff;color:#334155;font-weight:700;font-size:13px;border-radius:999px">Start Over</button>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ hasSpeakingEval }}">
+        <div style="margin-top:32px;display:flex;flex-direction:column;gap:24px">
+          <div style="background:#fff;border:1px solid rgba(226,232,240,.7);border-radius:24px;padding:28px;box-shadow:0 8px 30px rgba(0,0,0,.03)">
+            <h3 style="font-weight:700;font-size:15px;color:#0f172a;border-bottom:1px solid #f1f5f9;padding-bottom:12px;margin-bottom:16px">Transcribed Response</h3>
+            <p style="font-size:14.5px;color:#1e293b;line-height:1.7">{{ transcript }}</p>
+          </div>
+          <div style="background:#fff;border:1px solid rgba(226,232,240,.7);border-radius:24px;padding:28px;box-shadow:0 8px 30px rgba(0,0,0,.03);display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap">
+            <div>
+              <h3 style="font-size:18px;font-weight:800;color:#0f172a">{{ examName }} Speaking Band Score</h3>
+              <p style="font-size:13px;color:#64748b;margin-top:4px">Evaluated based on official criteria</p>
+            </div>
+            <div style="display:flex;align-items:baseline;gap:8px;background:#f8fafc;border:1px solid rgba(226,232,240,.8);padding:14px 24px;border-radius:16px">
+              <span style="{{ st.bigScore }}">{{ speakingOverall }}</span>
+              <span style="font-size:14px;font-weight:700;color:#64748b">/ {{ maxScale }}</span>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px">
+            <sc-for list="{{ speakingSubscores }}" as="s" hint-placeholder-count="4">
+              <div style="background:#fff;border:1px solid rgba(226,232,240,.7);border-radius:24px;padding:24px;box-shadow:0 4px 20px rgba(0,0,0,.02)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                  <span style="font-size:14px;font-weight:700;color:#1e293b">{{ s.label }}</span>
+                  <span style="font-weight:800;font-size:16px;color:#0f172a">{{ s.value }}</span>
+                </div>
+                <div style="height:8px;background:#f1f5f9;border-radius:999px;overflow:hidden">
+                  <div style="{{ s.barStyle }}"></div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="background:#fff;border:1px solid rgba(226,232,240,.7);border-radius:24px;padding:28px;box-shadow:0 8px 30px rgba(0,0,0,.03)">
+            <h4 style="font-weight:700;color:#0f172a;font-size:16px;margin-bottom:16px;border-bottom:1px solid #f1f5f9;padding-bottom:12px">Detailed Assessment Feedback</h4>
+            <p style="color:#1e293b;line-height:1.7;font-size:14px">{{ speakingFeedback }}</p>
+          </div>
+          <div style="background:#fff;border:1px solid rgba(226,232,240,.7);border-radius:24px;padding:28px;box-shadow:0 8px 30px rgba(0,0,0,.03)">
+            <h4 style="font-weight:700;color:#0f172a;font-size:16px;margin-bottom:16px;border-bottom:1px solid #f1f5f9;padding-bottom:12px">Suggestions for Improvement</h4>
+            <ul style="display:flex;flex-direction:column;gap:12px">
+              <sc-for list="{{ speakingSuggestions }}" as="s" hint-placeholder-count="3">
+                <li style="display:flex;align-items:flex-start;gap:12px;color:#1e293b;font-size:14px">
+                  <svg style="width:16px;height:16px;flex-shrink:0;margin-top:4px" fill="none" viewBox="0 0 24 24" stroke="{{ accent }}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                  <span style="line-height:1.7">{{ s }}</span>
+                </li>
+              </sc-for>
+            </ul>
+          </div>
+          <div>
+            <button onClick="{{ resetSpeaking }}" style="padding:12px 24px;border:1px solid #e2e8f0;background:#fff;color:#334155;font-weight:700;font-size:13px;border-radius:999px;box-shadow:0 1px 2px rgba(0,0,0,.04)">Start New Practice Topic</button>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isDashboard }}">
+    <div style="margin:0 auto;max-width:1152px;padding:32px 24px">
+      <div style="margin-bottom:32px">
+        <h1 style="font-size:26px;font-weight:700;color:#1a1a1a">Your results</h1>
+        <p style="font-size:14px;color:#666;margin-top:4px">Check your scores and track your progress across all modules.</p>
+      </div>
+
+      <div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:32px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap">
+        <div>
+          <p style="font-size:12px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Overall Band Score</p>
+          <div style="display:flex;align-items:baseline;gap:8px">
+            <span style="font-size:48px;font-weight:700;color:#1a1a1a;line-height:1">{{ overallBand }}</span>
+            <span style="font-size:16px;color:#999">/ {{ maxScore }}</span>
+          </div>
+          <p style="font-size:13px;color:#999;margin-top:8px">Based on {{ totalSessions }} practice sessions</p>
+        </div>
+        <span style="font-size:11px;font-weight:700;background:#f5f5f5;color:#555;padding:4px 12px;border-radius:999px;text-transform:uppercase;letter-spacing:.06em">{{ exam }}</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:32px">
+        <sc-for list="{{ moduleScores }}" as="m" hint-placeholder-count="4">
+          <div onClick="{{ m.go }}" style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:20px;cursor:pointer">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+              <span style="font-size:14px;font-weight:700;color:#1a1a1a">{{ m.title }}</span>
+              <span style="font-size:20px;font-weight:700;color:#1a1a1a">{{ m.score }}</span>
+            </div>
+            <div style="height:6px;background:#f0f0f0;border-radius:999px;overflow:hidden;margin-bottom:8px">
+              <div style="{{ m.barStyle }}"></div>
+            </div>
+            <p style="{{ st.retake }}">Retake →</p>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden">
+        <div style="padding:16px 24px;border-bottom:1px solid #e0e0e0">
+          <h2 style="font-size:16px;font-weight:700;color:#1a1a1a">Recent test history</h2>
+        </div>
+        <table style="width:100%;text-align:left;border-collapse:collapse">
+          <thead>
+            <tr style="border-bottom:1px solid #f0f0f0;font-size:12px;font-weight:700;color:#999;text-transform:uppercase">
+              <th style="padding:12px 24px">Date</th>
+              <th style="padding:12px 24px">Test name</th>
+              <th style="padding:12px 24px">Score</th>
+              <th style="padding:12px 24px;text-align:right">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{ sessions }}" as="s" hint-placeholder-count="5">
+              <tr style="border-bottom:1px solid #f0f0f0;font-size:14px">
+                <td style="padding:14px 24px;color:#666">{{ s.date }}</td>
+                <td style="padding:14px 24px;font-weight:600;color:#1a1a1a">{{ s.name }}</td>
+                <td style="padding:14px 24px;color:#1a1a1a;font-weight:700">{{ s.score }}</td>
+                <td style="padding:14px 24px;text-align:right"><span style="{{ st.reviewLink }}">Review</span></td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isAuth }}">
+    <div style="display:flex;align-items:center;justify-content:center;min-height:70vh;padding:48px 16px">
+      <div style="width:100%;max-width:384px">
+        <div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:32px">
+          <h1 style="font-size:22px;font-weight:700;color:#1a1a1a;margin-bottom:4px;text-align:center">{{ authTitle }}</h1>
+          <p style="font-size:13px;color:#999;text-align:center;margin-bottom:24px">{{ authSubtitle }}</p>
+
+          <button style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;border:1px solid #ddd;background:#fff;border-radius:999px;font-size:13px;font-weight:600;color:#333;margin-bottom:16px">
+            <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" /><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" /><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" /><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" /></svg>
+            Continue with Google
+          </button>
+
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+            <div style="flex:1;height:1px;background:#e0e0e0"></div>
+            <span style="font-size:11px;color:#999;font-weight:600;text-transform:uppercase">or</span>
+            <div style="flex:1;height:1px;background:#e0e0e0"></div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <sc-for list="{{ authFields }}" as="f" hint-placeholder-count="2">
+              <div>
+                <label style="display:block;font-size:12px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">{{ f.label }}</label>
+                <input type="{{ f.type }}" placeholder="{{ f.placeholder }}" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:4px;font-size:14px;outline:none;box-sizing:border-box" style-focus="border-color:#c8102e" />
+              </div>
+            </sc-for>
+            <button style="width:100%;padding:11px;background:#c8102e;color:#fff;font-weight:600;font-size:13px;border:none;border-radius:999px">{{ authCta }}</button>
+          </div>
+
+          <p style="text-align:center;font-size:13px;color:#666;margin-top:20px">
+            {{ authSwitchText }} <span onClick="{{ toggleAuth }}" style="color:#c8102e;font-weight:600;cursor:pointer">{{ authSwitchCta }}</span>
+          </p>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  </main>
+
+  <sc-if value="{{ showChrome }}">
+    <footer style="background:#333541;color:#fff;border-top:1px solid #4e505c;width:100%">
+      <div style="margin:0 auto;max-width:1152px;padding:48px 24px">
+        <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #4e505c;padding-bottom:24px;margin-bottom:32px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="{{ accent }}" stroke-width="2.5"><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
+            <span style="font-size:18px;font-weight:800;letter-spacing:-0.02em;color:#fff">LingoPrep</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:#b0b3c0">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" /><path d="M2 12h20" /></svg>
+            <span style="font-weight:600">Pakistan</span>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:32px;margin-bottom:32px">
+          <sc-for list="{{ footerColumns }}" as="col" hint-placeholder-count="3">
+            <div>
+              <h4 style="font-size:14px;font-weight:700;color:#fff;margin-bottom:16px;position:relative;padding-bottom:8px;display:inline-block">
+                {{ col.heading }}
+                <span style="{{ st.footerRule }}"></span>
+              </h4>
+              <ul style="display:flex;flex-direction:column;gap:12px;font-size:13px;color:#b0b3c0">
+                <sc-for list="{{ col.items }}" as="item" hint-placeholder-count="4">
+                  <li>{{ item }}</li>
+                </sc-for>
+              </ul>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="border-top:1px solid #4e505c;padding-top:24px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
+          <div>
+            <span style="font-size:13px;font-weight:700;color:#b0b3c0">LingoPrep – Pakistan</span>
+            <div style="display:flex;gap:12px;margin-top:12px">
+              <sc-for list="{{ socialIcons }}" as="ic" hint-placeholder-count="4">
+                <div style="width:32px;height:32px;border-radius:999px;background:#4e505c;display:flex;align-items:center;justify-content:center;color:#b0b3c0;font-size:12px;font-weight:700">{{ ic }}</div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <div style="border-top:1px solid #4e505c;margin-top:32px;padding-top:24px">
+          <p style="font-size:11px;color:#787c8f;line-height:1.7;margin-bottom:16px">LingoPrep is an independent learning platform. IELTS® is a registered trademark of University of Cambridge ESOL Examinations, the British Council, and IDP Education Australia. TOEFL® and TOEFL iBT® are registered trademarks of Educational Testing Service (ETS). This platform is not endorsed or approved by any trademark owners.</p>
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;font-size:11px;color:#787c8f">
+            <span>© 2026 LingoPrep. All rights reserved.</span>
+            <div style="display:flex;gap:16px">
+              <span>Legal Notice</span>
+              <span>Privacy Policy</span>
+              <span>Terms of Use</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </sc-if>
+
+  <sc-if value="{{ showConfirm }}">
+    <div style="position:fixed;inset:0;background:rgba(15,23,42,.5);backdrop-filter:blur(4px);z-index:60;display:flex;align-items:center;justify-content:center;padding:16px">
+      <div style="background:#fff;border-radius:16px;border:1px solid #e2e8f0;box-shadow:0 25px 50px rgba(0,0,0,.25);max-width:384px;width:100%;padding:28px">
+        <div style="width:44px;height:44px;background:#fef2f2;border-radius:999px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
+          <svg style="width:20px;height:20px;color:#dc2626" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+        </div>
+        <h3 style="font-size:17px;font-weight:700;color:#0f172a;margin-bottom:8px;text-align:center">Submit Exam?</h3>
+        <p style="font-size:13px;color:#64748b;margin-bottom:24px;line-height:1.7;text-align:center">You have {{ unansweredCount }} unanswered questions.</p>
+        <div style="display:flex;gap:12px">
+          <button onClick="{{ dismissConfirm }}" style="flex:1;padding:11px 16px;border:1px solid #cbd5e1;background:#fff;color:#334155;font-weight:700;font-size:13px;border-radius:8px">Keep Working</button>
+          <button onClick="{{ confirmSubmit }}" style="{{ st.confirmBtn }}">Yes, Submit</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = {
+    screen: "landing", exam: "ielts",
+    rSection: 0, rAnswers: {}, rTime: 3600,
+    lSection: 0, lAnswers: {}, lReview: false, lPlaying: false, lProgress: 0, lPlayed: {}, lTranscript: false,
+    reviewTime: 120,
+    confirmFor: null, resultsFor: null, correct: 0, pct: 0, band: 0,
+    wPrompt: 0, essay: "", wEval: null, wEvaluating: false,
+    sPrompt: 0, recState: "idle", recTime: 0, transcript: "", manual: false, sEval: null,
+    authMode: "login",
+  };
+
+  passages = [
+    {
+      title: "The Rise of Urban Beekeeping",
+      content: "Over the past two decades, beekeeping has migrated from the countryside into the heart of the world's largest cities. Rooftops in Paris, balconies in Tokyo and disused railway sidings in London now host tens of thousands of managed colonies. Municipal authorities, once wary of the practice, increasingly encourage it as a visible symbol of ecological commitment.\n\nThe appeal is not purely symbolic. Urban environments offer bees an unusually varied diet: ornamental gardens, street trees and untended verges flower in sequence from early spring to late autumn, whereas intensively farmed land may provide a single crop and then nothing at all. Studies conducted in several European capitals have found that city colonies frequently produce more honey per hive than their rural counterparts.\n\nCritics, however, warn that enthusiasm has outpaced evidence. Honeybees are a managed livestock species, and where hive density becomes too high they compete with the wild bees and hoverflies that do much of the pollination in cities. A growing number of ecologists therefore argue that planting for pollinators, rather than importing more hives, is the more useful intervention.",
+      questions: [
+        { text: "What is the writer's main purpose in the first paragraph?", options: ["To explain how honey is harvested in cities", "To describe the spread of beekeeping into urban areas", "To criticise municipal environmental policy", "To compare European and Asian beekeeping traditions"], correct: 1, explanation: "The paragraph traces the movement of beekeeping from the countryside into major cities and notes official encouragement." },
+        { text: "According to the passage, why can urban bees be well fed?", options: ["City air contains fewer pollutants than rural air", "Urban plants flower over a longer, more varied season", "Beekeepers in cities feed colonies artificially", "Cities have warmer winters than farmland"], correct: 1, explanation: "The second paragraph contrasts the sequential flowering of urban planting with single-crop farmland." },
+        { text: "What do studies in European capitals suggest?", options: ["City hives often yield more honey than rural hives", "Rural hives are healthier overall", "Honey quality declines in urban settings", "Colony numbers are falling in capital cities"], correct: 0, explanation: "The passage states city colonies frequently produce more honey per hive." },
+        { text: "The word 'intervention' in the final paragraph is closest in meaning to", options: ["restriction", "measure", "argument", "penalty"], correct: 1, explanation: "'Intervention' here means an action or measure taken to improve a situation." }
+      ]
+    },
+    {
+      title: "Reading the Rings of Ancient Trees",
+      content: "Dendrochronology — the dating of events through the study of tree rings — began as a method for fixing the age of timber in archaeological sites. Each annual ring records the growing conditions of a single year, and because those conditions vary, a sequence of rings forms a pattern as distinctive as a barcode.\n\nBy overlapping the patterns of living trees with those of older beams and buried logs, researchers have built continuous chronologies stretching back more than ten thousand years in parts of Europe. These chronologies now serve purposes far beyond archaeology: they calibrate radiocarbon dates, reconstruct past rainfall, and identify the precise years of volcanic eruptions whose ash briefly cooled the northern hemisphere.\n\nThe technique has limits. Trees in consistently favourable climates produce rings of such uniform width that patterns cannot be matched reliably, and a tree may occasionally fail to form a ring at all. Careful practitioners therefore cross-check several samples before accepting a date.",
+      questions: [
+        { text: "What was dendrochronology originally used for?", options: ["Predicting future rainfall", "Dating timber found at archaeological sites", "Measuring the health of forests", "Identifying tree species"], correct: 1, explanation: "The opening sentence states it began as a method for fixing the age of timber in archaeological sites." },
+        { text: "Why are ring patterns compared to a barcode?", options: ["They are read by machines", "They are printed in black and white", "They form a distinctive, identifiable sequence", "They record the tree's species"], correct: 2, explanation: "Varying growing conditions make each sequence distinctive and identifiable." },
+        { text: "Which is NOT mentioned as a use of tree-ring chronologies?", options: ["Calibrating radiocarbon dates", "Reconstructing past rainfall", "Dating volcanic eruptions", "Estimating future forest yields"], correct: 3, explanation: "Future forest yields are not among the listed applications." },
+        { text: "What problem arises in consistently favourable climates?", options: ["Rings become too uniform to match", "Trees grow too quickly to sample", "Rings are destroyed by insects", "Samples cannot be preserved"], correct: 0, explanation: "Uniform ring widths make reliable pattern matching impossible." }
+      ]
+    }
+  ];
+
+  listening = [
+    {
+      title: "Enquiry about a Community Sports Centre",
+      label: "Telephone Conversation",
+      icon: "☎",
+      bg: "#EFF6FF",
+      transcript: "RECEPTIONIST: Good morning, Riverside Community Sports Centre, Amara speaking.\nCALLER: Hello, I'd like to ask about family membership. I saw a leaflet but it didn't mention the price.\nRECEPTIONIST: Of course. Family membership is fifty-four pounds a month and it covers two adults and up to three children under sixteen. There's no joining fee if you register online before the end of the month.\nCALLER: And does that include the swimming pool?\nRECEPTIONIST: It includes the pool, the gym and all the studio classes except the climbing wall, which is charged separately at four pounds a session.",
+      questions: [
+        { text: "How much is family membership per month?", options: ["£44", "£54", "£64", "£74"], correct: 1, explanation: "The receptionist states fifty-four pounds a month." },
+        { text: "Family membership covers up to how many children?", options: ["Two", "Three", "Four", "Five"], correct: 1, explanation: "Two adults and up to three children under sixteen." },
+        { text: "The joining fee is waived if members", options: ["pay for a full year", "register online this month", "are local residents", "bring a referral"], correct: 1, explanation: "No joining fee for online registration before the end of the month." },
+        { text: "Which facility costs extra?", options: ["The swimming pool", "The gym", "The climbing wall", "Studio classes"], correct: 2, explanation: "The climbing wall is charged separately at four pounds a session." }
+      ]
+    },
+    {
+      title: "Lecture: Coastal Erosion and Sediment Budgets",
+      label: "Academic Lecture",
+      icon: "🎓",
+      bg: "#F5F3FF",
+      transcript: "LECTURER: Today we're looking at coastlines as accounting systems. Every beach has what we call a sediment budget — sand arriving from rivers and cliffs on one side of the ledger, sand removed by waves and currents on the other. When the two balance, the shoreline holds its position.\nProblems begin when we interrupt the supply. Dam a river and you cut off the sediment that once fed the delta. Armour a cliff with concrete and you protect the houses above it, but the beach downdrift is starved of the material that cliff used to release.\nThe lesson is that coastal defence is rarely local. A structure that stabilises one kilometre of shore often shifts the erosion problem a few kilometres along the coast.",
+      questions: [
+        { text: "The lecturer compares a coastline to", options: ["a machine", "an accounting system", "a living organism", "a road network"], correct: 1, explanation: "Coastlines are introduced as accounting systems with a sediment budget." },
+        { text: "A shoreline holds its position when", options: ["sediment supply and removal balance", "waves weaken", "rivers are dammed", "cliffs are armoured"], correct: 0, explanation: "When arrival and removal balance, the shoreline is stable." },
+        { text: "What is the effect of damming a river?", options: ["It increases delta sediment", "It cuts off sediment supply", "It raises sea level", "It strengthens cliffs"], correct: 1, explanation: "Damming cuts off the sediment that fed the delta." },
+        { text: "What is the lecturer's main conclusion?", options: ["Concrete defences always fail", "Coastal defence shifts problems elsewhere", "Erosion cannot be measured", "Beaches should be closed to the public"], correct: 1, explanation: "A structure stabilising one stretch often moves erosion along the coast." }
+      ]
+    }
+  ];
+
+  writingPrompts = [
+    { task: "2", refScore: 7.5, question: "Some people believe that universities should provide graduates with the knowledge and skills needed in the workplace, while others think the true function of a university is to give access to knowledge for its own sake. Discuss both views and give your own opinion." },
+    { task: "1", refScore: 6.5, question: "The chart below shows the percentage of households in owned and rented accommodation in one country between 1918 and 2011. Summarise the information by selecting and reporting the main features, and make comparisons where relevant." },
+    { task: "2", refScore: 8.0, question: "In many countries, the proportion of older people is steadily increasing. Does this trend bring more advantages or disadvantages to society? Support your position with specific reasons and examples." }
+  ];
+
+  speakingPrompts = [
+    { title: "Describe a book you read recently", content: "Describe a book you read recently that you found useful. You should say:\n• what the book was\n• when you read it\n• what it was about\nand explain why you found it useful." },
+    { title: "Online vs In-person Education", content: "Some people prefer to study online, while others prefer to attend traditional face-to-face classes. Which do you prefer and why? Use specific reasons and examples to support your choice." }
+  ];
+
+  cache = {};
+  memo(key, sig, build) {
+    const hit = this.cache[key];
+    if (hit && hit.sig === sig) return hit.val;
+    const val = build();
+    this.cache[key] = { sig: sig, val: val };
+    return val;
+  }
+
+  syncTimers() {
+    const s = this.state;
+    const needSec = (s.screen === "reading-test" && s.rTime > 0)
+      || (s.screen === "listening-test" && s.lReview && s.reviewTime > 0)
+      || s.recState === "recording";
+    if (needSec && !this.tick) {
+      this.tick = setInterval(() => {
+        const c = this.state;
+        if (c.screen === "reading-test" && c.rTime > 0) this.setState({ rTime: c.rTime - 1 });
+        else if (c.screen === "listening-test" && c.lReview && c.reviewTime > 0) this.setState({ reviewTime: c.reviewTime - 1 });
+        else if (c.recState === "recording") this.setState({ recTime: c.recTime + 1 });
+        else { clearInterval(this.tick); this.tick = null; }
+      }, 1000);
+    } else if (!needSec && this.tick) { clearInterval(this.tick); this.tick = null; }
+
+    if (s.lPlaying && !this.audioTick) {
+      this.audioTick = setInterval(() => {
+        const c = this.state;
+        if (!c.lPlaying) { clearInterval(this.audioTick); this.audioTick = null; return; }
+        const p = Math.min(100, c.lProgress + 4);
+        if (p >= 100) {
+          const played = Object.assign({}, c.lPlayed, { [c.lSection]: true });
+          const last = c.lSection >= this.listening.length - 1;
+          this.setState({ lProgress: 100, lPlaying: false, lPlayed: played, lReview: last, lSection: last ? c.lSection : c.lSection + 1 });
+        } else this.setState({ lProgress: p });
+      }, 400);
+    } else if (!s.lPlaying && this.audioTick) { clearInterval(this.audioTick); this.audioTick = null; }
+  }
+
+  componentDidMount() { this.syncTimers(); }
+  componentDidUpdate() { this.syncTimers(); }
+  componentWillUnmount() {
+    if (this.tick) clearInterval(this.tick);
+    if (this.audioTick) clearInterval(this.audioTick);
+  }
+
+  theme() {
+    return this.state.exam === "toefl"
+      ? { color: "#0057b8", dark: "#004494", light: "#eff6ff", name: "TOEFL" }
+      : { color: "#c8102e", dark: "#a50d24", light: "#fef2f2", name: "IELTS" };
+  }
+  go(screen, patch) { this.setState(Object.assign({ screen: screen }, patch || {})); }
+  fmt(s) { const m = Math.floor(s / 60), x = s % 60; return String(m).padStart(2, "0") + ":" + String(x).padStart(2, "0"); }
+  words(t) { return t.trim() ? t.trim().split(/\s+/).length : 0; }
+
+  flat(list, key) {
+    const out = []; let n = 1;
+    list.forEach((sec, si) => sec.questions.forEach((q, qi) => out.push({ sec: si, qi: qi, num: n++, key: key + si + "-" + qi, q: q })));
+    return out;
+  }
+  readingFlat() { return this.flat(this.passages, "r"); }
+  listeningFlat() { return this.flat(this.listening, "l"); }
+
+  buildQuestions(flat, section, answers, onPick, accent, light) {
+    return flat.filter(f => f.sec === section).map(f => ({
+      num: f.num, text: f.q.text,
+      options: f.q.options.map((text, i) => {
+        const sel = answers[f.key] === i;
+        return {
+          label: "ABCD"[i], text: text, selected: sel,
+          pick: () => onPick(f.key, i),
+          rowStyle: {
+            display: "flex", alignItems: "center", gap: "12px", padding: "10px 16px", borderRadius: "12px",
+            border: "1px solid " + (sel ? accent : "#e2e8f0"), cursor: "pointer", fontSize: "13.5px", userSelect: "none",
+            background: sel ? light : "#fff", color: sel ? accent : "#334155", fontWeight: sel ? 600 : 400,
+            boxShadow: sel ? "0 1px 2px rgba(0,0,0,.05)" : "none"
+          },
+          dotStyle: { width: "16px", height: "16px", borderRadius: "999px", border: "2px solid " + (sel ? accent : "#CBD5E1"), flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" },
+          dotInner: { width: "8px", height: "8px", borderRadius: "999px", background: accent }
+        };
+      })
+    }));
+  }
+
+  reviewList(flat, section, answers) {
+    const t = this.theme();
+    return flat.filter(f => f.sec === section).map(f => {
+      const sel = answers[f.key];
+      const ok = sel === f.q.correct;
+      return {
+        num: f.num, text: f.q.text, explanation: f.q.explanation,
+        wrapStyle: { border: "1px solid " + (ok ? "#2e7d32" : "#c8102e"), background: ok ? "#f8fdf9" : "#fffdfd", borderRadius: "12px", padding: "20px" },
+        options: f.q.options.map((text, i) => {
+          const isCorrect = i === f.q.correct, isUser = sel === i;
+          let bg = "#fff", color = "#475569", border = "#e2e8f0", weight = 400;
+          if (isCorrect) { bg = "#e8f5e9"; color = "#2e7d32"; border = "#a5d6a7"; weight = 600; }
+          else if (isUser) { bg = "#fce4ec"; color = "#c8102e"; border = "#f8bbd0"; weight = 600; }
+          const tag = isCorrect ? "Correct" : (isUser ? "Your Choice" : "");
+          return {
+            label: "ABCD"[i], text: text, tag: tag,
+            rowStyle: { display: "flex", alignItems: "center", gap: "12px", padding: "10px 12px", border: "1px solid " + border, borderRadius: "8px", fontSize: "13px", background: bg, color: color, fontWeight: weight },
+            tagStyle: { marginLeft: "auto", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", color: isCorrect ? "#2e7d32" : "#c8102e", display: tag ? "inline" : "none" }
+          };
+        })
+      };
+    });
+  }
+
+  grade(flat, answers) {
+    let c = 0;
+    flat.forEach(f => { if (answers[f.key] === f.q.correct) c++; });
+    const pct = Math.round((c / flat.length) * 100);
+    const band = this.state.exam === "toefl" ? Math.round((pct / 100) * 30) : Math.round((pct / 100) * 18) / 2;
+    return { correct: c, pct: pct, band: band };
+  }
+
+  renderVals() {
+    const s = this.state, t = this.theme(), A = t.color, L = t.light;
+    const screen = s.screen;
+    const chromeless = screen === "reading-test" || screen === "listening-test";
+    const isToefl = s.exam === "toefl";
+
+    const navItems = [
+      ["Landing", "landing"], ["Exam Home", "examhome"], ["Reading intro", "reading-intro"], ["Reading test", "reading-test"],
+      ["Reading results", "reading-results"], ["Listening intro", "listening-intro"], ["Listening test", "listening-test"],
+      ["Listening results", "listening-results"], ["Writing", "writing"], ["Speaking", "speaking"], ["Results", "dashboard"], ["Auth", "auth"]
+    ];
+    const screenNav = navItems.map(([label, key]) => ({
+      label: label,
+      go: () => {
+        if (key === "reading-results" || key === "listening-results") {
+          const flat = key === "reading-results" ? this.readingFlat() : this.listeningFlat();
+          const ans = key === "reading-results" ? s.rAnswers : s.lAnswers;
+          const g = this.grade(flat, ans);
+          this.setState({ screen: key, resultsFor: key, correct: g.correct, pct: g.pct, band: g.band });
+        } else this.setState({ screen: key });
+      },
+      style: {
+        padding: "4px 10px", borderRadius: "999px", border: "1px solid " + (screen === key ? "transparent" : "#475569"),
+        background: screen === key ? "#fff" : "transparent", color: screen === key ? "#0f172a" : "#cbd5e1",
+        fontSize: "11px", fontWeight: 700
+      }
+    }));
+
+    const rFlat = this.readingFlat(), lFlat = this.listeningFlat();
+    const rCur = rFlat.filter(f => f.sec === s.rSection);
+    const lCur = lFlat.filter(f => f.sec === s.lSection);
+    const isReadingResults = screen === "reading-results";
+    const isListeningResults = screen === "listening-results";
+    const resFlat = isListeningResults ? lFlat : rFlat;
+    const resAns = isListeningResults ? s.lAnswers : s.rAnswers;
+    const resSecList = isListeningResults ? this.listening : this.passages;
+    const resSection = isListeningResults ? s.lSection : s.rSection;
+
+    const wp = this.writingPrompts[s.wPrompt];
+    const sp = this.speakingPrompts[s.sPrompt];
+    const wc = this.words(s.essay);
+    const minWords = isToefl ? 300 : 250;
+
+    const pillBase = { padding: "8px 16px", borderRadius: "999px", fontSize: "12.5px", fontWeight: 700, border: "1px solid #e2e8f0", background: "#fff", color: "#334155" };
+    const pillOn = { padding: "8px 16px", borderRadius: "999px", fontSize: "12.5px", fontWeight: 700, border: "1px solid " + A, background: A, color: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,.06)" };
+
+    const subBar = (val, max) => ({ height: "100%", width: (val / max) * 100 + "%", borderRadius: "999px", background: A });
+
+    return {
+      exam: s.exam, examName: t.name, accent: A, isToefl: isToefl,
+      screenNav: screenNav,
+      showChrome: !chromeless,
+      showExamBadge: !chromeless && screen !== "landing",
+      isLanding: screen === "landing",
+      isExamHome: screen === "examhome",
+      isIntro: screen === "reading-intro" || screen === "listening-intro",
+      isReadingTest: screen === "reading-test",
+      isListeningTest: screen === "listening-test",
+      isMcqResults: isReadingResults || isListeningResults,
+      isListeningResults: isListeningResults,
+      isWriting: screen === "writing",
+      isSpeaking: screen === "speaking",
+      isDashboard: screen === "dashboard",
+      isAuth: screen === "auth",
+
+      goLanding: () => this.go("landing"),
+      goExamHome: () => this.go("examhome"),
+      goDashboard: () => this.go("dashboard"),
+      goLogin: () => this.setState({ screen: "auth", authMode: "login" }),
+      goSignup: () => this.setState({ screen: "auth", authMode: "signup" }),
+      scrollToPath: () => { const el = document.getElementById("choose-path"); if (el) window.scrollTo({ top: el.offsetTop, behavior: "smooth" }); },
+      pickIelts: () => this.setState({ exam: "ielts", screen: "examhome" }),
+      pickToefl: () => this.setState({ exam: "toefl", screen: "examhome" }),
+
+      ieltsFeatures: ["Listening", "Reading", "Writing", "Speaking"],
+      toeflFeatures: ["iBT Format", "Academic Focus", "Integrated Tasks", "Score Analysis"],
+      examDescription: isToefl
+        ? "Practice for TOEFL iBT with score-based evaluation across Reading, Listening, Speaking & Writing."
+        : "Prepare for IELTS Academic & General Training with band-score evaluation across all four modules.",
+      modules: [
+        { title: "Listening", desc: isToefl ? "Practice tests, lectures and conversations." : "Practice tests, audio exercises and transcripts.", icon: "🎧", go: () => this.go("listening-intro") },
+        { title: "Reading", desc: isToefl ? "Practice tests, academic texts and inference." : "Practice tests, passages and comprehension tasks.", icon: "📖", go: () => this.go("reading-intro") },
+        { title: "Writing", desc: isToefl ? "Practice tests, integrated and independent tasks." : "Practice tests, essay prompts and AI scoring.", icon: "✒", go: () => this.go("writing") },
+        { title: "Speaking", desc: isToefl ? "Practice tests, opinions and summaries." : "Practice tests, recording and AI feedback.", icon: "🎙", go: () => this.go("speaking") }
+      ].map(m => Object.assign(m, { iconHolder: { fontSize: "20px", filter: "grayscale(1)", opacity: .75 } })),
+
+      introTitle: screen === "listening-intro" ? t.name + " Listening Test" : t.name + " Reading Test",
+      introMeta: screen === "listening-intro"
+        ? (isToefl ? "1 Conversation + 2 Academic Lectures · 17 Questions" : "4 sections · 40-question listening practice simulation")
+        : (isToefl ? "2 Passages · 20 Questions · 35 Minutes" : "3 Passages · 40 Questions · 60 Minutes"),
+      introSubhead: screen === "listening-intro" ? "Exam Structure & Audio rules" : "Exam Structure & Timing",
+      introBullets: screen === "listening-intro" ? [
+        { label: "Audio Playback:", text: "Each recording is played exactly ONCE. Playback cannot be restarted once completed." },
+        { label: "Sections:", text: "4 distinct conversational and academic listening modules (40 questions total)." },
+        { label: "Review Period:", text: "A 2-minute review countdown begins automatically after all audios complete." },
+        { label: "Native Voice Output:", text: "Audio utilizes the browser Speech Synthesis engine. Make sure audio output is unmuted." }
+      ] : [
+        { label: "Total Duration:", text: (isToefl ? "35 Minutes" : "60 Minutes") + ". The timer will auto-submit when it reaches 0." },
+        { label: "Sections:", text: isToefl ? "2 Passages — academic passages on science and social science topics." : "3 Passages — 3 distinct passages increasing in academic complexity." },
+        { label: "Questions:", text: (isToefl ? "20 Questions" : "40 Questions") + " — detail, inference, vocabulary-in-context, and purpose questions." },
+        { label: "Scoring:", text: isToefl ? "Scored 0–30 (TOEFL iBT section scale)." : "Scored as IELTS Academic Band 0–9." }
+      ],
+      introInstructions: screen === "listening-intro"
+        ? "Ensure your speakers/headphones are connected and set to a comfortable volume. Once you press \"Start Exam\", the audio player interface will load."
+        : "Ensure you are in a quiet workspace. Once you click \"Start Exam\", the countdown begins and cannot be paused. Read the texts and answer the questions. Good luck!",
+      startTest: () => this.go(screen === "listening-intro" ? "listening-test" : "reading-test"),
+
+      readingClock: this.fmt(s.rTime),
+      readingSectionNo: s.rSection + 1,
+      readingTotal: this.passages.length,
+      readingTitle: this.passages[s.rSection].title,
+      readingParagraphs: this.passages[s.rSection].content.split("\n\n"),
+      rQStart: rCur.length ? rCur[0].num : 1,
+      rQEnd: rCur.length ? rCur[rCur.length - 1].num : 1,
+      readingQuestions: this.memo("rq", s.exam + "|" + s.rSection + "|" + JSON.stringify(s.rAnswers), () =>
+        this.buildQuestions(rFlat, s.rSection, s.rAnswers, (k, i) => this.setState(p => ({ rAnswers: Object.assign({}, p.rAnswers, { [k]: i }) })), A, L)),
+      passageTabs: this.passages.map((p, i) => ({
+        label: "P" + (i + 1), go: () => this.setState({ rSection: i }),
+        style: { padding: "4px 12px", borderRadius: "8px", fontSize: "12px", fontWeight: 700, border: "none", background: s.rSection === i ? "#fff" : "transparent", color: s.rSection === i ? "#0f172a" : "#64748b", boxShadow: s.rSection === i ? "0 1px 2px rgba(0,0,0,.08)" : "none" }
+      })),
+      readingHasNext: s.rSection < this.passages.length - 1,
+      readingIsLast: s.rSection === this.passages.length - 1,
+      prevReading: () => this.setState({ rSection: Math.max(0, s.rSection - 1) }),
+      nextReading: () => this.setState({ rSection: Math.min(this.passages.length - 1, s.rSection + 1) }),
+      askSubmitReading: () => {
+        const un = rFlat.length - Object.keys(s.rAnswers).length;
+        if (un > 0) this.setState({ confirmFor: "reading" });
+        else { const g = this.grade(rFlat, s.rAnswers); this.setState({ screen: "reading-results", correct: g.correct, pct: g.pct, band: g.band, rSection: 0 }); }
+      },
+
+      listeningSectionNo: s.lSection + 1,
+      listeningTitle: this.listening[s.lSection].title,
+      listeningCardLabel: this.listening[s.lSection].label,
+      listeningCardIcon: this.listening[s.lSection].icon,
+      listeningInstruction: this.listening[s.lSection].transcript.slice(0, 180).trim() + "...",
+      lQStart: lCur.length ? lCur[0].num : 1,
+      lQEnd: lCur.length ? lCur[lCur.length - 1].num : 1,
+      listeningReview: s.lReview,
+      listeningPlaying2: !s.lReview,
+      reviewClock: this.fmt(s.reviewTime),
+      playGlyph: s.lPlaying ? "❚❚" : "▶",
+      audioStatus: s.lPlaying ? "Listening..." : (s.lProgress === 100 ? "Completed" : "Ready to play"),
+      audioPct: Math.round(s.lProgress),
+      togglePlay: () => { if (s.lPlayed[s.lSection] && !s.lPlaying) return; this.setState({ lPlaying: !s.lPlaying }); },
+      waveBars: this.memo("wave", s.exam + "|" + s.lPlaying, () => [5, 12, 8, 18, 10, 22, 16, 26, 14, 20, 9, 16, 7].map(h => ({
+        width: "6px", borderRadius: "999px", height: s.lPlaying ? h + "px" : "3px",
+        background: s.lPlaying ? A : "#CBD5E1", transition: "height .2s ease"
+      }))),
+      listeningQuestions: this.memo("lq", s.exam + "|" + s.lSection + "|" + JSON.stringify(s.lAnswers), () =>
+        this.buildQuestions(lFlat, s.lSection, s.lAnswers, (k, i) => this.setState(p => ({ lAnswers: Object.assign({}, p.lAnswers, { [k]: i }) })), A, L)),
+      listeningPills: this.listening.map((_, i) => ({
+        label: "Section " + (i + 1), go: () => this.setState({ lSection: i }),
+        style: { padding: "6px 12px", borderRadius: "8px", fontSize: "12px", fontWeight: 700, border: "1px solid " + (s.lSection === i ? "transparent" : "#e2e8f0"), background: s.lSection === i ? A : "#fff", color: s.lSection === i ? "#fff" : "#475569", opacity: (!s.lReview && i !== s.lSection) ? .4 : 1 }
+      })),
+      listeningHasNext: s.lSection < this.listening.length - 1,
+      listeningIsLast: s.lSection === this.listening.length - 1,
+      prevListening: () => this.setState({ lSection: Math.max(0, s.lSection - 1) }),
+      nextListening: () => this.setState({ lSection: Math.min(this.listening.length - 1, s.lSection + 1), lPlaying: false, lProgress: 0 }),
+      askSubmitListening: () => {
+        const un = lFlat.length - Object.keys(s.lAnswers).length;
+        if (un > 0) this.setState({ confirmFor: "listening" });
+        else { const g = this.grade(lFlat, s.lAnswers); this.setState({ screen: "listening-results", correct: g.correct, pct: g.pct, band: g.band, lSection: 0, lPlaying: false }); }
+      },
+
+      resultModule: isListeningResults ? "Listening" : "Reading",
+      resultScaleNote: isToefl
+        ? (isListeningResults ? "TOEFL iBT Listening — Scored 0 to 30" : "TOEFL iBT Reading — Scored 0 to 30")
+        : (isListeningResults ? "Official IELTS Listening Band Scaling" : "Official IELTS Academic Reading Criteria"),
+      bandLabel: isToefl ? "TOEFL" : "IELTS Band",
+      bandValue: isToefl ? String(Math.round(s.band)) : s.band.toFixed(1),
+      resultStats: [
+        { label: "Raw Score:", value: s.correct + " / " + resFlat.length + " correct" },
+        { label: "Percentage:", value: s.pct + "%" }
+      ].concat(isListeningResults ? [] : [{ label: "Time Remaining:", value: this.fmt(s.rTime) }]),
+      restartTest: () => this.setState(isListeningResults
+        ? { screen: "listening-intro", lAnswers: {}, lSection: 0, lReview: false, lProgress: 0, lPlayed: {} }
+        : { screen: "reading-intro", rAnswers: {}, rSection: 0, rTime: 3600 }),
+      reviewHeading: isListeningResults ? "Detailed Review & Section Transcripts" : "Detailed Answers Review",
+      reviewTabs: resSecList.map((sec, i) => ({
+        label: "Section " + (i + 1) + ": " + (sec.title.length > 25 ? sec.title.slice(0, 25) + "..." : sec.title),
+        go: () => this.setState(isListeningResults ? { lSection: i } : { rSection: i }),
+        style: { padding: "8px 16px", fontSize: "13px", fontWeight: 700, borderRadius: "8px", border: "none", whiteSpace: "nowrap", background: resSection === i ? A : "#f5f5f5", color: resSection === i ? "#fff" : "#334155" }
+      })),
+      reviewSourceTitle: isListeningResults ? "Learning Materials" : "Section " + (resSection + 1) + ": " + resSecList[resSection].title,
+      reviewParagraphs: isListeningResults
+        ? (s.lTranscript ? this.listening[resSection].transcript.split("\n") : ["Click \"Show Transcript\" to read full conversation dialogues and see explanations."])
+        : this.passages[resSection].content.split("\n\n"),
+      transcriptToggleLabel: s.lTranscript ? "Hide Transcript" : "Show Transcript",
+      toggleTranscript: () => this.setState({ lTranscript: !s.lTranscript }),
+      reviewQuestions: this.memo("revq", screen + "|" + resSection + "|" + JSON.stringify(resAns), () => this.reviewList(resFlat, resSection, resAns)),
+
+      writingTabs: this.writingPrompts.map((p, i) => ({
+        label: "Task " + p.task + " (Prompt " + (i + 1) + ")",
+        go: () => this.setState({ wPrompt: i, essay: "", wEval: null }),
+        style: s.wPrompt === i ? pillOn : pillBase
+      })),
+      randomPrompt: () => this.setState({ wPrompt: (s.wPrompt + 1) % this.writingPrompts.length, essay: "", wEval: null }),
+      writingTaskType: wp.task,
+      writingRefScore: wp.refScore,
+      writingQuestion: wp.question,
+      writingTargetNote: "Target Word Count: Minimum " + minWords + " words • Suggested Time: " + (isToefl ? "30" : "40") + " minutes",
+      essay: s.essay,
+      onEssay: (e) => this.setState({ essay: e.target.value }),
+      wordCountLabel: wc + " / " + minWords + " words",
+      writingNotEvaluated: !s.wEval,
+      hasWritingEval: !!s.wEval,
+      showMinWordsHint: wc > 0 && wc < 50,
+      evaluateLabel: s.wEvaluating ? "Evaluating Essay..." : "Submit Essay For AI Evaluation",
+      evaluateEssay: () => {
+        if (wc < 50 || s.wEvaluating) return;
+        this.setState({ wEvaluating: true });
+        setTimeout(() => this.setState({
+          wEvaluating: false,
+          wEval: isToefl
+            ? { overall: 24, subs: [["Task Achievement", 25], ["Coherence & Cohesion", 24], ["Lexical Resource", 23], ["Grammatical Range & Accuracy", 24]] }
+            : { overall: 7.0, subs: [["Task Achievement", 7.0], ["Coherence & Cohesion", 7.5], ["Lexical Resource", 6.5], ["Grammatical Range & Accuracy", 7.0]] }
+        }), 1400);
+      },
+      writingOverall: s.wEval ? s.wEval.overall : "",
+      writingScaleLabel: (isToefl ? "Score" : "Band") + " / " + (isToefl ? 30 : 9),
+      writingSubscores: (s.wEval ? s.wEval.subs : []).map(([label, val]) => ({ label: label, value: val, barStyle: subBar(val, isToefl ? 30 : 9) })),
+      writingFeedback: "The response addresses both views and presents a clear position that is maintained throughout. Paragraphing is logical, and cohesive devices are used with some flexibility, though a few links between ideas feel mechanical. Vocabulary is generally appropriate for an academic register, but there is repetition of key terms where paraphrase would be stronger. Grammar is largely accurate; errors appear mainly in complex sentences and article use, and they rarely impede communication.",
+      writingSuggestions: [
+        "Develop the second body paragraph with a concrete example — a named institution or study strengthens the claim.",
+        "Replace repeated uses of \"important\" and \"benefit\" with more precise academic alternatives.",
+        "Review article use before abstract nouns (\"the education\" vs \"education\") and check complex sentence punctuation."
+      ],
+      resetWriting: () => this.setState({ essay: "", wEval: null }),
+
+      speakingTabs: this.speakingPrompts.map((p, i) => ({
+        label: "Topic: " + p.title,
+        go: () => this.setState({ sPrompt: i, recState: "idle", transcript: "", sEval: null, manual: false, recTime: 0 }),
+        style: s.sPrompt === i ? pillOn : pillBase
+      })),
+      speakingPartLabel: isToefl ? "Task 1 — Independent Speaking" : "Part 2 — Individual Long Turn",
+      cueCardTitle: isToefl ? "Speaking Task Prompt" : "Candidate Cue Card",
+      speakingPromptText: sp.content,
+      recIdle: s.recState === "idle",
+      recRecording: s.recState === "recording",
+      recRecorded: s.recState === "recorded" && !s.transcript,
+      recBusy: s.recState === "transcribing" || s.recState === "evaluating",
+      recClock: Math.floor(s.recTime / 60) + ":" + String(s.recTime % 60).padStart(2, "0"),
+      startRecording: () => this.setState({ recState: "recording", recTime: 0 }),
+      stopRecording: () => this.setState({ recState: "recorded" }),
+      transcribe: () => {
+        this.setState({ recState: "transcribing" });
+        setTimeout(() => this.setState({ recState: "recorded", transcript: "The book I read recently was a short history of cartography, which I borrowed from the university library about two months ago. It traces how maps were made before satellite imagery, and it explains why early mapmakers left blank spaces rather than guessing. I found it useful because my own subject is urban planning, and the book changed how I think about the maps I produce — every map is an argument about what matters, not just a picture of a place." }), 1600);
+      },
+      enableManual: () => this.setState({ manual: true }),
+      showManual: s.manual && s.recState === "idle",
+      transcript: s.transcript,
+      onTranscript: (e) => this.setState({ transcript: e.target.value }),
+      transcriptWords: this.words(s.transcript),
+      showTranscriptReview: !!s.transcript && !s.sEval && s.recState !== "evaluating" && !s.manual,
+      evaluateSpeaking: () => {
+        if (this.words(s.transcript) < 10) return;
+        this.setState({ recState: "evaluating", manual: false });
+        setTimeout(() => this.setState({
+          recState: "recorded",
+          sEval: isToefl
+            ? { overall: 25, subs: [["Pronunciation & Fluency", 3.5], ["Grammar", 3.0], ["Lexical Resource", 3.5], ["Coherence & Structure", 3.0]] }
+            : { overall: 7.0, subs: [["Pronunciation & Fluency", 7.0], ["Grammar", 6.5], ["Lexical Resource", 7.5], ["Coherence & Structure", 7.0]] }
+        }), 1600);
+      },
+      hasSpeakingEval: !!s.sEval,
+      speakingOverall: s.sEval ? s.sEval.overall : "",
+      maxScale: isToefl ? 30 : 9,
+      speakingSubscores: (s.sEval ? s.sEval.subs : []).map(([label, val]) => ({ label: label, value: val, barStyle: subBar(val, isToefl ? 4 : 9) })),
+      speakingFeedback: "Delivery is fluent with only occasional self-correction, and the response stays on topic for the full turn. Pronunciation is clear at both word and sentence level, though stress on longer noun phrases sometimes flattens. Range of vocabulary is a strength: the answer uses topic-specific language naturally. Grammatical control of simple structures is secure; complex conditionals and relative clauses are attempted with some slips.",
+      speakingSuggestions: [
+        "Extend the final section of the answer — examiners reward a clear closing evaluation.",
+        "Practise sentence stress on multi-word noun phrases to keep key information prominent.",
+        "Rehearse two complex conditional patterns so they come out accurately under time pressure."
+      ],
+      resetSpeaking: () => this.setState({ recState: "idle", transcript: "", sEval: null, manual: false, recTime: 0 }),
+
+      overallBand: isToefl ? "88" : "6.5",
+      maxScore: isToefl ? 120 : 9,
+      totalSessions: 12,
+      moduleScores: [
+        ["Listening", isToefl ? 23 : 6.5, "listening-intro"], ["Reading", isToefl ? 24 : 7.0, "reading-intro"],
+        ["Writing", isToefl ? 21 : 6.0, "writing"], ["Speaking", isToefl ? 20 : 6.5, "speaking"]
+      ].map(([title, score, dest]) => ({
+        title: title, score: typeof score === "number" ? score.toFixed(1) : score,
+        go: () => this.go(dest),
+        barStyle: { height: "100%", width: (score / (isToefl ? 30 : 9)) * 100 + "%", borderRadius: "999px", background: A }
+      })),
+      sessions: [
+        { date: "04/09/2026", name: "Reading Practice", score: isToefl ? "24 / 30" : "7.0 Band" },
+        { date: "02/09/2026", name: "Listening Practice", score: isToefl ? "23 / 30" : "6.5 Band" },
+        { date: "29/08/2026", name: "Writing Practice", score: isToefl ? "21 / 30" : "6.0 Band" },
+        { date: "27/08/2026", name: "Speaking Practice", score: isToefl ? "20 / 30" : "6.5 Band" },
+        { date: "22/08/2026", name: "Reading Practice", score: isToefl ? "22 / 30" : "6.5 Band" }
+      ],
+
+      authTitle: s.authMode === "login" ? "Sign in" : "Create account",
+      authSubtitle: s.authMode === "login" ? "Access your practice scores and history" : "Start practicing for IELTS & TOEFL",
+      authCta: s.authMode === "login" ? "Sign in" : "Create account",
+      authFields: s.authMode === "login"
+        ? [{ label: "Email", type: "email", placeholder: "you@example.com" }, { label: "Password", type: "password", placeholder: "Your password" }]
+        : [{ label: "Full Name", type: "text", placeholder: "Your full name" }, { label: "Email", type: "email", placeholder: "you@example.com" }, { label: "Password", type: "password", placeholder: "Min. 6 characters" }],
+      authSwitchText: s.authMode === "login" ? "Don't have an account?" : "Already have an account?",
+      authSwitchCta: s.authMode === "login" ? "Create account" : "Sign in",
+      toggleAuth: () => this.setState({ authMode: s.authMode === "login" ? "signup" : "login" }),
+
+      footerColumns: [
+        { heading: "Useful links", items: ["Who accepts IELTS?", "News and articles", "IELTS Events & Seminars", "IELTS Masterclass", "Your IELTS results"] },
+        { heading: "Featured", items: ["IELTS Academic", "IELTS General Training", "TOEFL iBT Prep", "IELTS by IDP app"] },
+        { heading: "Need help?", items: ["Find a test centre", "Contact us", "FAQs & Support"] }
+      ],
+      socialIcons: ["f", "ig", "X", "wa"],
+
+      showConfirm: !!s.confirmFor,
+      unansweredCount: s.confirmFor === "listening"
+        ? lFlat.length - Object.keys(s.lAnswers).length
+        : rFlat.length - Object.keys(s.rAnswers).length,
+      dismissConfirm: () => this.setState({ confirmFor: null }),
+      confirmSubmit: () => {
+        const listening = s.confirmFor === "listening";
+        const flat = listening ? lFlat : rFlat;
+        const g = this.grade(flat, listening ? s.lAnswers : s.rAnswers);
+        this.setState({ confirmFor: null, screen: listening ? "listening-results" : "reading-results", correct: g.correct, pct: g.pct, band: g.band, rSection: 0, lSection: 0, lPlaying: false });
+      },
+
+      st: this.memo("st", [s.exam, screen, s.rTime < 300, s.lSection, s.lPlaying, !!s.lPlayed[s.lSection], s.lProgress, isListeningResults, wc >= minWords, wc < 50 || s.wEvaluating, s.rSection === 0, s.lSection === 0].join("|"), () => ({
+        logo: { fontSize: "18px", fontWeight: 700, letterSpacing: "-0.02em", color: A },
+        navBadge: { fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", padding: "4px 10px", borderRadius: "999px", color: A, background: L },
+        navCta: { fontSize: "13px", fontWeight: 600, color: "#fff", padding: "8px 16px", borderRadius: "999px", border: "none", background: A },
+        changeExam: { display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "13px", fontWeight: 700, marginBottom: "12px", color: A, background: "none", border: "none", padding: 0 },
+        pill: { padding: "6px 16px", borderRadius: "999px", fontSize: "11px", fontWeight: 800, color: "#fff", background: A },
+        pillSm: { padding: "4px 12px", fontSize: "11px", fontWeight: 800, textTransform: "uppercase", borderRadius: "999px", color: "#fff", letterSpacing: ".08em", background: A },
+        bar: { width: "4px", height: "24px", borderRadius: "999px", background: A },
+        introHead: { padding: "40px", borderBottom: "1px solid #f0f0f0", background: L },
+        btnPrimary: { padding: "11px 24px", color: "#fff", fontWeight: 600, fontSize: "13px", borderRadius: "999px", border: "none", background: A },
+        testLogo: { fontSize: "17px", fontWeight: 800, letterSpacing: "-0.02em", color: A, flexShrink: 0 },
+        timer: { display: "flex", alignItems: "center", gap: "6px", padding: "6px 12px", borderRadius: "8px", border: "1px solid " + (s.rTime < 300 ? "#fecaca" : "#e2e8f0"), background: s.rTime < 300 ? "#fef2f2" : "#f8fafc", color: s.rTime < 300 ? "#c8102e" : "#334155", fontFamily: "ui-monospace,Menlo,monospace", fontWeight: 700, fontSize: "13px" },
+        finishBtn: { padding: "8px 20px", color: "#fff", fontWeight: 700, fontSize: "13px", borderRadius: "8px", border: "none", background: A },
+        numBadge: { display: "inline-flex", alignItems: "center", justifyContent: "center", width: "28px", height: "28px", borderRadius: "999px", color: "#fff", fontSize: "12px", fontWeight: 800, flexShrink: 0, background: A },
+        numBadgeSm: { display: "inline-flex", alignItems: "center", justifyContent: "center", width: "24px", height: "24px", borderRadius: "999px", color: "#fff", fontSize: "12px", fontWeight: 800, marginRight: "8px", flexShrink: 0, marginTop: "2px", background: A },
+        prevBtn: { display: "flex", alignItems: "center", gap: "6px", padding: "11px 16px", background: "#fff", border: "1px solid #cbd5e1", borderRadius: "12px", fontSize: "13px", fontWeight: 700, color: "#334155", opacity: (s.screen === "listening-test" ? s.lSection : s.rSection) === 0 ? .3 : 1 },
+        submitExamBtn: { display: "flex", alignItems: "center", gap: "6px", padding: "11px 24px", color: "#fff", fontWeight: 700, fontSize: "13px", borderRadius: "12px", border: "none", background: A },
+        sectionCard: { height: "128px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px", background: this.listening[s.lSection].bg },
+        sectionIcon: { fontSize: "30px", filter: "grayscale(.2)" },
+        qPill: { padding: "4px 10px", borderRadius: "999px", fontSize: "10.5px", fontWeight: 800, textTransform: "uppercase", letterSpacing: ".08em", color: "#fff", flexShrink: 0, background: A },
+        playBtn: { width: "40px", height: "40px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "999px", color: "#fff", flexShrink: 0, border: "none", boxShadow: "0 2px 6px rgba(0,0,0,.12)", background: (s.lPlayed[s.lSection] && !s.lPlaying) ? "#94a3b8" : A, cursor: (s.lPlayed[s.lSection] && !s.lPlaying) ? "not-allowed" : "pointer" },
+        playIcon: { fontSize: "12px", lineHeight: 1 },
+        audioBar: { height: "100%", width: s.lProgress + "%", borderRadius: "999px", background: A, transition: "width .3s" },
+        noteAccent: { fontSize: "12px", fontWeight: 700, marginTop: "12px", color: A },
+        scoreCircle: { position: "relative", width: "144px", height: "144px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", borderRadius: "999px", border: "8px solid " + L, background: "#f8fafc" },
+        reviewTitle: { fontSize: "16px", fontWeight: 700, color: isListeningResults ? "#1e293b" : A },
+        linkBtn: { fontSize: "12.5px", fontWeight: 700, color: A, background: "none", border: "none", padding: 0 },
+        tinyPill: { fontSize: "10px", fontWeight: 800, textTransform: "uppercase", color: "#fff", padding: "2px 10px", borderRadius: "999px", letterSpacing: ".08em", background: A },
+        outlinePill: { padding: "4px 14px", border: "1px solid " + A + "40", fontSize: "11.5px", fontWeight: 800, borderRadius: "999px", textTransform: "uppercase", letterSpacing: ".08em", background: "#f8fafc", color: A },
+        softPill: { padding: "4px 12px", borderRadius: "999px", fontSize: "10.5px", fontWeight: 800, textTransform: "uppercase", letterSpacing: ".08em", background: L, color: A },
+        randomBtn: { padding: "8px 16px", borderRadius: "999px", fontSize: "12.5px", fontWeight: 700, border: "1px solid #e2e8f0", background: "#fff", color: A },
+        wordPill: { padding: "4px 12px", borderRadius: "999px", fontSize: "11px", fontWeight: 700, background: wc >= minWords ? "#ecfdf5" : "#f1f5f9", color: wc >= minWords ? "#047857" : "#475569", border: wc >= minWords ? "1px solid rgba(167,243,208,.6)" : "1px solid transparent" },
+        evaluateBtn: { padding: "14px 32px", color: "#fff", fontWeight: 700, borderRadius: "999px", border: "none", fontSize: "13.5px", background: A, opacity: (wc < 50 || s.wEvaluating) ? .4 : 1, cursor: (wc < 50 || s.wEvaluating) ? "not-allowed" : "pointer", boxShadow: "0 4px 12px rgba(0,0,0,.1)" },
+        bigScore: { fontSize: "44px", fontWeight: 800, lineHeight: 1, color: A },
+        micBtn: { width: "64px", height: "64px", borderRadius: "999px", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto", border: "none", background: A, boxShadow: "0 10px 20px rgba(0,0,0,.15)" },
+        spinner: { width: "32px", height: "32px", borderRadius: "999px", border: "3px solid " + A, borderTopColor: "transparent", margin: "0 auto", animation: "spin 1s linear infinite" },
+        retake: { fontSize: "12px", fontWeight: 600, color: A },
+        reviewLink: { fontSize: "12px", fontWeight: 600, color: A, cursor: "pointer" },
+        footerRule: { position: "absolute", bottom: 0, left: 0, width: "32px", height: "2px", background: A },
+        confirmBtn: { flex: 1, padding: "11px 16px", color: "#fff", fontWeight: 700, fontSize: "13px", borderRadius: "8px", border: "none", background: A }
+      })),
+      speakingBars: this.memo("sbars", String(s.recState === "recording"), () => [10, 22, 14, 24, 12, 20, 18, 22, 10].map(h => ({
+        width: "4px", borderRadius: "999px",
+        height: s.recState === "recording" ? h + "px" : "6px",
+        background: s.recState === "recording" ? "#f87171" : "#334155",
+        transition: "height .3s"
+      })))
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,264 +1,169 @@
 "use client";
 
+/**
+ * Navigation bar — brand book §10.
+ *
+ * "56px bar, white, 1px bottom border, no shadow. One crimson button per bar."
+ *
+ * §10 also allows an ink strip above the bar for the free-access promise.
+ * Removed at the user's request — the promise is still made in the landing
+ * hero and in the footer, so nothing is lost but the persistent band.
+ *
+ * The CTA was "Book your test", which implied a paid booking flow this
+ * platform does not have and contradicts §01 "Free without asterisks" and
+ * §14 ("never say official/partner"). It now reads "Start free", matching the
+ * brand book's own navigation artwork.
+ *
+ * No colour is hardcoded: the accent comes from var(--accent), so the bar is
+ * crimson on IELTS and blue on TOEFL with no per-component logic at all.
+ */
+
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
-
-const STORAGE_KEY = "lingoprep_exam";
-
-const moduleLinks: Array<{ path: string; label: string }> = [];
-
-const examColors: Record<string, { color: string; bg: string }> = {
-  ielts: { color: "#c8102e", bg: "#fef2f2" },
-  toefl: { color: "#0057b8", bg: "#eff6ff" },
-};
+import { useExam } from "@/components/theme/ExamThemeProvider";
+import Logo from "@/components/brand/Logo";
+import Icon from "@/components/brand/Icon";
+import { Badge, ButtonLink } from "@/components/brand/ui";
 
 export default function Navbar() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, signOut } = useAuth();
-  const [activeExam, setActiveExam] = useState<string | null>(null);
+  const { theme, unset, withExam } = useExam();
 
-  // Determine active exam from URL param or localStorage
-  useEffect(() => {
-    const urlExam = searchParams.get("exam");
-    if (urlExam === "ielts" || urlExam === "toefl") {
-      setActiveExam(urlExam);
-    } else {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored === "ielts" || stored === "toefl") {
-        setActiveExam(stored);
-      } else {
-        setActiveExam(null);
-      }
-    }
-  }, [searchParams]);
+  const onLanding = pathname === "/";
+  const resultsHref = withExam("/dashboard");
+  const resultsActive = pathname === "/dashboard";
 
-  // Build nav links with exam param preserved
-  const navLinks = moduleLinks.map((link) => {
-    const href =
-      link.path === "/dashboard"
-        ? (activeExam ? `${link.path}?exam=${activeExam}` : link.path)
-        : activeExam
-        ? `${link.path}?exam=${activeExam}`
-        : link.path;
-    return { href, label: link.label, path: link.path };
-  });
-
-  const accentColor = activeExam ? examColors[activeExam]?.color : "#c8102e";
+  const closeMobile = () => setMobileOpen(false);
 
   return (
-    <nav className="sticky top-0 z-50 bg-white border-b border-[#e0e0e0]">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-14 items-center justify-between">
-          {/* Logo + Exam Badge */}
-          <div className="flex items-center gap-3">
-            <Link href={activeExam ? `/?exam=${activeExam}` : "/"} className="flex items-center gap-2">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-              </svg>
-              <span className="text-lg font-bold tracking-tight" style={{ color: accentColor }}>LingoPrep</span>
-            </Link>
-            {activeExam && pathname !== "/" && (
-              <span
-                className="hidden sm:inline-flex text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full"
-                style={{
-                  color: examColors[activeExam].color,
-                  backgroundColor: examColors[activeExam].bg,
-                }}
+    <header className="sticky top-0 z-50">
+      {/* ── 56px bar, white, 1px bottom border, no shadow (§10) ──────────── */}
+      <nav className="bg-n-0 border-b border-n-300">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-14 items-center justify-between gap-4">
+            {/* Logo + exam badge */}
+            <div className="flex items-center gap-3 min-w-0">
+              <Link
+                href={unset ? "/" : withExam("/")}
+                className="shrink-0"
+                aria-label="LingoPrep home"
               >
-                {activeExam}
-              </span>
-            )}
-          </div>
-
-          {/* Desktop Nav (empty center) */}
-          <div className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => {
-              const isActive = pathname === link.path;
-              return (
-                <Link
-                  key={link.path}
-                  href={link.href}
-                  className={`px-3 py-1.5 text-[14px] font-semibold transition-colors ${
-                    isActive
-                      ? `border-b-2`
-                      : "text-[#333] hover:opacity-70"
-                  }`}
-                  style={
-                    isActive
-                      ? { color: accentColor, borderBottomColor: accentColor }
-                      : undefined
-                  }
-                >
-                  {link.label}
-                </Link>
-              );
-            })}
-          </div>
-
-          {/* Right side actions */}
-          <div className="hidden md:flex items-center gap-5">
-            <Link
-              href={activeExam ? `/dashboard?exam=${activeExam}` : "/dashboard"}
-              className={`text-[13px] font-semibold transition-colors ${
-                pathname === "/dashboard"
-                  ? ""
-                  : "text-[#333] hover:opacity-70"
-              }`}
-              style={pathname === "/dashboard" ? { color: accentColor } : undefined}
-            >
-              View your results
-            </Link>
-
-            {user ? (
-              <>
-                <span className="text-[13px] text-[#666] font-medium max-w-[150px] truncate">
-                  {user.user_metadata?.full_name || user.email}
-                </span>
-                <button
-                  onClick={() => signOut()}
-                  className="text-[13px] font-semibold text-[#333] hover:opacity-70 flex items-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  Sign Out
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/auth/login"
-                  className="text-[13px] font-semibold text-[#333] hover:opacity-70 flex items-center gap-1.5 transition-colors"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
-                  Sign In
-                </Link>
-                <Link
-                  href="/auth/signup"
-                  className="text-[13px] font-semibold text-white px-4 py-2 rounded-full transition-colors"
-                  style={{ backgroundColor: accentColor }}
-                >
-                  Book your test
-                </Link>
-              </>
-            )}
-          </div>
-
-          {/* Mobile menu button */}
-          <button
-            onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden p-2 text-[#333]"
-            aria-label="Toggle menu"
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              {mobileOpen ? (
-                <path d="M18 6 6 18M6 6l12 12" />
-              ) : (
-                <path d="M3 12h18M3 6h18M3 18h18" />
+                <Logo size={30} />
+              </Link>
+              {/* The badge names the active exam so the accent is never the
+                  only signal of which test you are in (§07 accessibility). */}
+              {!unset && !onLanding && (
+                <Badge className="hidden sm:inline-flex">{theme.name}</Badge>
               )}
-            </svg>
-          </button>
-        </div>
+            </div>
 
-        {/* Mobile Nav */}
-        {mobileOpen && (
-          <div className="md:hidden pb-4 border-t border-[#eee] mt-1 pt-3 space-y-1">
-            {activeExam && (
-              <div className="px-4 pb-2">
-                <span
-                  className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full"
-                  style={{
-                    color: examColors[activeExam].color,
-                    backgroundColor: examColors[activeExam].bg,
-                  }}
-                >
-                  {activeExam}
-                </span>
-              </div>
-            )}
-            <Link
-              href={activeExam ? `/dashboard?exam=${activeExam}` : "/dashboard"}
-              onClick={() => setMobileOpen(false)}
-              className={`block px-4 py-2.5 text-[14px] font-semibold transition-colors ${
-                pathname === "/dashboard"
-                  ? "bg-opacity-10"
-                  : "text-[#333] hover:bg-[#fafafa]"
-              }`}
-              style={
-                pathname === "/dashboard"
-                  ? {
-                      color: accentColor,
-                      backgroundColor: `${accentColor}10`,
-                    }
-                  : undefined
-              }
-            >
-              View your results
-            </Link>
-            {navLinks.map((link) => {
-              const isActive = pathname === link.path;
-              return (
-                <Link
-                  key={link.path}
-                  href={link.href}
-                  onClick={() => setMobileOpen(false)}
-                  className={`block px-4 py-2.5 text-[14px] font-semibold transition-colors ${
-                    isActive
-                      ? "bg-opacity-10"
-                      : "text-[#333] hover:bg-[#fafafa]"
-                  }`}
-                  style={
-                    isActive
-                      ? {
-                          color: accentColor,
-                          backgroundColor: `${accentColor}10`,
-                        }
-                      : undefined
-                  }
-                >
-                  {link.label}
-                </Link>
-              );
-            })}
-            <div className="flex gap-2 pt-3 px-4">
+            {/* Desktop actions */}
+            <div className="hidden md:flex items-center gap-6">
+              <Link
+                href={resultsHref}
+                className={`text-[14px] font-bold transition-colors duration-[120ms] ${
+                  resultsActive ? "text-accent" : "text-ink hover:text-accent"
+                }`}
+              >
+                Your results
+              </Link>
+
               {user ? (
-                <button
-                  onClick={() => {
-                    signOut();
-                    setMobileOpen(false);
-                  }}
-                  className="flex-1 text-center text-[13px] font-semibold py-2 border border-[#ddd] hover:bg-[#fafafa] transition-colors cursor-pointer"
-                >
-                  Sign Out
-                </button>
+                <>
+                  <span className="flex items-center gap-1.5 text-[13px] text-n-600 font-medium max-w-[170px] truncate">
+                    <Icon name="account" size={16} className="text-n-500" />
+                    {user.user_metadata?.full_name || user.email}
+                  </span>
+                  <button
+                    onClick={() => signOut()}
+                    className="inline-flex items-center gap-1.5 text-[14px] font-bold text-ink hover:text-accent transition-colors duration-[120ms] cursor-pointer"
+                  >
+                    <Icon name="signOut" size={16} />
+                    Sign out
+                  </button>
+                </>
               ) : (
                 <>
                   <Link
                     href="/auth/login"
-                    onClick={() => setMobileOpen(false)}
-                    className="flex-1 text-center text-[13px] font-semibold py-2 border border-[#ddd] hover:bg-[#fafafa] transition-colors"
+                    className="inline-flex items-center gap-1.5 text-[14px] font-bold text-ink hover:text-accent transition-colors duration-[120ms]"
                   >
-                    Sign In
+                    <Icon name="account" size={16} />
+                    Sign in
                   </Link>
-                  <Link
-                    href="/auth/signup"
-                    onClick={() => setMobileOpen(false)}
-                    className="flex-1 text-center text-[13px] font-semibold text-white py-2 rounded-full transition-colors"
-                    style={{ backgroundColor: accentColor }}
-                  >
-                    Get Started
-                  </Link>
+                  {/* §10: exactly one accent button per bar */}
+                  <ButtonLink href="/auth/signup" size="compact">
+                    Start free
+                  </ButtonLink>
                 </>
               )}
             </div>
+
+            {/* Mobile toggle */}
+            <button
+              onClick={() => setMobileOpen(!mobileOpen)}
+              className="md:hidden p-2 -mr-2 text-ink cursor-pointer"
+              aria-label={mobileOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileOpen}
+            >
+              <Icon name={mobileOpen ? "close" : "menu"} size={24} />
+            </button>
           </div>
-        )}
-      </div>
-    </nav>
+
+          {/* Mobile panel */}
+          {mobileOpen && (
+            <div className="md:hidden border-t border-n-200 py-3 space-y-1">
+              {!unset && (
+                <div className="px-1 pb-2">
+                  <Badge>{theme.name}</Badge>
+                </div>
+              )}
+
+              <Link
+                href={resultsHref}
+                onClick={closeMobile}
+                className={`flex items-center gap-2.5 rounded-input px-3 py-2.5 text-[14px] font-bold transition-colors duration-[120ms] ${
+                  resultsActive
+                    ? "bg-accent-tint text-accent-on-tint"
+                    : "text-ink hover:bg-n-50"
+                }`}
+              >
+                <Icon name="report" size={20} />
+                Your results
+              </Link>
+
+              <div className="flex gap-2 pt-2">
+                {user ? (
+                  <button
+                    onClick={() => { signOut(); closeMobile(); }}
+                    className="flex-1 h-11 inline-flex items-center justify-center gap-2 rounded-full border border-n-300 text-[14px] font-bold text-ink hover:bg-n-50 transition-colors duration-[120ms] cursor-pointer"
+                  >
+                    <Icon name="signOut" size={16} />
+                    Sign out
+                  </button>
+                ) : (
+                  <>
+                    <Link
+                      href="/auth/login"
+                      onClick={closeMobile}
+                      className="flex-1 h-11 inline-flex items-center justify-center rounded-full border border-n-300 text-[14px] font-bold text-ink hover:bg-n-50 transition-colors duration-[120ms]"
+                    >
+                      Sign in
+                    </Link>
+                    <ButtonLink href="/auth/signup" fullWidth className="flex-1">
+                      Start free
+                    </ButtonLink>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </nav>
+    </header>
   );
 }

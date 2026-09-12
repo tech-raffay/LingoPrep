@@ -1,276 +1,364 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+/**
+ * Landing page and exam hub.
+ *
+ * ── Brand corrections made here ──────────────────────────────────────────────
+ * §01 "Free without asterisks" and §02 "Calm examiner, not cheerleader":
+ *   removed the invented social proof — a row of stock-photo avatars captioned
+ *   "Trusted by students worldwide" and an overlay card reading "Target Score
+ *   IELTS 8.0 / Probability 92%". None of those numbers were real, and a
+ *   platform whose whole pitch is honest scoring cannot open with fabricated
+ *   statistics. The hero now states only what is actually true and checkable.
+ *
+ * §11 Photography: "never stock-smiling into camera". The three Unsplash
+ *   portraits and the smiling-students hero image are gone. Per §11, "where a
+ *   diagram is needed, build it from the icon vocabulary" — so the hero panel
+ *   is now a real score-report preview drawn from the brand's own components.
+ *
+ * §07 on the picker: this is the one screen that shows crimson and blue
+ *   together, and deliberately so — they are identity swatches for a choice,
+ *   not the interface accent. The page chrome stays ink and neutral, so there
+ *   is never a moment where the user cannot tell which exam they are "in".
+ *   The moment a path is chosen, exactly one accent governs everything.
+ */
+
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { EXAM_THEMES, type ExamType } from "@/lib/exam";
+import { PICKER_HREF, useExam } from "@/components/theme/ExamThemeProvider";
+import Icon, { type IconName } from "@/components/brand/Icon";
+import {
+  Badge, Button, ButtonLink, Card, CriterionBar, Eyebrow, ScoreCircle, Spinner,
+} from "@/components/brand/ui";
 
-type ExamType = "ielts" | "toefl";
-const STORAGE_KEY = "lingoprep_exam";
+const MODULES: Array<{ key: string; title: string; icon: IconName; ielts: string; toefl: string }> = [
+  { key: "listening", title: "Listening", icon: "listening",
+    ielts: "Four sections, 40 questions, with transcripts after scoring.",
+    toefl: "One conversation and two academic lectures, 17 questions." },
+  { key: "reading", title: "Reading", icon: "reading",
+    ielts: "Three passages of rising complexity, 40 questions in 60 minutes.",
+    toefl: "Two academic passages, 20 questions in 35 minutes." },
+  { key: "writing", title: "Writing", icon: "writing",
+    ielts: "Task 1 and Task 2 prompts, scored against the four band criteria.",
+    toefl: "Integrated and independent tasks, scored 0–30." },
+  { key: "speaking", title: "Speaking", icon: "speaking",
+    ielts: "Record all three parts; get fluency and pronunciation feedback.",
+    toefl: "Independent and integrated tasks with a transcribed response." },
+];
 
-const examConfig = {
-  ielts: {
-    name: "IELTS",
-    description: "Prepare for IELTS Academic & General Training with band-score evaluation across all four modules.",
-    color: "#c8102e", colorDark: "#a50d24", colorLight: "#fef2f2",
-    scoreLabel: "Band 1 – 9",
-    modules: [
-      { title: "Listening", desc: "Practice tests, audio exercises and transcripts.", href: "/listening?exam=ielts", icon: "headphones" },
-      { title: "Reading", desc: "Practice tests, passages and comprehension tasks.", href: "/reading?exam=ielts", icon: "book" },
-      { title: "Writing", desc: "Practice tests, essay prompts and AI scoring.", href: "/writing?exam=ielts", icon: "pen" },
-      { title: "Speaking", desc: "Practice tests, recording and AI feedback.", href: "/speaking?exam=ielts", icon: "mic" },
-    ],
-  },
-  toefl: {
-    name: "TOEFL",
-    description: "Practice for TOEFL iBT with score-based evaluation across Reading, Listening, Speaking & Writing.",
-    color: "#0057b8", colorDark: "#004494", colorLight: "#eff6ff",
-    scoreLabel: "Score 0 – 120",
-    modules: [
-      { title: "Listening", desc: "Practice tests, lectures and conversations.", href: "/listening?exam=toefl", icon: "headphones" },
-      { title: "Reading", desc: "Practice tests, academic texts and inference.", href: "/reading?exam=toefl", icon: "book" },
-      { title: "Writing", desc: "Practice tests, integrated and independent tasks.", href: "/writing?exam=toefl", icon: "pen" },
-      { title: "Speaking", desc: "Practice tests, opinions and summaries.", href: "/speaking?exam=toefl", icon: "mic" },
-    ],
-  },
-};
-
-/* ── Clean SVG Icons (IDP-style, no emojis) ── */
-function HeadphonesIcon({ color = "#555" }: { color?: string }) {
-  return (<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6" /><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" /></svg>);
-}
-function BookIcon({ color = "#555" }: { color?: string }) {
-  return (<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>);
-}
-function PenIcon({ color = "#555" }: { color?: string }) {
-  return (<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>);
-}
-function MicIcon({ color = "#555" }: { color?: string }) {
-  return (<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" /><path d="M19 10v1a7 7 0 0 1-14 0v-1" /><line x1="12" x2="12" y1="19" y2="22" /></svg>);
-}
-function ArrowIcon() {
-  return (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>);
-}
-
-const iconMap: Record<string, (props: { color?: string }) => React.ReactNode> = {
-  headphones: HeadphonesIcon, book: BookIcon, pen: PenIcon, mic: MicIcon,
-};
-
-
+/* ── The four brand principles (§01) ─────────────────────────────────────── */
+const PRINCIPLES: Array<{ title: string; body: string; icon: IconName; tone: string }> = [
+  { title: "Exam-true", icon: "timer", tone: "text-accent",
+    body: "Timers, layouts and question types mirror the real test. No invented formats." },
+  { title: "Legible first", icon: "reading", tone: "text-info",
+    body: "Reading passages set the pace of the design. Decoration never competes with text." },
+  { title: "Explain the score", icon: "report", tone: "text-warning",
+    body: "Every band comes with criteria, an explanation and a next action." },
+  { title: "Free without asterisks", icon: "secure", tone: "text-success",
+    body: "No locked modules, no countdown offers, no fake scarcity anywhere." },
+];
 
 export default function Home() {
-  const [selectedExam, setSelectedExam] = useState<ExamType | null>(null);
-  const [mounted, setMounted] = useState(false);
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const { exam, theme, unset, hydrated, persistExam, examHref, withExam } = useExam();
 
-  useEffect(() => {
-    const urlExam = searchParams.get("exam") as ExamType | null;
-    if (urlExam === "ielts" || urlExam === "toefl") {
-      setSelectedExam(urlExam);
-      localStorage.setItem(STORAGE_KEY, urlExam);
-    } else {
-      const stored = localStorage.getItem(STORAGE_KEY) as ExamType | null;
-      if (stored === "ielts" || stored === "toefl") {
-        setSelectedExam(stored);
-        router.replace(`/?exam=${stored}`);
-      } else {
-        setSelectedExam(null);
-      }
-    }
-    setMounted(true);
-  }, [searchParams, router]);
-
-  const handleSelectExam = (exam: ExamType) => {
-    setSelectedExam(exam);
-    localStorage.setItem(STORAGE_KEY, exam);
-    router.push(`/?exam=${exam}`);
-  };
-
-  const handleChangeExam = () => {
-    setSelectedExam(null);
-    localStorage.removeItem(STORAGE_KEY);
-    router.push("/");
-  };
-
-  if (!mounted) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-7 h-7 border-2 border-[#c8102e] border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+  // Until localStorage has been read, we cannot tell a first-time visitor from
+  // a returning one. Hold for that one tick rather than flashing the picker at
+  // someone who already chose. The accent is already correct — the pre-paint
+  // script set it — so this spinner is themed, not crimson-by-default.
+  if (!hydrated) {
+    return <Spinner label="Loading…" />;
   }
 
-  const config = selectedExam ? examConfig[selectedExam] : null;
-
-  /* ═══════════════════════════════════════════
-     LANDING PAGE (no exam selected)
-     ═══════════════════════════════════════════ */
-  if (!selectedExam) {
+  /* ═══════════════════════════════════════════════════════════════════════
+     A · No exam chosen — hero + picker. Chrome stays neutral.
+     ═══════════════════════════════════════════════════════════════════════ */
+  if (unset) {
     return (
-      <div className="flex flex-col min-h-screen bg-[#f5f5f5]">
-        {/* Hero */}
-        <section className="bg-white border-b border-[#e5e5e5] py-14 sm:py-20">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-            <div className="grid lg:grid-cols-12 gap-10 items-center">
-              <div className="lg:col-span-7 space-y-5">
-                <h1 className="text-[36px] sm:text-[48px] font-extrabold text-[#000] leading-[1.1] tracking-tight">
-                  Achieve Your{" "}
-                  <span className="relative inline-block text-[#c8102e]">
-                    Dream Score
-                    <svg className="absolute left-0 -bottom-1.5 w-full h-3 text-[#c8102e]" viewBox="0 0 100 10" preserveAspectRatio="none" fill="none">
+      <>
+        {/* ── Hero ──────────────────────────────────────────────────────── */}
+        <section className="tx-dots border-b border-n-300">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
+            <div className="grid lg:grid-cols-12 gap-12 items-center">
+              <div className="lg:col-span-6">
+                <Eyebrow className="mb-4">Free AI-powered practice</Eyebrow>
+                <h1 className="text-[36px] leading-[42px] sm:text-[48px] sm:leading-[52px] tracking-[-0.02em] mb-5">
+                  Achieve your{" "}
+                  <span className="relative inline-block text-accent">
+                    dream score
+                    {/* Hand-drawn underline, accent-coloured */}
+                    <svg
+                      className="absolute left-0 -bottom-1 w-full h-3 text-accent"
+                      viewBox="0 0 100 10" preserveAspectRatio="none" fill="none" aria-hidden="true"
+                    >
                       <path d="M3 7 C 30 3, 70 3, 97 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
                     </svg>
-                  </span>{" "}
-                  with LingoPrep
+                  </span>
                 </h1>
-                <p className="text-[15px] text-[#555] leading-relaxed max-w-lg">
-                  AI-powered practice tests, instant scoring, and expert feedback tailored to IELTS and TOEFL. Start preparing smarter today.
+                <p className="t-body-lg text-n-600 max-w-lg mb-7">
+                  Exam-accurate practice tests for IELTS and TOEFL, with an
+                  AI-generated estimate and criterion-by-criterion feedback the
+                  moment you finish. All four skills. No account needed.
                 </p>
-                <a href="#choose-path" className="inline-flex items-center px-6 py-3 bg-[#c8102e] hover:bg-[#a50d24] text-white font-bold text-[14px] rounded-full transition-all shadow-sm">
-                  Get Started →
-                </a>
-                <div className="flex items-center gap-3 pt-4">
-                  <div className="flex -space-x-2">
-                    <img className="w-8 h-8 rounded-full border-2 border-white object-cover" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=80&h=80&q=80" alt="" />
-                    <img className="w-8 h-8 rounded-full border-2 border-white object-cover" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=80&h=80&q=80" alt="" />
-                    <img className="w-8 h-8 rounded-full border-2 border-white object-cover" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&h=80&q=80" alt="" />
-                  </div>
-                  <span className="text-[13px] font-semibold text-[#777]">Trusted by students worldwide</span>
+
+                <div className="flex flex-wrap gap-3 mb-8">
+                  <ButtonLink href="#choose-path" trailingIcon="next">
+                    Choose your exam
+                  </ButtonLink>
+                  <ButtonLink href="/dashboard" variant="secondary" icon="report">
+                    Your results
+                  </ButtonLink>
                 </div>
+
+                {/* Honest, checkable facts — not invented social proof */}
+                <ul className="flex flex-wrap gap-x-6 gap-y-2">
+                  {[
+                    { icon: "secure" as IconName, text: "Free, with no locked modules" },
+                    { icon: "progress" as IconName, text: "All four skills scored" },
+                    { icon: "ai" as IconName, text: "Instant AI feedback" },
+                  ].map((f) => (
+                    <li key={f.text} className="flex items-center gap-2 text-[13px] font-bold text-n-600">
+                      <Icon name={f.icon} size={16} className="text-accent" />
+                      {f.text}
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <div className="lg:col-span-5 relative">
-                <div className="rounded-2xl overflow-hidden shadow-xl border border-[#e5e5e5]">
-                  <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=700&auto=format&fit=crop" alt="Students studying" className="w-full h-[380px] object-cover" />
-                  <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-md rounded-xl p-3.5 shadow-lg flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 rounded-lg bg-[#e8f5e9] flex items-center justify-center">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2e7d32" strokeWidth="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" /></svg>
-                      </div>
-                      <div><div className="text-[10px] font-bold text-[#999] uppercase tracking-wider">Target Score</div><div className="text-[15px] font-bold text-[#1a1a1a]">IELTS 8.0</div></div>
+
+              {/* ── Score-report preview, built from the icon vocabulary ─── */}
+              <div className="lg:col-span-6">
+                <Card feature className="p-6 sm:p-7 shadow-e2">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-2">
+                      <Icon name="report" size={20} className="text-n-500" />
+                      <span className="t-label text-n-500">Sample score report</span>
                     </div>
-                    <div className="text-right border-l border-[#e5e5e5] pl-3.5">
-                      <div className="text-[10px] font-bold text-[#999] uppercase tracking-wider">Probability</div>
-                      <div className="text-[17px] font-extrabold text-[#2e7d32]">92%</div>
+                    <Badge tone="ai" icon="ai">AI estimate</Badge>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-7">
+                    <ScoreCircle
+                      value={7} max={9} decimals={1}
+                      label="IELTS band" caption="Practice estimate" size={124}
+                    />
+                    <div className="flex-1 w-full space-y-4">
+                      <CriterionBar label="Task achievement" value={7.0} max={9} />
+                      <CriterionBar label="Coherence" value={7.5} max={9} />
+                      <CriterionBar label="Lexical resource" value={6.5} max={9} />
+                      <CriterionBar label="Grammatical range" value={7.0} max={9} />
                     </div>
                   </div>
-                </div>
+
+                  <p className="text-[12px] text-n-500 mt-6 pt-5 border-t border-n-200">
+                    An illustration of the report you receive. Practice scores
+                    are AI-generated estimates, not official results.
+                  </p>
+                </Card>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Choose Your Path */}
-        <section id="choose-path" className="py-16 bg-[#f5f5f5]">
+        {/* ── Choose your path ─────────────────────────────────────────────
+            The only screen where both exam colours appear, as identity
+            swatches for a choice. Chrome stays ink and neutral. (§07)
+            ───────────────────────────────────────────────────────────────── */}
+        <section id="choose-path" className="bg-n-50 border-b border-n-300 py-16 sm:py-20 scroll-mt-24">
           <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-1 h-7 bg-[#c8102e] rounded-full" />
-              <h2 className="text-[28px] font-extrabold text-[#000]">Choose Your Path</h2>
+            <div className="max-w-2xl mb-10">
+              <Eyebrow className="mb-3">Step one</Eyebrow>
+              <h2 className="mb-3">Choose your path</h2>
+              <p className="t-body-lg text-n-600">
+                Pick your target examination. Everything after this point —
+                timings, question types, scoring scale and the colour of the
+                interface — follows the exam you choose.
+              </p>
             </div>
-            <p className="text-[14px] text-[#777] mb-10 ml-3">Select your target examination to access tailored practice materials.</p>
 
             <div className="grid md:grid-cols-2 gap-6">
-              {/* IELTS Card */}
-              <div className="bg-white border border-[#e5e5e5] rounded-2xl p-7 hover:shadow-lg transition-all duration-300 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center gap-3 mb-5">
-                    <div className="w-10 h-10 rounded-xl bg-[#c8102e] flex items-center justify-center text-white font-extrabold text-[16px]">I</div>
-                    <h3 className="text-[18px] font-bold text-[#000]">IELTS Preparation</h3>
-                  </div>
-                  <p className="text-[13px] text-[#666] leading-relaxed mb-6">Comprehensive modules for Academic and General Training. Master the 4 skills with realistic test scenarios.</p>
-                  <div className="grid grid-cols-2 gap-2 mb-6">
-                    {["Listening", "Reading", "Writing", "Speaking"].map(s => (
-                      <div key={s} className="flex items-center gap-2 py-2 px-3 bg-[#f5f5f5] rounded-lg text-[12px] font-semibold text-[#555]">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2"><polyline points="20 6 9 17 4 12" /></svg>{s}
+              {(["ielts", "toefl"] as ExamType[]).map((id) => {
+                const t = EXAM_THEMES[id];
+                return (
+                  <Card key={id} feature interactive className="p-7 flex flex-col">
+                    <div className="flex items-center gap-3.5 mb-5">
+                      {/* Identity swatch — the one place a fixed exam colour
+                          is correct, because it labels the choice itself. */}
+                      <span
+                        className="w-11 h-11 rounded-xl flex items-center justify-center text-white font-bold text-[17px] shrink-0"
+                        style={{ backgroundColor: t.accent }}
+                      >
+                        {t.name.charAt(0)}
+                      </span>
+                      <div>
+                        <h3>{id === "toefl" ? "TOEFL iBT®" : "IELTS®"}</h3>
+                        <p className="text-[13px] text-n-500 font-bold">{t.scoreRange}</p>
                       </div>
-                    ))}
-                  </div>
-                </div>
-                <button id="select-ielts" onClick={() => handleSelectExam("ielts")} className="w-full py-3 bg-[#c8102e] hover:bg-[#a50d24] text-white font-bold text-[13px] rounded-full transition-colors cursor-pointer">Start IELTS Practice →</button>
-              </div>
+                    </div>
 
-              {/* TOEFL Card */}
-              <div className="bg-white border border-[#e5e5e5] rounded-2xl p-7 hover:shadow-lg transition-all duration-300 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center gap-3 mb-5">
-                    <div className="w-10 h-10 rounded-xl bg-[#0057b8] flex items-center justify-center text-white font-extrabold text-[16px]">T</div>
-                    <h3 className="text-[18px] font-bold text-[#000]">TOEFL iBT® Preparation</h3>
-                  </div>
-                  <p className="text-[13px] text-[#666] leading-relaxed mb-6">Integrated tasks and authentic academic content designed to boost your iBT score efficiently.</p>
-                  <div className="grid grid-cols-2 gap-2 mb-6">
-                    {["iBT Format", "Academic Focus", "Integrated Tasks", "Score Analysis"].map(s => (
-                      <div key={s} className="flex items-center gap-2 py-2 px-3 bg-[#f5f5f5] rounded-lg text-[12px] font-semibold text-[#555]">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2"><polyline points="20 6 9 17 4 12" /></svg>{s}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <button id="select-toefl" onClick={() => handleSelectExam("toefl")} className="w-full py-3 bg-[#0057b8] hover:bg-[#004494] text-white font-bold text-[13px] rounded-full transition-colors cursor-pointer">Start TOEFL Practice →</button>
-              </div>
+                    <p className="t-body text-n-600 mb-6">
+                      {id === "ielts"
+                        ? "Academic and General Training practice, scored as IELTS Academic bands across all four skills."
+                        : "iBT-format practice with integrated tasks and academic source material, scored on the 0–30 section scale."}
+                    </p>
+
+                    <ul className="grid grid-cols-2 gap-2 mb-7">
+                      {MODULES.map((m) => (
+                        <li
+                          key={m.key}
+                          className="flex items-center gap-2 py-2 px-3 bg-n-100 rounded-input text-[12px] font-bold text-n-600"
+                        >
+                          <Icon name={m.icon} size={16} className="text-n-500" />
+                          {m.title}
+                        </li>
+                      ))}
+                    </ul>
+
+                    {/* A real link, not a button: the exam lives in the URL, so
+                        selecting one is a navigation. It also means the accent
+                        is set by the pre-paint script on the next document,
+                        which makes a wrong-colour frame impossible. */}
+                    <a
+                      href={examHref(id)}
+                      onClick={() => persistExam(id)}
+                      className="mt-auto w-full h-11 inline-flex items-center justify-center gap-2
+                                 rounded-full text-white font-bold text-[15px]
+                                 transition-[filter] duration-[120ms] hover:brightness-90 shadow-e1"
+                      style={{ backgroundColor: t.accent }}
+                    >
+                      Start {t.name} practice
+                      <Icon name="next" size={16} />
+                    </a>
+                  </Card>
+                );
+              })}
             </div>
           </div>
         </section>
 
-      </div>
+        {/* ── The four principles (§01) ────────────────────────────────────── */}
+        <section className="py-16 sm:py-20">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+            <div className="max-w-2xl mb-10">
+              <Eyebrow className="mb-3">Why it works</Eyebrow>
+              <h2 className="mb-3">Free, honest test preparation</h2>
+              <p className="t-body-lg text-n-600">
+                Credible practice is priced out of reach for most candidates.
+                LingoPrep is built to feel as trustworthy as a paid service
+                while being free, and transparent about how its AI scores you.
+              </p>
+            </div>
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {PRINCIPLES.map((p) => (
+                <div key={p.title} className="border-t-[3px] border-current pt-4" style={{ borderColor: "currentColor" }}>
+                  <div className={p.tone}>
+                    <Icon name={p.icon} size={24} />
+                  </div>
+                  <h3 className="text-[17px] leading-[24px] mt-3 mb-2">{p.title}</h3>
+                  <p className="text-[14px] leading-[23px] text-n-600">{p.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </>
     );
   }
 
-  /* ═══════════════════════════════════════════
-     EXAM DASHBOARD (exam selected) —  skill cards style
-     ═══════════════════════════════════════════ */
+  /* ═══════════════════════════════════════════════════════════════════════
+     B · Exam chosen — one accent governs the whole screen.
+     ═══════════════════════════════════════════════════════════════════════ */
   return (
-    <div className="flex flex-col min-h-screen bg-[#f5f5f5]">
-      {/* Header */}
-      <section className="bg-white border-b border-[#e5e5e5]">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+    <>
+      <section className="tx-dots border-b border-n-300">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+          <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-6">
             <div>
-              <button onClick={handleChangeExam} className="inline-flex items-center gap-1.5 text-[13px] font-bold mb-3 hover:opacity-75 transition-opacity cursor-pointer" style={{ color: config!.color }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6" /></svg>
+              <a
+                href={PICKER_HREF}
+                onClick={() => persistExam(null)}
+                className="inline-flex items-center gap-1.5 text-[13px] font-bold text-accent hover:text-accent-strong transition-colors duration-[120ms] mb-4"
+              >
+                <Icon name="chevronRight" size={16} className="rotate-180" />
                 Change exam
-              </button>
-              <h1 className="text-[32px] sm:text-[40px] font-extrabold text-[#000] leading-tight mb-2">{config!.name} Practice Tests</h1>
-              <p className="text-[14px] text-[#666] max-w-lg leading-relaxed">{config!.description}</p>
+              </a>
+              <h1 className="text-[32px] leading-[38px] sm:text-[40px] sm:leading-[46px] mb-3">
+                {theme.name} practice tests
+              </h1>
+              <p className="t-body-lg text-n-600 max-w-xl">
+                {exam === "toefl"
+                  ? "Practice the iBT format across Reading, Listening, Speaking and Writing, with section scores on the 0–30 scale."
+                  : "Practice IELTS Academic across Listening, Reading, Writing and Speaking, with band-level feedback on every criterion."}
+              </p>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="px-4 py-1.5 rounded-full text-[11px] font-extrabold text-white" style={{ backgroundColor: config!.color }}>{config!.name}</span>
-              <Link href="/dashboard" className="px-4 py-1.5 border border-[#ddd] bg-white text-[#333] font-bold rounded-full hover:bg-[#fafafa] transition-colors text-[12px]">View results</Link>
+            <div className="flex items-center gap-3 shrink-0">
+              <Badge icon="target">{theme.name}</Badge>
+              <ButtonLink href={withExam("/dashboard")} variant="secondary" size="compact" icon="report">
+                Your results
+              </ButtonLink>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Search by skill — IDP style cards */}
-      <section className="py-14 flex-1">
+      <section className="py-14 sm:py-16">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2 mb-8">
-            <div className="w-1 h-6 rounded-full" style={{ backgroundColor: config!.color }} />
-            <h2 className="text-[24px] font-extrabold text-[#000]">Search by {config!.name} skill</h2>
+          <div className="flex items-center gap-3 mb-8">
+            {/* Accent rule — one per section heading */}
+            <span className="w-1 h-7 rounded-full bg-accent" />
+            <h2 className="text-[24px] leading-[30px]">Practice by skill</h2>
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {config!.modules.map((mod) => {
-              const Icon = iconMap[mod.icon];
-              return (
-                <Link key={mod.title} href={mod.href} className="group bg-white border border-[#e5e5e5] rounded-xl p-6 flex flex-col justify-between hover:shadow-lg transition-all duration-200 min-h-[200px]">
-                  <div>
-                    <div className="w-11 h-11 rounded-lg bg-[#f0f0f0] flex items-center justify-center mb-5">
-                      {Icon && <Icon />}
-                    </div>
-                    <h3 className="text-[16px] font-bold text-[#000] mb-1.5">{mod.title}</h3>
-                    <p className="text-[13px] text-[#777] leading-relaxed">{mod.desc}</p>
-                  </div>
-                  <div className="flex justify-end mt-5">
-                    <div className="w-9 h-9 rounded-full border border-[#e0e0e0] flex items-center justify-center text-[#999] group-hover:text-white group-hover:border-transparent transition-all" style={{ ['--tw-group-hover-bg' as string]: config!.color }} onMouseEnter={e => { e.currentTarget.style.backgroundColor = config!.color; e.currentTarget.style.color = '#fff'; }} onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; e.currentTarget.style.color = '#999'; }}>
-                      <ArrowIcon />
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
+            {MODULES.map((m) => (
+              <Link key={m.key} href={withExam(`/${m.key}`)} className="group">
+                <Card interactive className="p-6 h-full flex flex-col min-h-[210px]">
+                  {/* §09: resting module tile is neutral; the active one takes
+                      the accent tint. 44px tile, 12px radius. */}
+                  <span
+                    className="w-11 h-11 rounded-xl bg-n-100 text-n-600 flex items-center justify-center mb-5
+                               transition-colors duration-[120ms]
+                               group-hover:bg-accent-tint group-hover:text-accent"
+                  >
+                    <Icon name={m.icon} size={24} />
+                  </span>
+                  <h3 className="text-[17px] leading-[24px] mb-1.5">{m.title}</h3>
+                  <p className="text-[13px] leading-[22px] text-n-600">
+                    {exam === "toefl" ? m.toefl : m.ielts}
+                  </p>
+                  <span
+                    className="mt-auto pt-5 inline-flex items-center gap-1 text-[13px] font-bold text-accent"
+                  >
+                    Start practice
+                    <Icon
+                      name="next" size={16}
+                      className="transition-transform duration-[120ms] group-hover:translate-x-0.5"
+                    />
+                  </span>
+                </Card>
+              </Link>
+            ))}
           </div>
+
+          {/* §14: scoring is AI-generated, said plainly wherever practice starts */}
+          <Card className="mt-8 p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <Icon name="info" size={24} className="text-n-500 shrink-0" />
+            <p className="t-body text-n-600 flex-1">
+              Every score on LingoPrep is an AI-generated practice estimate on
+              the <strong>{theme.scoreRange}</strong> scale. It is not an
+              official {theme.legalName} result and cannot be used for
+              admissions or visa applications.
+            </p>
+            <Button
+              variant="ghost" size="compact" trailingIcon="next"
+              onClick={() => router.push(withExam("/dashboard"))}
+            >
+              How scoring works
+            </Button>
+          </Card>
         </div>
       </section>
-
-    </div>
+    </>
   );
 }

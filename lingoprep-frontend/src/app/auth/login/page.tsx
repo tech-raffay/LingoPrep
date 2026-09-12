@@ -78,7 +78,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-3 py-2.5 border border-[#ddd] rounded text-[14px] focus:outline-none focus:border-[#c8102e] transition-colors"
+                className="w-full px-3 py-2.5 border border-[#ddd] rounded text-[14px] focus:outline-none focus:border-accent transition-colors"
                 placeholder="you@example.com"
               />
             </div>
@@ -89,14 +89,14 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full px-3 py-2.5 border border-[#ddd] rounded text-[14px] focus:outline-none focus:border-[#c8102e] transition-colors"
+                className="w-full px-3 py-2.5 border border-[#ddd] rounded text-[14px] focus:outline-none focus:border-accent transition-colors"
                 placeholder="Your password"
               />
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 bg-[#c8102e] text-white font-semibold text-[13px] rounded-full hover:bg-[#a50d24] disabled:opacity-50 transition-colors"
+              className="w-full py-2.5 bg-accent text-white font-semibold text-[13px] rounded-full hover:bg-accent-strong disabled:opacity-50 transition-colors"
             >
               {loading ? "Signing in..." : "Sign in"}
             </button>
@@ -104,7 +104,7 @@ export default function LoginPage() {
 
           <p className="text-center text-[13px] text-[#666] mt-5">
             Don&apos;t have an account?{" "}
-            <Link href="/auth/signup" className="text-[#c8102e] font-semibold hover:underline">
+            <Link href="/auth/signup" className="text-accent font-semibold hover:underline">
               Create account
             </Link>
           </p>

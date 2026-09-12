@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
 import api from "@/lib/api";
+import { useExam } from "@/components/theme/ExamThemeProvider";
 
 interface SpeakingPrompt {
   id: string;
@@ -29,10 +29,6 @@ const bandLabels: Record<string, string> = {
   coherence_structure: "Coherence & Structure",
 };
 
-const examColors: Record<string, { color: string; colorDark: string; colorLight: string; name: string }> = {
-  ielts: { color: "#c8102e", colorDark: "#a50d24", colorLight: "#fef2f2", name: "IELTS" },
-  toefl: { color: "#0057b8", colorDark: "#004494", colorLight: "#eff6ff", name: "TOEFL" },
-};
 
 const fallbackPrompts: Record<string, SpeakingPrompt[]> = {
   ielts: [
@@ -60,9 +56,15 @@ const fallbackPrompts: Record<string, SpeakingPrompt[]> = {
 type RecordingState = "idle" | "recording" | "recorded" | "transcribing" | "evaluating";
 
 export default function SpeakingPage() {
-  const searchParams = useSearchParams();
-  const examType = searchParams.get("exam") === "toefl" ? "toefl" : "ielts";
-  const theme = examColors[examType];
+  // Exam theme comes from the shared provider (src/lib/exam.ts), never a
+  // local copy — see brand book §07: one accent token, set in one place.
+  const { exam: examType, theme: examTheme } = useExam();
+  const theme = {
+    color: examTheme.accent,
+    colorDark: examTheme.accentStrong,
+    colorLight: examTheme.accentTint,
+    name: examTheme.name,
+  };
   const defaultPrompts = fallbackPrompts[examType];
 
   const [prompts, setPrompts] = useState<SpeakingPrompt[]>(defaultPrompts);

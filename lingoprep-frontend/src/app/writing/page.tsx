@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
 import api from "@/lib/api";
+import { useExam } from "@/components/theme/ExamThemeProvider";
+import Icon from "@/components/brand/Icon";
 
 interface Prompt {
   id: string;
@@ -28,15 +29,17 @@ const bandLabels: Record<string, string> = {
   grammatical_range: "Grammatical Range & Accuracy",
 };
 
-const examColors: Record<string, { color: string; colorDark: string; colorLight: string; name: string }> = {
-  ielts: { color: "#c8102e", colorDark: "#a50d24", colorLight: "#fef2f2", name: "IELTS" },
-  toefl: { color: "#0057b8", colorDark: "#004494", colorLight: "#eff6ff", name: "TOEFL" },
-};
 
 export default function WritingPage() {
-  const searchParams = useSearchParams();
-  const examType = searchParams.get("exam") === "toefl" ? "toefl" : "ielts";
-  const theme = examColors[examType];
+  // Exam theme comes from the shared provider (src/lib/exam.ts), never a
+  // local copy — see brand book §07: one accent token, set in one place.
+  const { exam: examType, theme: examTheme } = useExam();
+  const theme = {
+    color: examTheme.accent,
+    colorDark: examTheme.accentStrong,
+    colorLight: examTheme.accentTint,
+    name: examTheme.name,
+  };
 
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [selectedPrompt, setSelectedPrompt] = useState<Prompt | null>(null);
@@ -113,7 +116,7 @@ export default function WritingPage() {
     return (
       <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-10">
         <div className="flex items-center gap-3 mb-6">
-          <span className="text-3xl">✍️</span>
+          <Icon name="writing" size={32} className="text-accent" />
           <h1 className="text-3xl font-extrabold text-slate-900">{theme.name} Writing Practice</h1>
         </div>
         <div className="animate-pulse space-y-4">
@@ -130,8 +133,8 @@ export default function WritingPage() {
       {/* Header */}
       <div className="mb-8 pb-5 border-b border-slate-200/80">
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-xl">
-            ✍️
+          <div className="w-11 h-11 rounded-xl bg-accent-tint text-accent flex items-center justify-center">
+            <Icon name="writing" size={24} />
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -175,7 +178,7 @@ export default function WritingPage() {
           className="px-4 py-2 rounded-full text-[12.5px] font-bold border border-slate-200/80 bg-white hover:bg-slate-50 transition-all flex items-center gap-1.5 shadow-xs"
           style={{ color: theme.color }}
         >
-          <span>🔀</span> Random Topic
+          <Icon name="retry" size={16} /> Random topic
         </button>
       </div>
 

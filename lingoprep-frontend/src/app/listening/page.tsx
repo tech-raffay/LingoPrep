@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import api from "@/lib/api";
+import { useExam } from "@/components/theme/ExamThemeProvider";
 
 interface Option {
   id: string;
@@ -30,16 +31,18 @@ interface AudioExercise {
   questions: Question[];
 }
 
-const examColors: Record<string, { color: string; colorDark: string; colorLight: string; name: string }> = {
-  ielts: { color: "#c8102e", colorDark: "#a50d24", colorLight: "#fef2f2", name: "IELTS" },
-  toefl: { color: "#0057b8", colorDark: "#004494", colorLight: "#eff6ff", name: "TOEFL" },
-};
 
 export default function ListeningPage() {
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const examType = searchParams.get("exam") === "toefl" ? "toefl" : "ielts";
-  const theme = examColors[examType];
+  // Exam theme comes from the shared provider (src/lib/exam.ts), never a
+  // local copy — see brand book §07: one accent token, set in one place.
+  const { exam: examType, theme: examTheme } = useExam();
+  const theme = {
+    color: examTheme.accent,
+    colorDark: examTheme.accentStrong,
+    colorLight: examTheme.accentTint,
+    name: examTheme.name,
+  };
 
   const [exercises, setExercises] = useState<AudioExercise[]>([]);
   const [loading, setLoading] = useState(true);
@@ -311,7 +314,7 @@ export default function ListeningPage() {
     return (
       <div className="mx-auto max-w-md px-4 py-16 text-center">
         <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#c8102e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
           </svg>
         </div>
@@ -504,7 +507,9 @@ export default function ListeningPage() {
                   <div
                     key={q.id}
                     className={`border rounded-xl p-5 ${
-                      isCorrect ? "border-[#2e7d32] bg-[#f8fdf9]" : "border-[#c8102e] bg-[#fffdfd]"
+                      isCorrect
+                        ? "border-[var(--success)] bg-[var(--success-tint)]"
+                        : "border-[var(--error)] bg-[var(--error-tint)]"
                     }`}
                   >
                     <p className="text-[14px] font-bold text-slate-800 mb-4 flex items-start">
@@ -524,9 +529,9 @@ export default function ListeningPage() {
 
                         let optionStyle = "border-slate-200 hover:bg-[#fafafa] text-slate-600";
                         if (isCorrectOption) {
-                          optionStyle = "bg-[#e8f5e9] text-[#2e7d32] font-semibold border-[#a5d6a7]";
+                          optionStyle = "bg-[var(--success-tint)] text-[var(--success)] font-bold border-[var(--success)]";
                         } else if (isUserSelected && !isCorrect) {
-                          optionStyle = "bg-[#fce4ec] text-[#c8102e] font-semibold border-[#f8bbd0]";
+                          optionStyle = "bg-[var(--error-tint)] text-[var(--error)] font-bold border-[var(--error)]";
                         }
 
                         return (
@@ -536,8 +541,8 @@ export default function ListeningPage() {
                           >
                             <span className="font-bold text-[#888]">{opt.label}.</span>
                             <span>{opt.text}</span>
-                            {isCorrectOption && <span className="ml-auto text-[11px] font-bold text-[#2e7d32] uppercase">Correct</span>}
-                            {isUserSelected && !isCorrect && <span className="ml-auto text-[11px] font-bold text-[#c8102e] uppercase">Your Choice</span>}
+                            {isCorrectOption && <span className="ml-auto text-[11px] font-bold text-[var(--success)] uppercase tracking-[.12em]">Correct</span>}
+                            {isUserSelected && !isCorrect && <span className="ml-auto text-[11px] font-bold text-[var(--error)] uppercase tracking-[.12em]">Your answer</span>}
                           </div>
                         );
                       })}
@@ -567,9 +572,9 @@ export default function ListeningPage() {
   // Clean section cards - gradient bg + SVG icon
   const sectionCards = [
     {
-      bg: "#EFF6FF", color: "#3B82F6", label: "Telephone Conversation",
+      bg: "var(--n-100)", color: "var(--n-600)", label: "Telephone Conversation",
       svg: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--n-600)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12">
           <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 8.81 19.79 19.79 0 010.07 2.18 2 2 0 012.07.07h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.29 6.29l.41-1.21a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/>
         </svg>
       )
@@ -605,8 +610,8 @@ export default function ListeningPage() {
   ];
   const toeflSectionCards = [
     {
-      bg: "#EFF6FF", color: "#3B82F6", label: "Campus Conversation",
-      svg: (<svg viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 8.81 19.79 19.79 0 010.07 2.18 2 2 0 012.07.07h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.29 6.29l.41-1.21a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>)
+      bg: "var(--n-100)", color: "var(--n-600)", label: "Campus Conversation",
+      svg: (<svg viewBox="0 0 24 24" fill="none" stroke="var(--n-600)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 8.81 19.79 19.79 0 010.07 2.18 2 2 0 012.07.07h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.29 6.29l.41-1.21a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>)
     },
     {
       bg: "#F5F3FF", color: "#8B5CF6", label: "Academic Lecture 1",
@@ -633,7 +638,7 @@ export default function ListeningPage() {
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {isReviewPeriod && (
-            <div className="flex items-center gap-1.5 text-[13px] font-mono font-bold text-red-600 bg-red-50 border border-red-200 px-3 py-1.5 rounded-lg animate-pulse">
+            <div className="flex items-center gap-1.5 text-[13px] font-mono font-bold text-[var(--error)] bg-[var(--error-tint)] border border-[var(--error)] px-3 py-1.5 rounded-lg">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               {formatTime(reviewTimeLeft)}
             </div>
