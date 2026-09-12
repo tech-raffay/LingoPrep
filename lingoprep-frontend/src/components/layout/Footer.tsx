@@ -20,6 +20,7 @@
  */
 
 import Link from "next/link";
+import { EXAM_THEMES, type ExamType } from "@/lib/exam";
 import { useExam } from "@/components/theme/ExamThemeProvider";
 import Logo from "@/components/brand/Logo";
 import Icon, { type IconName } from "@/components/brand/Icon";
@@ -31,7 +32,13 @@ const SOCIALS: Array<{ label: string; path: string }> = [
 ];
 
 export default function Footer() {
-  const { theme, withExam } = useExam();
+  const { exam, theme, withExam, examHref, persistExam } = useExam();
+
+  // The footer previously only ever offered the active exam, so a visitor on
+  // the default theme saw four IELTS links and no route to TOEFL at all. It
+  // now always carries both paths.
+  const otherExam: ExamType = exam === "ielts" ? "toefl" : "ielts";
+  const other = EXAM_THEMES[otherExam];
 
   /* Practice links, in the brand book's module order (§09). */
   const practice: Array<{ label: string; href: string; icon: IconName }> = [
@@ -79,6 +86,25 @@ export default function Footer() {
                 </li>
               ))}
             </ul>
+
+            {/* Cross-link to the other examination. Deliberately not tinted
+                with that exam's colour: §07 keeps one accent per screen, and
+                the label alone is unambiguous here. */}
+            <div className="mt-4 pt-4 border-t border-white/12">
+              <a
+                href={examHref(otherExam)}
+                onClick={() => persistExam(otherExam)}
+                className="group inline-flex items-center gap-2 text-[13px] font-bold text-white/70 hover:text-white transition-colors duration-[120ms]"
+              >
+                <Icon name="target" size={16} className="text-white/40" />
+                Practice {other.name} instead
+                <Icon
+                  name="next"
+                  size={16}
+                  className="text-white/40 transition-transform duration-[120ms] group-hover:translate-x-0.5"
+                />
+              </a>
+            </div>
           </div>
 
           <div>

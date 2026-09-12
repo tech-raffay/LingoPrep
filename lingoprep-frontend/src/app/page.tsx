@@ -104,7 +104,7 @@ export default function Home() {
      ═══════════════════════════════════════════════════════════════════════ */
   return (
     <>
-      <section className="tx-dots border-b border-n-300">
+      <section className="bg-n-0 border-b border-n-300">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
           <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-6">
             <div>

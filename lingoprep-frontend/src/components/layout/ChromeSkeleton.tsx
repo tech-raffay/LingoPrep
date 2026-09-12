@@ -32,7 +32,7 @@ export default function ChromeSkeleton() {
       </div>
 
       {/* Page ground */}
-      <div className="flex-1 tx-dots" />
+      <div className="flex-1 bg-n-0" />
     </div>
   );
 }

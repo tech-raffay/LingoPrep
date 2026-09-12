@@ -68,7 +68,7 @@ export default function Hero() {
   );
 
   return (
-    <section className="tx-dots border-b border-n-200">
+    <section className="bg-n-0 border-b border-n-200">
       <div className="mx-auto max-w-[1200px] px-5 sm:px-7 py-14 sm:py-20 lg:py-24">
         <div className="grid lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] gap-10 lg:gap-14 items-center">
           {/* ── Copy ──────────────────────────────────────────────────────── */}
