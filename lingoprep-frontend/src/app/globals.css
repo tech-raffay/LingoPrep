@@ -54,6 +54,22 @@
   --ai:           #7C3AED;
   --ai-tint:      #F5F3FF;
 
+  /* ── Amber family ────────────────────────────────────────────────────── */
+  /* The home page design uses amber as a third, non-exam accent for the
+     "prepare / learn" surfaces (self-assessment, library, community). It is
+     an extension of the §07 warning hue, kept deliberately separate from the
+     exam accents so it never reads as IELTS crimson or TOEFL blue. */
+  --amber-50:  #FFFAF0;
+  --amber-100: #FFF7EC;
+  --amber-200: #F5E3C4;
+  --amber-300: #F2D9A8;
+  --amber-400: #F5C069;
+  --amber-500: #F59E0B;
+  --amber-600: #E07A1F;
+  --amber-700: #8A6A1F;
+  --amber-800: #5B5341;
+  --amber-ink: #78350F;   /* 4.5:1+ on amber-100, unlike the design's #B4770D */
+
   /* ── Exam accent — DEFAULT: IELTS crimson ────────────────────────────── */
   --accent:         var(--crimson);
   --accent-strong:  var(--crimson-deep);
@@ -153,6 +169,17 @@ html[data-theme-switching] *::after {
   --color-info-tint:    var(--info-tint);
   --color-ai:           var(--ai);
   --color-ai-tint:      var(--ai-tint);
+
+  --color-amber-50:  var(--amber-50);
+  --color-amber-100: var(--amber-100);
+  --color-amber-200: var(--amber-200);
+  --color-amber-300: var(--amber-300);
+  --color-amber-400: var(--amber-400);
+  --color-amber-500: var(--amber-500);
+  --color-amber-600: var(--amber-600);
+  --color-amber-700: var(--amber-700);
+  --color-amber-800: var(--amber-800);
+  --color-amber-ink: var(--amber-ink);
 
   --radius-input:   var(--r-input);
   --radius-card:    var(--r-card);
@@ -256,6 +283,11 @@ html[data-theme-switching] *::after {
    override them at the call site.
    ═══════════════════════════════════════════════════════════════════════ */
 @layer components {
+  /* Accent-tinted elevation for primary CTAs (home page design).
+     color-mix keeps it on whichever exam accent is active. */
+  .shadow-accent-sm { box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 26%, transparent); }
+  .shadow-accent    { box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 26%, transparent); }
+
   /* ── Background textures (§13) — 4–8% contrast, one per screen ───────────── */
   .tx-dots {
     background-color: var(--n-0);
@@ -299,7 +331,17 @@ html[data-theme-switching] *::after {
   }
 }
 
-/* §11: the recording pulse and audio waveform are the only in-test motion */
+/* §11: the recording pulse and audio waveform are the only in-test motion.
+   The float/drift/bar keyframes below are for the marketing home page only —
+   never inside an active test. All of them are disabled by the
+   prefers-reduced-motion block above. */
 @keyframes lp-rise  { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 @keyframes lp-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
 @keyframes lp-spin  { to { transform: rotate(360deg); } }
+@keyframes lp-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes lp-bar   { 0%, 100% { transform: scaleY(.35); } 50% { transform: scaleY(1); } }
+@keyframes lp-drift {
+  0%   { transform: scale(1.06) translate3d(0, 0, 0); }
+  50%  { transform: scale(1.14) translate3d(-2%, -1.5%, 0); }
+  100% { transform: scale(1.06) translate3d(0, 0, 0); }
+}

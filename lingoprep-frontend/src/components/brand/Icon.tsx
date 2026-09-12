@@ -21,7 +21,10 @@ export type IconName =
   | "saved" | "streak" | "bookmark" | "next"
   | "info" | "support" | "report" | "ai"
   | "menu" | "close" | "check" | "chevronRight"
-  | "signOut" | "retry" | "warning";
+  | "signOut" | "retry" | "warning"
+  // Added for the home page design
+  | "chevronDown" | "chevronLeft" | "lightbulb" | "monitor" | "mobile"
+  | "replies" | "library" | "community" | "sparkle" | "clock" | "playCircle";
 
 interface IconProps {
   name: IconName;
@@ -229,6 +232,62 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M12 4.5L21 20H3l9-15.5Z" />
       <path d="M12 10v4.5" />
       <path d="M12 17.6h.01" />
+    </>
+  ),
+
+  /* ── Home page (§09 grid: 24×24, 1.8px stroke, round caps) ─────────────── */
+  chevronDown: <path d="M6 9.5l6 6 6-6" />,
+  chevronLeft: <path d="M14.5 5.5L8 12l6.5 6.5" />,
+  lightbulb: (
+    <>
+      <path d="M9 18h6" />
+      <path d="M10 21.5h4" />
+      <path d="M12 2.5a6.5 6.5 0 0 0-3.8 11.8V18h7.6v-3.7A6.5 6.5 0 0 0 12 2.5Z" />
+    </>
+  ),
+  monitor: (
+    <>
+      <rect x="3" y="4.5" width="18" height="12" rx="2" />
+      <path d="M8 20.5h8M12 16.5v4" />
+    </>
+  ),
+  mobile: (
+    <>
+      <rect x="6" y="2.5" width="12" height="19" rx="2.5" />
+      <path d="M10.5 18.5h3" />
+    </>
+  ),
+  replies: <path d="M21 14.5a2 2 0 0 1-2 2H7.5L3.5 20.5V5.5a2 2 0 0 1 2-2h13.5a2 2 0 0 1 2 2Z" />,
+  library: (
+    <>
+      <path d="M4 4.5h7a1.5 1.5 0 0 1 1.5 1.5v13.5a1.5 1.5 0 0 0-1.5-1.5H4Z" />
+      <path d="M20 4.5h-7A1.5 1.5 0 0 0 11.5 6v13.5a1.5 1.5 0 0 1 1.5-1.5h7Z" />
+    </>
+  ),
+  community: (
+    <>
+      <circle cx="9" cy="8" r="3.2" />
+      <path d="M2.5 20v-1.4A4.1 4.1 0 0 1 6.6 14.5h4.8a4.1 4.1 0 0 1 4.1 4.1V20" />
+      <path d="M16.5 5.2a3.2 3.2 0 0 1 0 5.6" />
+      <path d="M18.5 14.6a4.1 4.1 0 0 1 3 3.9V20" />
+    </>
+  ),
+  sparkle: (
+    <>
+      <path d="M12 2.5l1.8 4.7 4.7 1.8-4.7 1.8L12 15.5l-1.8-4.7L5.5 9l4.7-1.8Z" />
+      <path d="M18.5 16.5l.9 2.3 2.3.9-2.3.9-.9 2.3-.9-2.3-2.3-.9 2.3-.9Z" />
+    </>
+  ),
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3.5 2" />
+    </>
+  ),
+  playCircle: (
+    <>
+      <rect x="2.5" y="5" width="19" height="14" rx="3" />
+      <path d="M10 9.5v5l4.5-2.5Z" />
     </>
   ),
 };

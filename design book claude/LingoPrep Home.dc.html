@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+<style>
+  body{margin:0;background:#fff;color:#12172b;font-family:'proxima-nova','Proxima Nova','Figtree',system-ui,sans-serif;font-weight:500;-webkit-font-smoothing:antialiased}
+  h1,h2,h3,h4{margin:0;font-weight:700;letter-spacing:-0.025em;line-height:1.18}
+  p{margin:0}
+  a{color:#c8102e;text-decoration:none}
+  a:hover{color:#96091f}
+  button{font-family:inherit;cursor:pointer}
+  @keyframes lpDrift{0%{transform:scale(1.06) translate3d(0,0,0)}50%{transform:scale(1.14) translate3d(-2%,-1.5%,0)}100%{transform:scale(1.06) translate3d(0,0,0)}}
+  @keyframes lpBar{0%,100%{transform:scaleY(.35)}50%{transform:scaleY(1)}}
+  @keyframes lpPulse{0%,100%{opacity:1}50%{opacity:.45}}
+  @keyframes lpFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+</style>
+</helmet>
+
+<div style="min-height:100%;display:flex;flex-direction:column;background:#fff">
+
+  <nav style="position:sticky;top:0;z-index:50;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);border-bottom:1px solid #eef0f5">
+    <div style="max-width:1200px;margin:0 auto;padding:0 28px;height:68px;display:flex;align-items:center;justify-content:space-between;gap:20px">
+      <div style="display:flex;align-items:center;gap:28px;min-width:0">
+        <div style="display:flex;align-items:center;gap:9px;flex-shrink:0">
+          <svg width="30" height="30" viewBox="0 0 48 48" fill="none"><rect x="4" y="6" width="40" height="30" rx="10" stroke="#c8102e" stroke-width="3.4" /><path d="M16 34v10l11-9" fill="#c8102e" /><rect x="14" y="24" width="4.5" height="6" rx="2.25" fill="#c8102e" /><rect x="21.5" y="20" width="4.5" height="10" rx="2.25" fill="#c8102e" /><rect x="29" y="15.5" width="4.5" height="14.5" rx="2.25" fill="#c8102e" /></svg>
+          <span style="font-size:21px;font-weight:700;letter-spacing:-0.035em"><span style="color:#12172b">Lingo</span><span style="color:#c8102e">Prep</span></span>
+        </div>
+        <div style="{{ navLinkRow }}">
+          <sc-for list="{{ navLinks }}" as="l" hint-placeholder-count="4">
+            <span style="display:flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap" style-hover="color:#c8102e">
+              {{ l }}
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
+            </span>
+          </sc-for>
+        </div>
+        <sc-if value="{{ navCompact }}">
+          <span style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;border:1px solid #e3e6ee;color:#333b52;cursor:pointer;flex-shrink:0" style-hover="border-color:#c8102e;color:#c8102e">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="17" x2="20" y2="17" /></svg>
+          </span>
+        </sc-if>
+      </div>
+      <div style="display:flex;align-items:center;gap:18px;flex-shrink:0">
+        <span style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:999px;border:1px solid #e3e6ee;color:#333b52;cursor:pointer;flex-shrink:0" style-hover="border-color:#c8102e;color:#c8102e">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7" /><line x1="16.5" y1="16.5" x2="21" y2="21" /></svg>
+        </span>
+        <span style="font-size:14px;font-weight:700;color:#333b52;cursor:pointer;white-space:nowrap" style-hover="color:#c8102e">Your results</span>
+        <span style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:700;color:#333b52;cursor:pointer" style-hover="color:#c8102e">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+          Sign in
+        </span>
+        <button style="padding:11px 22px;border:none;border-radius:999px;background:#c8102e;color:#fff;font-size:14px;font-weight:700;white-space:nowrap;flex-shrink:0;box-shadow:0 4px 14px rgba(200,16,46,.26)" style-hover="background:#96091f">Start free</button>
+      </div>
+    </div>
+  </nav>
+
+  <section style="background-color:#fff;background-image:radial-gradient(#eef0f5 1.1px,transparent 1.1px);background-size:20px 20px;border-bottom:1px solid #eef0f5">
+    <div style="max-width:1200px;margin:0 auto;padding:76px 28px 84px;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:56px;align-items:center">
+      <div style="display:flex;flex-direction:column;gap:22px">
+        <span style="font-size:12.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#8b91a4">Free AI-powered practice</span>
+        <h1 style="font-size:58px;color:#12172b">Achieve your<br /><span style="position:relative;display:inline-block;color:#c8102e">dream score<span style="position:absolute;left:0;right:0;bottom:2px;height:4px;background:#c8102e;border-radius:999px"></span></span></h1>
+        <p style="font-size:17px;line-height:1.72;color:#4b5266;max-width:30rem">Exam-accurate practice tests for IELTS and TOEFL, with an AI-generated estimate and criterion-by-criterion feedback the moment you finish. All four skills. No account needed.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;padding-top:4px">
+          <button style="display:flex;align-items:center;gap:9px;padding:15px 28px;border:none;border-radius:999px;background:#c8102e;color:#fff;font-size:15.5px;font-weight:700;white-space:nowrap;flex-shrink:0;box-shadow:0 8px 22px rgba(200,16,46,.26)" style-hover="background:#96091f;transform:translateY(-2px)">
+            <span style="white-space:nowrap">Choose your exam</span>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+          </button>
+          <button style="display:flex;align-items:center;gap:9px;padding:15px 26px;border:1px solid #c9cfdd;border-radius:999px;background:#fff;color:#12172b;font-size:15.5px;font-weight:700;white-space:nowrap;flex-shrink:0" style-hover="border-color:#12172b">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+            Your results
+          </button>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:14px 26px;padding-top:10px">
+          <sc-for list="{{ heroProofs }}" as="p" hint-placeholder-count="3">
+            <span style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:#333b52">
+              <span style="width:7px;height:7px;border-radius:999px;background:#c8102e"></span>{{ p }}
+            </span>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="border:1px solid #e3e6ee;border-radius:22px;background:#fff;padding:28px;box-shadow:0 22px 50px rgba(18,23,43,.09)">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:24px">
+          <span style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8b91a4">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+            Sample score report
+          </span>
+          <span style="padding:5px 12px;border-radius:999px;background:#fff7ec;color:#b4770d;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase">AI estimate</span>
+        </div>
+        <div style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:30px;align-items:center">
+          <div style="text-align:center">
+            <div style="position:relative;width:124px;height:124px;border-radius:999px;background:conic-gradient(#c8102e 0 78%,#fde8ec 78% 100%);display:flex;align-items:center;justify-content:center">
+              <div style="width:96px;height:96px;border-radius:999px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center">
+                <span style="font-family:'JetBrains Mono',monospace;font-size:32px;font-weight:700;color:#12172b;line-height:1">7.0</span>
+                <span style="font-size:11px;color:#8b91a4;font-weight:700">out of 9</span>
+              </div>
+            </div>
+            <div style="font-size:11.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8b91a4;margin-top:12px">IELTS band</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <sc-for list="{{ criteria }}" as="c" hint-placeholder-count="4">
+              <div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:6px">
+                  <span style="font-size:14px;font-weight:700;color:#12172b">{{ c.label }}</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:#12172b">{{ c.score }}</span>
+                </div>
+                <div style="height:6px;border-radius:999px;background:#fde8ec;overflow:hidden">
+                  <div style="{{ c.bar }}"></div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <p style="margin-top:24px;padding-top:18px;border-top:1px solid #eef0f5;font-size:12.5px;line-height:1.7;color:#8b91a4">An illustration of the report you receive. Practice scores are AI-generated estimates, not official results.</p>
+      </div>
+    </div>
+  </section>
+
+  <section style="background:#fff">
+    <div style="max-width:1200px;margin:0 auto;padding:56px 28px 0">
+      <div style="display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);border:1px solid #f2d9a8;border-radius:24px;overflow:hidden;background:#fffaf0">
+        <div style="padding:44px 40px;display:flex;flex-direction:column;gap:18px;justify-content:center">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none"><path d="M12 2.5l1.7 4.4 4.4 1.7-4.4 1.7L12 14.7l-1.7-4.4L5.9 8.6l4.4-1.7z" fill="#f59e0b" /><circle cx="19" cy="17" r="2.1" fill="#c8102e" /><circle cx="6.5" cy="17.5" r="1.5" fill="#f59e0b" opacity=".55" /></svg>
+          <h2 style="font-size:34px;color:#12172b">English self-assessment tool</h2>
+          <p style="font-size:15.5px;line-height:1.72;color:#5b5341">Not sure where to start? Answer twelve short questions and get an estimated starting band, the two skills holding your score back, and a practice plan for your first week.</p>
+          <div style="display:flex;flex-wrap:wrap;gap:10px;padding-top:2px">
+            <sc-for list="{{ assessChips }}" as="c" hint-placeholder-count="3">
+              <span style="padding:7px 14px;border-radius:999px;background:#fff;border:1px solid #f2d9a8;font-size:13px;font-weight:700;color:#8a6a1f">{{ c }}</span>
+            </sc-for>
+          </div>
+          <div style="padding-top:10px">
+            <button style="padding:14px 30px;border:none;border-radius:999px;background:#c8102e;color:#fff;font-size:15px;font-weight:700;box-shadow:0 8px 20px rgba(200,16,46,.24)" style-hover="background:#96091f">Get started</button>
+          </div>
+        </div>
+        <div style="position:relative;min-height:320px;background:linear-gradient(150deg,#ffd280,#f59e0b 55%,#e07a1f);overflow:hidden">
+          <div style="position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.35) 1.4px,transparent 1.4px);background-size:22px 22px"></div>
+          <div style="position:absolute;top:44px;left:44px;width:124px;height:88px;border-radius:14px;background:rgba(255,255,255,.92);box-shadow:0 12px 26px rgba(120,60,0,.18);padding:14px;display:flex;align-items:flex-end;gap:8px;animation:lpFloat 6s ease-in-out infinite">
+            <div style="flex:1;height:34%;border-radius:4px;background:#f59e0b"></div>
+            <div style="flex:1;height:62%;border-radius:4px;background:#e07a1f"></div>
+            <div style="flex:1;height:88%;border-radius:4px;background:#c8102e"></div>
+            <div style="flex:1;height:50%;border-radius:4px;background:#f5c069"></div>
+          </div>
+          <div style="position:absolute;top:64px;right:56px;width:104px;height:104px;border-radius:999px;background:conic-gradient(#c8102e 0 62%,rgba(255,255,255,.92) 62% 100%);box-shadow:0 12px 26px rgba(120,60,0,.18);display:flex;align-items:center;justify-content:center;animation:lpFloat 7.5s ease-in-out infinite">
+            <div style="width:62px;height:62px;border-radius:999px;background:#fffaf0;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:#12172b">62%</div>
+          </div>
+          <div style="position:absolute;bottom:40px;left:60px;right:60px;border-radius:14px;background:rgba(255,255,255,.94);box-shadow:0 12px 26px rgba(120,60,0,.18);padding:16px 18px">
+            <div style="font-size:11.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8b91a4;margin-bottom:8px">Suggested focus</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <span style="padding:6px 12px;border-radius:999px;background:#fef2f4;color:#c8102e;font-size:12.5px;font-weight:700">Listening · Part 3</span>
+              <span style="padding:6px 12px;border-radius:999px;background:#f6f7fa;color:#333b52;font-size:12.5px;font-weight:700">Writing Task 2</span>
+            </div>
+          </div>
+          <span style="position:absolute;top:16px;right:16px;padding:5px 11px;border-radius:6px;background:rgba(18,23,43,.55);color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap">Illustration slot</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="background:#f6f7fa;margin-top:56px;border-top:1px solid #eef0f5;border-bottom:1px solid #eef0f5">
+    <div style="max-width:1200px;margin:0 auto;padding:64px 28px">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:12px">
+        <div>
+          <span style="font-size:12.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#8b91a4">Step one</span>
+          <h2 style="font-size:34px;margin-top:8px">Choose your path</h2>
+        </div>
+      </div>
+      <p style="font-size:15.5px;line-height:1.72;color:#4b5266;max-width:34rem;margin-bottom:34px">Pick your target examination. Everything after this point — timings, question types, scoring scale and the colour of the interface — follows the exam you choose.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:24px">
+        <sc-for list="{{ examCards }}" as="e" hint-placeholder-count="2">
+          <div style="{{ e.wrap }}" style-hover="transform:translateY(-4px);box-shadow:0 20px 44px rgba(18,23,43,.11)">
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
+              <div style="{{ e.badge }}">{{ e.letter }}</div>
+              <div>
+                <h3 style="font-size:21px">{{ e.title }}</h3>
+                <div style="font-size:13.5px;color:#8b91a4;font-weight:700;margin-top:2px">{{ e.scale }}</div>
+              </div>
+            </div>
+            <p style="font-size:14.5px;line-height:1.7;color:#4b5266;margin-bottom:22px">{{ e.desc }}</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px">
+              <sc-for list="{{ e.skills }}" as="s" hint-placeholder-count="4">
+                <span style="padding:11px 14px;border-radius:10px;background:#f6f7fa;font-size:13.5px;font-weight:700;color:#333b52">{{ s }}</span>
+              </sc-for>
+            </div>
+            <button style="{{ e.cta }}">{{ e.ctaLabel }}</button>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <sc-if value="{{ showVideoBand }}" hint-placeholder-val="{{ true }}">
+  <section style="position:relative;overflow:hidden;background:#14100b">
+    <div style="position:absolute;inset:0;background:radial-gradient(circle at 20% 26%,rgba(245,158,11,.5),transparent 46%),radial-gradient(circle at 80% 72%,rgba(200,16,46,.5),transparent 48%),linear-gradient(160deg,#221a12,#14100b);animation:lpDrift 22s ease-in-out infinite"></div>
+    <div style="position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.07) 1.1px,transparent 1.1px);background-size:22px 22px"></div>
+    <sc-if value="{{ hasVideoSrc }}">{{ videoEl }}</sc-if>
+    <div style="position:relative;max-width:1200px;margin:0 auto;padding:78px 28px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.82fr);gap:52px;align-items:center">
+      <div style="display:flex;flex-direction:column;gap:20px">
+        <h2 style="font-size:38px;color:#fff;max-width:22rem">A full practice test, start to score, in 90 seconds</h2>
+        <p style="font-size:16px;line-height:1.75;color:#c9cfdd;max-width:29rem">See the reading split-screen, the single-play listening player, the essay workspace and the band report the AI returns — the real interface, nothing staged.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;padding-top:6px">
+          <button onClick="{{ toggleVideo }}" style="display:flex;align-items:center;gap:11px;padding:14px 26px;border:none;border-radius:999px;background:#fff;color:#12172b;font-size:15px;font-weight:700" style-hover="transform:translateY(-2px)">
+            <span style="width:26px;height:26px;border-radius:999px;background:#c8102e;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px">{{ playGlyph }}</span>
+            {{ playLabel }}
+          </button>
+          <button style="padding:14px 24px;border:1px solid rgba(255,255,255,.28);border-radius:999px;background:transparent;color:#fff;font-size:15px;font-weight:700" style-hover="border-color:#fff">How scoring works</button>
+        </div>
+        <div style="display:flex;align-items:flex-end;gap:5px;height:34px;padding-top:14px">
+          <sc-for list="{{ videoBars }}" as="b" hint-placeholder-count="18">
+            <div style="{{ b }}"></div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="display:grid;gap:14px">
+        <sc-for list="{{ videoStats }}" as="s" hint-placeholder-count="3">
+          <div style="border:1px solid rgba(255,255,255,.14);border-radius:18px;background:rgba(255,255,255,.06);backdrop-filter:blur(8px);padding:22px 24px;display:flex;align-items:center;gap:20px" style-hover="border-color:rgba(255,255,255,.34)">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:30px;font-weight:700;color:#fff;line-height:1;min-width:88px">{{ s.value }}</span>
+            <span style="font-size:14px;line-height:1.6;color:#c9cfdd;font-weight:700">{{ s.label }}</span>
+          </div>
+        </sc-for>
+        <p style="font-size:12px;color:#8b91a4;line-height:1.6">Background loop slot — add an MP4 path in the <span style="font-family:'JetBrains Mono',monospace">videoSrc</span> tweak and it plays behind this band.</p>
+      </div>
+    </div>
+  </section>
+  </sc-if>
+
+  <sc-if value="{{ showLibrary }}" hint-placeholder-val="{{ true }}">
+  <section style="background:#fff">
+    <div style="max-width:1200px;margin:0 auto;padding:64px 28px 0">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:28px">
+        <h2 style="display:flex;align-items:center;gap:12px;font-size:32px">
+          <span style="width:5px;height:30px;border-radius:999px;background:#f59e0b"></span>
+          Preparation library
+        </h2>
+        <button style="padding:11px 22px;border:1px solid #c9cfdd;border-radius:999px;background:#fff;font-size:14px;font-weight:700;color:#12172b" style-hover="border-color:#12172b">View all</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px">
+        <sc-for list="{{ articles }}" as="a" hint-placeholder-count="4">
+          <div style="border:1px solid #e3e6ee;border-radius:18px;overflow:hidden;background:#fff;display:flex;flex-direction:column;transition:transform .2s ease,box-shadow .2s ease;cursor:pointer" style-hover="transform:translateY(-5px);box-shadow:0 20px 44px rgba(18,23,43,.12)">
+            <div style="{{ a.thumb }}">
+              <span style="padding:4px 10px;border-radius:6px;background:rgba(18,23,43,.5);color:#fff;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase">Photo slot</span>
+            </div>
+            <div style="padding:20px;display:flex;flex-direction:column;gap:10px;flex:1">
+              <span style="{{ a.tag }}">{{ a.category }}</span>
+              <h3 style="font-size:16.5px;line-height:1.35">{{ a.title }}</h3>
+              <p style="font-size:13.5px;line-height:1.65;color:#4b5266;flex:1">{{ a.excerpt }}</p>
+              <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:#8b91a4;padding-top:4px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 16 14" /></svg>
+                {{ a.readTime }}
+              </div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+  </sc-if>
+
+  <section style="background:#fff">
+    <div style="max-width:1200px;margin:0 auto;padding:64px 28px 0">
+      <div style="display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);gap:40px;border:1px solid #e3e6ee;border-radius:24px;overflow:hidden">
+        <div style="position:relative;min-height:300px;background:linear-gradient(160deg,#12172b,#1f2742);display:flex;align-items:flex-end;padding:32px">
+          <span style="position:absolute;top:16px;right:16px;padding:4px 10px;border-radius:6px;background:rgba(255,255,255,.12);color:#c9cfdd;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;z-index:1">Photo slot</span>
+          <div style="position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.08) 1.1px,transparent 1.1px);background-size:20px 20px"></div>
+          <div style="position:relative;display:flex;flex-direction:column;gap:14px">
+            <span style="padding:5px 12px;border-radius:999px;background:#f59e0b;color:#12172b;font-size:11.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;align-self:flex-start">Free forever</span>
+            <div style="font-size:26px;font-weight:700;color:#fff;line-height:1.3;max-width:16rem">Every module unlocked, for every candidate</div>
+          </div>
+        </div>
+        <div style="padding:40px 40px 40px 0;display:flex;flex-direction:column;gap:18px;justify-content:center">
+          <h2 style="font-size:30px">No paywall, no locked skills</h2>
+          <p style="font-size:15.5px;line-height:1.72;color:#4b5266">Credible practice is priced out of reach for most candidates. LingoPrep gives the whole test away and stays honest about what an AI estimate can and cannot tell you.</p>
+          <ul style="display:flex;flex-direction:column;gap:12px;margin:0;padding:0;list-style:none">
+            <sc-for list="{{ freeBullets }}" as="b" hint-placeholder-count="4">
+              <li style="display:flex;align-items:flex-start;gap:11px;font-size:14.5px;line-height:1.65;color:#333b52">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px"><polyline points="20 6 9 17 4 12" /></svg>
+                <span>{{ b }}</span>
+              </li>
+            </sc-for>
+          </ul>
+          <div style="padding-top:6px">
+            <button style="padding:14px 28px;border:none;border-radius:999px;background:#c8102e;color:#fff;font-size:15px;font-weight:700;box-shadow:0 8px 20px rgba(200,16,46,.24)" style-hover="background:#96091f">Start a practice test</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="background:#fff">
+    <div style="max-width:1200px;margin:0 auto;padding:64px 28px 0">
+      <h2 style="display:flex;align-items:center;gap:12px;font-size:32px;margin-bottom:26px">
+        <span style="width:5px;height:30px;border-radius:999px;background:#c8102e"></span>
+        New to IELTS or TOEFL? Start here
+      </h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:16px">
+        <sc-for list="{{ startHere }}" as="r" hint-placeholder-count="6">
+          <div style="display:flex;align-items:flex-start;gap:16px;border:1px solid #e3e6ee;border-radius:16px;padding:20px 22px;background:#fff;cursor:pointer;transition:border-color .2s ease,transform .2s ease,box-shadow .2s ease" style-hover="border-color:#c8102e;transform:translateY(-3px);box-shadow:0 16px 34px rgba(18,23,43,.1)">
+            <div style="width:44px;height:44px;border-radius:12px;background:#fef2f4;color:#c8102e;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <sc-for list="{{ r.paths }}" as="d" hint-placeholder-count="2">
+                  <path d="{{ d }}"></path>
+                </sc-for>
+              </svg>
+            </div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:15.5px;font-weight:700;margin-bottom:5px">{{ r.title }}</div>
+              <p style="font-size:13.5px;line-height:1.65;color:#4b5266">{{ r.desc }}</p>
+            </div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8b91a4" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:12px"><polyline points="9 18 15 12 9 6" /></svg>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <section style="background:#fff">
+    <div style="max-width:1200px;margin:0 auto;padding:64px 28px 0">
+      <div style="display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:40px;align-items:center">
+        <div style="position:relative;border-radius:22px;overflow:hidden;background:#14100b;aspect-ratio:16/10;box-shadow:0 24px 54px rgba(18,23,43,.16)">
+          <div style="position:absolute;inset:0;background:radial-gradient(circle at 32% 34%,rgba(245,158,11,.55),transparent 52%),radial-gradient(circle at 72% 70%,rgba(200,16,46,.45),transparent 52%),linear-gradient(155deg,#2a2015,#14100b);animation:lpDrift 26s ease-in-out infinite"></div>
+          <sc-if value="{{ hasTourSrc }}">{{ tourEl }}</sc-if>
+          <sc-if value="{{ noTourSrc }}" hint-placeholder-val="{{ true }}">
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:32px">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="3" /><path d="M10 9.5v5l4.5-2.5z" /></svg>
+              <div style="font-size:14px;font-weight:700;color:rgba(255,255,255,.92)">Video placeholder</div>
+              <div style="font-size:13px;line-height:1.6;color:rgba(255,255,255,.62);max-width:20rem">Drop in the clip of a student working through a test at their screen — it fills this whole panel.</div>
+            </div>
+          </sc-if>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:18px">
+          <span style="font-size:12.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#b4770d">Test day, without the surprises</span>
+          <h2 style="font-size:34px;max-width:20rem">What the exam actually feels like</h2>
+          <p style="font-size:15.5px;line-height:1.72;color:#4b5266">Most candidates lose marks to the format, not the English. Watch someone sit a full test the way you will — same screens, same timer, same single-play audio — so nothing on the day is new.</p>
+          <ul style="display:flex;flex-direction:column;gap:14px;margin:0;padding:0;list-style:none">
+            <sc-for list="{{ tourPoints }}" as="p" hint-placeholder-count="3">
+              <li style="display:flex;align-items:flex-start;gap:12px;font-size:14.5px;line-height:1.65;color:#333b52">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c8102e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px"><polyline points="20 6 9 17 4 12" /></svg>
+                <span>{{ p }}</span>
+              </li>
+            </sc-for>
+          </ul>
+          <div style="padding-top:4px">
+            <button style="padding:14px 28px;border:none;border-radius:999px;background:#c8102e;color:#fff;font-size:15px;font-weight:700;white-space:nowrap;box-shadow:0 8px 20px rgba(200,16,46,.22)" style-hover="background:#96091f">Sit a practice test</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <sc-if value="{{ showCommunity }}" hint-placeholder-val="{{ true }}">
+  <section style="background:#fff">
+    <div style="max-width:1200px;margin:0 auto;padding:64px 28px 0">
+      <h2 style="display:flex;align-items:center;gap:12px;font-size:32px;margin-bottom:26px">
+        <span style="width:5px;height:30px;border-radius:999px;background:#f59e0b"></span>
+        LingoPrep community
+      </h2>
+      <div style="border-radius:26px;background:#fff7ec;border:1px solid #f5e3c4;padding:40px;display:flex;flex-direction:column;gap:36px">
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px;align-items:center">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <h3 style="font-size:30px;max-width:18rem">Answers you can trust, from people who sat the test</h3>
+            <p style="font-size:15.5px;line-height:1.72;color:#5b5341;max-width:26rem">Questions answered by examiners, teachers and candidates who scored the band you are aiming for. Search before you post — most answers are already there.</p>
+            <div style="display:flex;flex-wrap:wrap;gap:22px;padding-top:4px">
+              <sc-for list="{{ communityStats }}" as="c" hint-placeholder-count="3">
+                <div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;color:#12172b">{{ c.value }}</div>
+                  <div style="font-size:12.5px;font-weight:700;color:#8a7a5c;margin-top:2px">{{ c.label }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="padding-top:8px">
+              <button style="padding:14px 28px;border:none;border-radius:999px;background:#c8102e;color:#fff;font-size:15px;font-weight:700;box-shadow:0 8px 20px rgba(200,16,46,.22)" style-hover="background:#96091f">Browse the community</button>
+            </div>
+          </div>
+          <div style="position:relative;min-height:260px;border-radius:20px;background:linear-gradient(150deg,#ffe9c2,#f8cf8e);overflow:hidden">
+            <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.4) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.4) 1px,transparent 1px);background-size:26px 26px"></div>
+            <div style="position:absolute;top:34px;left:34px;right:80px;border-radius:14px;background:#fff;box-shadow:0 14px 28px rgba(120,80,10,.16);padding:16px 18px">
+              <div style="font-size:13px;font-weight:700;color:#12172b;margin-bottom:6px">How do I stop running out of time in Reading?</div>
+              <div style="font-size:12px;color:#8b91a4;font-weight:700">Answered by 4 examiners</div>
+            </div>
+            <div style="position:absolute;bottom:38px;left:76px;right:34px;border-radius:14px;background:#fff;box-shadow:0 14px 28px rgba(120,80,10,.16);padding:16px 18px;animation:lpFloat 7s ease-in-out infinite">
+              <div style="font-size:13px;font-weight:700;color:#12172b;margin-bottom:6px">Is a 7.0 enough for a UK student visa?</div>
+              <div style="font-size:12px;color:#8b91a4;font-weight:700">12 replies · updated today</div>
+            </div>
+            <span style="position:absolute;top:14px;right:14px;padding:4px 10px;border-radius:6px;background:rgba(18,23,43,.45);color:#fff;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase">Illustration slot</span>
+          </div>
+        </div>
+
+        <div style="border-top:1px solid #f0dcbb;padding-top:30px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px">
+            <div style="display:flex;align-items:center;gap:10px;font-size:15.5px;font-weight:700;color:#12172b">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#c8102e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" /><path d="M9.5 9.2a2.6 2.6 0 1 1 3.6 2.4c-.7.3-1.1.9-1.1 1.6v.3" /><line x1="12" y1="17" x2="12" y2="17" /></svg>
+              Top frequently asked questions
+            </div>
+            <div style="display:flex;gap:9px">
+              <button onClick="{{ faqPrev }}" style="{{ faqPrevStyle }}">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+              </button>
+              <button onClick="{{ faqNext }}" style="{{ faqNextStyle }}">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+              </button>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px">
+            <sc-for list="{{ faqCards }}" as="f" hint-placeholder-count="3">
+              <div style="border:1px solid #f0dcbb;border-radius:16px;background:#fff;padding:22px;display:flex;flex-direction:column;gap:14px;transition:transform .2s ease,box-shadow .2s ease" style-hover="transform:translateY(-4px);box-shadow:0 18px 36px rgba(120,80,10,.14)">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6" /><path d="M10 22h4" /><path d="M12 2a7 7 0 0 0-4 12.7V18h8v-3.3A7 7 0 0 0 12 2z" /></svg>
+                <div style="font-size:15px;font-weight:700;line-height:1.45;flex:1">{{ f.q }}</div>
+                <div style="display:flex;align-items:center;gap:16px;font-size:12.5px;font-weight:700;color:#8b91a4">
+                  <span style="display:flex;align-items:center;gap:6px">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                    {{ f.replies }}
+                  </span>
+                  <span>{{ f.date }}</span>
+                </div>
+                <button style="width:100%;padding:11px;border:1px solid #e3e6ee;border-radius:999px;background:#fff;font-size:13.5px;font-weight:700;color:#12172b" style-hover="border-color:#c8102e;color:#c8102e">Check answers</button>
+              </div>
+            </sc-for>
+          </div>
+          <div style="height:4px;border-radius:999px;background:#f0dcbb;margin-top:22px;overflow:hidden">
+            <div style="{{ faqProgress }}"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  </sc-if>
+
+  <section style="background:#fff">
+    <div style="max-width:1200px;margin:0 auto;padding:70px 28px 78px">
+      <div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:16px">
+        <svg width="76" height="76" viewBox="0 0 76 76" fill="none">
+          <circle cx="38" cy="30" r="22" fill="#fff7ec" />
+          <rect x="20" y="40" width="36" height="22" rx="4" fill="#12172b" />
+          <path d="M20 40l18 10 18-10" stroke="#fff" stroke-width="2.4" fill="none" />
+          <rect x="30" y="18" width="13" height="16" rx="2.5" fill="#fff" stroke="#12172b" stroke-width="2.2" transform="rotate(-9 30 18)" />
+          <circle cx="52" cy="22" r="4.5" fill="#c8102e" />
+          <circle cx="24" cy="24" r="3" fill="#f59e0b" />
+        </svg>
+        <h2 style="font-size:30px">Didn't find what you were looking for?</h2>
+        <p style="font-size:15.5px;line-height:1.72;color:#4b5266;max-width:34rem">Browse the whole library — practice tests, band descriptors, walkthrough videos and worked model answers for every task type.</p>
+        <button style="margin-top:6px;padding:14px 30px;border:1px solid #c9cfdd;border-radius:999px;background:#fff;font-size:15px;font-weight:700;color:#12172b" style-hover="border-color:#12172b;transform:translateY(-2px)">Explore all preparation</button>
+      </div>
+    </div>
+  </section>
+
+  <footer style="background:#12172b;color:#fff">
+    <div style="max-width:1200px;margin:0 auto;padding:56px 28px 40px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;padding-bottom:26px;border-bottom:1px solid #2b3450">
+        <div style="display:flex;align-items:center;gap:9px">
+          <svg width="30" height="30" viewBox="0 0 48 48" fill="none"><rect x="4" y="6" width="40" height="30" rx="10" stroke="#fff" stroke-width="3.4" /><path d="M16 34v10l11-9" fill="#ff4d6a" /><rect x="14" y="24" width="4.5" height="6" rx="2.25" fill="#ff4d6a" /><rect x="21.5" y="20" width="4.5" height="10" rx="2.25" fill="#ff4d6a" /><rect x="29" y="15.5" width="4.5" height="14.5" rx="2.25" fill="#ff4d6a" /></svg>
+          <span style="font-size:21px;font-weight:700;letter-spacing:-0.035em"><span style="color:#fff">Lingo</span><span style="color:#ff4d6a">Prep</span></span>
+        </div>
+        <span style="display:flex;align-items:center;gap:7px;font-size:13.5px;font-weight:700;color:#c9cfdd">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18" /></svg>
+          Pakistan
+        </span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:36px;padding:34px 0">
+        <sc-for list="{{ footerCols }}" as="c" hint-placeholder-count="3">
+          <div>
+            <div style="font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8b91a4;margin-bottom:16px">{{ c.heading }}</div>
+            <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px">
+              <sc-for list="{{ c.items }}" as="i" hint-placeholder-count="4">
+                <li style="font-size:14px;color:#c9cfdd;cursor:pointer" style-hover="color:#fff">{{ i }}</li>
+              </sc-for>
+            </ul>
+          </div>
+        </sc-for>
+        <div>
+          <div style="font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8b91a4;margin-bottom:16px">What this is</div>
+          <p style="font-size:14px;line-height:1.7;color:#c9cfdd">An independent, free practice platform. All four skills, instant AI-generated estimates, and no locked modules — built as a final year project.</p>
+          <div style="display:flex;gap:10px;margin-top:18px">
+            <sc-for list="{{ socials }}" as="s" hint-placeholder-count="3">
+              <span style="width:36px;height:36px;border-radius:999px;background:#1f2742;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#c9cfdd;cursor:pointer" style-hover="background:#c8102e;color:#fff">{{ s }}</span>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      <div style="border-top:1px solid #2b3450;padding-top:24px;display:flex;flex-direction:column;gap:16px">
+        <p style="font-size:12px;line-height:1.75;color:#787c8f">LingoPrep is an independent learning platform. IELTS® is a registered trademark of the University of Cambridge ESOL Examinations, the British Council and IDP Education Australia. TOEFL® and TOEFL iBT® are registered trademarks of Educational Testing Service (ETS). This platform is not endorsed by, affiliated with, or approved by any of these trademark owners. Practice scores are AI-generated estimates and are not official results.</p>
+        <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:12px;color:#787c8f">
+          <span>© 2026 LingoPrep. All rights reserved.</span>
+          <div style="display:flex;gap:18px">
+            <span style="cursor:pointer">Legal notice</span><span style="cursor:pointer">Privacy policy</span><span style="cursor:pointer">Terms of use</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showVideoBand&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Sections&quot;},&quot;showLibrary&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Sections&quot;},&quot;showCommunity&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Sections&quot;},&quot;videoSrc&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Video&quot;},&quot;tourVideoSrc&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Video&quot;},&quot;autoplayLoop&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Video&quot;}}">
+class Component extends DCLogic {
+  state = { playing: null, skill: 3, faq: 0, vw: typeof window !== "undefined" ? window.innerWidth : 1280 };
+
+  componentDidMount() {
+    this.onResize = () => this.setState({ vw: window.innerWidth });
+    window.addEventListener("resize", this.onResize);
+    this.onResize();
+  }
+  componentWillUnmount() { window.removeEventListener("resize", this.onResize); }
+
+  allFaqs = [
+    { q: "How accurate is the AI band estimate compared with a real examiner?", replies: "9 replies", date: "Sep 04, 2026" },
+    { q: "Can I use a LingoPrep score for a university application?", replies: "4 replies", date: "Sep 01, 2026" },
+    { q: "What IELTS score do I need for a UK student visa in 2026?", replies: "17 replies", date: "Aug 28, 2026" },
+    { q: "How many practice tests should I do before test day?", replies: "6 replies", date: "Aug 24, 2026" },
+    { q: "Is the listening audio played once, like the real exam?", replies: "11 replies", date: "Aug 19, 2026" },
+    { q: "How do I improve Writing Task 2 coherence quickly?", replies: "8 replies", date: "Aug 12, 2026" }
+  ];
+
+  renderVals() {
+    const s = this.state;
+    const A = "#c8102e";
+    const autoplay = this.props.autoplayLoop ?? true;
+    const playing = s.playing === null ? autoplay : s.playing;
+    const faqStart = s.faq * 3;
+    const pages = Math.ceil(this.allFaqs.length / 3);
+
+    const navBtn = (on) => ({
+      width: "38px", height: "38px", borderRadius: "999px", display: "flex", alignItems: "center", justifyContent: "center",
+      border: "1px solid " + (on ? "#12172b" : "#e3d0ae"), background: "#fff", color: on ? "#12172b" : "#c9b593"
+    });
+
+    return {
+      navLinks: s.vw >= 1100 ? ["Practice tests", "Prepare", "Results", "Community"] : [],
+      navCompact: s.vw < 1100,
+      navLinkRow: {
+        display: s.vw >= 1100 ? "flex" : "none",
+        alignItems: "center", gap: "22px", fontSize: "14.5px", fontWeight: 700, color: "#333b52", minWidth: 0
+      },
+      heroProofs: ["Free, with no locked modules", "All four skills scored", "Instant AI feedback"],
+      criteria: [
+        { label: "Task achievement", score: "7.0", pct: 78 },
+        { label: "Coherence", score: "7.5", pct: 83 },
+        { label: "Lexical resource", score: "6.5", pct: 72 },
+        { label: "Grammatical range", score: "7.0", pct: 78 }
+      ].map(c => ({ label: c.label, score: c.score, bar: { height: "100%", width: c.pct + "%", borderRadius: "999px", background: A } })),
+
+      assessChips: ["12 questions", "About 4 minutes", "No sign-up"],
+
+      examCards: [
+        {
+          letter: "I", title: "IELTS®", scale: "Band 1–9", ctaLabel: "Start IELTS practice",
+          desc: "Academic and General Training practice, scored as IELTS Academic bands across all four skills.",
+          skills: ["Listening", "Reading", "Writing", "Speaking"], color: A
+        },
+        {
+          letter: "T", title: "TOEFL iBT®", scale: "Score 0–120", ctaLabel: "Start TOEFL practice",
+          desc: "iBT-format practice with integrated tasks and academic source material, scored on the 0–30 section scale.",
+          skills: ["Listening", "Reading", "Writing", "Speaking"], color: "#0057b8"
+        }
+      ].map(e => ({
+        letter: e.letter, title: e.title, scale: e.scale, desc: e.desc, skills: e.skills, ctaLabel: e.ctaLabel,
+        wrap: { background: "#fff", border: "1px solid #e3e6ee", borderRadius: "22px", padding: "30px", display: "flex", flexDirection: "column", transition: "transform .2s ease, box-shadow .2s ease" },
+        badge: { width: "44px", height: "44px", borderRadius: "13px", background: e.color, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px", fontWeight: 700, flexShrink: 0 },
+        cta: { width: "100%", padding: "15px", border: "none", borderRadius: "999px", background: e.color, color: "#fff", fontSize: "15px", fontWeight: 700, marginTop: "auto" }
+      })),
+
+      showVideoBand: this.props.showVideoBand ?? true,
+      showLibrary: this.props.showLibrary ?? true,
+      showCommunity: this.props.showCommunity ?? true,
+      autoplay: autoplay,
+      tourPoints: [
+        "The same on-screen layout you will see in the test centre.",
+        "Listening audio that plays once, exactly as the real exam does.",
+        "A full band report at the end, criterion by criterion."
+      ],
+      hasTourSrc: !!(this.props.tourVideoSrc || "").trim(),
+      noTourSrc: !(this.props.tourVideoSrc || "").trim(),
+      tourEl: (this.props.tourVideoSrc || "").trim()
+        ? React.createElement("video", {
+            src: (this.props.tourVideoSrc || "").trim(),
+            autoPlay: autoplay, muted: true, loop: true, playsInline: true,
+            style: { position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }
+          })
+        : null,
+      hasVideoSrc: !!(this.props.videoSrc || "").trim(),
+      videoEl: (this.props.videoSrc || "").trim()
+        ? React.createElement("video", {
+            src: (this.props.videoSrc || "").trim(),
+            autoPlay: autoplay, muted: true, loop: true, playsInline: true,
+            style: { position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: .42 }
+          })
+        : null,
+      playGlyph: playing ? "❚❚" : "▶",
+      playLabel: playing ? "Pause walkthrough" : "Play walkthrough",
+      toggleVideo: () => {
+        const v = document.querySelector("video");
+        if (v) { if (playing) v.pause(); else v.play().catch(() => {}); }
+        this.setState({ playing: !playing });
+      },
+      videoBars: [8, 18, 12, 26, 16, 30, 20, 34, 14, 24, 10, 28, 18, 32, 12, 22, 9, 16].map((h, i) => ({
+        width: "5px", borderRadius: "999px", height: h + "px", flexShrink: 0,
+        background: i % 3 === 0 ? "#ff4d6a" : "rgba(255,255,255,.42)",
+        transformOrigin: "bottom",
+        animation: playing ? "lpBar " + (1 + (i % 5) * 0.18).toFixed(2) + "s ease-in-out infinite" : "none",
+        animationDelay: (i * 0.07).toFixed(2) + "s"
+      })),
+      videoStats: [
+        { value: "4", label: "Skills scored end to end, in one sitting" },
+        { value: "90s", label: "From finishing a task to a full band report" },
+        { value: "0", label: "Locked modules, paywalls or trial timers" }
+      ],
+
+      articles: [
+        { category: "Preparation", title: "Sitting IELTS for the first time? Start here", excerpt: "A four-week plan that assumes nothing and fits around a full-time timetable.", readTime: "6 min read", tone: "#fef2f4", tint: "#c8102e" },
+        { category: "Test format", title: "What the computer-delivered test actually looks like", excerpt: "Screen by screen, from the headset check to the review flag on the last question.", readTime: "5 min read", tone: "#eff6ff", tint: "#0057b8" },
+        { category: "Results", title: "Reading your band report like an examiner", excerpt: "What each criterion rewards, and the fastest half-band you can add per skill.", readTime: "8 min read", tone: "#fff7ec", tint: "#b4770d" },
+        { category: "Practice", title: "Free full-length tests for all four skills", excerpt: "Every module on LingoPrep, with model answers and full transcripts after scoring.", readTime: "3 min read", tone: "#ecfdf5", tint: "#047857" }
+      ].map(a => ({
+        category: a.category, title: a.title, excerpt: a.excerpt, readTime: a.readTime,
+        thumb: { height: "150px", background: "repeating-linear-gradient(135deg," + a.tone + "," + a.tone + " 10px,#ffffff 10px,#ffffff 20px)", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid #eef0f5" },
+        tag: { alignSelf: "flex-start", padding: "4px 11px", borderRadius: "6px", background: a.tone, color: a.tint, fontSize: "11px", fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase" }
+      })),
+
+      freeBullets: [
+        "All four skills, full length, with no account required to start.",
+        "Every band comes with the criteria, an explanation and a next action.",
+        "Transcripts, model answers and worked explanations after each test.",
+        "No countdown offers, no fake scarcity, no upsell screens."
+      ],
+
+      startHere: [
+        { title: "Preparation library", desc: "Every article, walkthrough and practice test in one place.",
+          paths: ["M4 4.5h9a2 2 0 0 1 2 2V20a2 2 0 0 0-2-2H4z", "M20 4.5h-3a2 2 0 0 0-2 2V20a2 2 0 0 1 2-2h3z", "M15 6.5v11.5"] },
+        { title: "Band descriptors explained", desc: "What examiners reward at each band, in plain language.",
+          paths: ["M9 18h6", "M10 21.5h4", "M12 2.5a6.5 6.5 0 0 0-3.8 11.8V18h7.6v-3.7A6.5 6.5 0 0 0 12 2.5z"] },
+        { title: "Who accepts these scores", desc: "Universities and visa routes, by country and requirement.",
+          paths: ["M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z", "M3.5 12h17", "M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z"] },
+        { title: "Computer-delivered sample test", desc: "Practise the on-screen format before test day.",
+          paths: ["M3 5h18v11H3z", "M8 20h8", "M12 16v4", "M6.5 9h5", "M6.5 12h8"] },
+        { title: "Free live masterclasses", desc: "Weekly online sessions on the skills candidates lose marks on.",
+          paths: ["M3.5 5.5h17v14h-17z", "M3.5 10h17", "M8 3v4", "M16 3v4", "M8 14h3.5"] },
+        { title: "Practise on mobile", desc: "Reading, writing and results work on a phone-sized screen.",
+          paths: ["M7 2.5h10a1.5 1.5 0 0 1 1.5 1.5v16a1.5 1.5 0 0 1-1.5 1.5H7A1.5 1.5 0 0 1 5.5 20V4A1.5 1.5 0 0 1 7 2.5z", "M10.5 18.5h3", "M9 7h6", "M9 10.5h4"] }
+      ],
+
+      communityStats: [
+        { value: "2,400+", label: "Questions answered" },
+        { value: "38", label: "Contributing examiners" },
+        { value: "< 24h", label: "Median reply time" }
+      ],
+
+      faqCards: this.allFaqs.slice(faqStart, faqStart + 3),
+      faqPrev: () => this.setState({ faq: (s.faq - 1 + pages) % pages }),
+      faqNext: () => this.setState({ faq: (s.faq + 1) % pages }),
+      faqPrevStyle: navBtn(s.faq > 0),
+      faqNextStyle: navBtn(s.faq < pages - 1),
+      faqProgress: { height: "100%", width: (100 / pages) + "%", marginLeft: (s.faq * (100 / pages)) + "%", borderRadius: "999px", background: A, transition: "margin-left .25s ease" },
+
+      footerCols: [
+        { heading: "Practice", items: ["IELTS Listening", "IELTS Reading", "IELTS Writing", "IELTS Speaking", "TOEFL iBT practice"] },
+        { heading: "Platform", items: ["Your practice results", "Choose your exam", "How AI scoring works", "Band 1–9 explained"] },
+        { heading: "Learn", items: ["Preparation library", "Community answers", "Free masterclasses", "Self-assessment tool"] }
+      ],
+      socials: ["f", "ig", "X"]
+    };
+  }
+}
+</script>
+</body>
+</html>
