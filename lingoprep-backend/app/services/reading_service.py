@@ -1,10 +1,16 @@
 """
 LingoPrep API — Reading Service
-Fetches reading passages from Supabase and scores MCQ submissions.
+Fetches reading passages from Supabase and scores submissions for ALL
+IELTS Academic Reading question types (MCQ, TFNG, YNG, matching,
+completion, diagram, table, flowchart, notes, summary, short-answer).
 """
 
+import re
 from app.services.supabase_client import get_client
 from app.schemas.models import MCQSubmission, MCQResult, FullTestSubmission, FullTestResult
+
+# Question types that use the options table (radio button selection)
+OPTION_BASED_TYPES = {"multiple_choice", "tfng", "yng"}
 
 
 def get_passages(exam_type: str = None, difficulty: str = None) -> list[dict]:
@@ -33,6 +39,12 @@ def get_passages(exam_type: str = None, difficulty: str = None) -> list[dict]:
         questions = questions_res.data or []
 
         for q in questions:
+            # Ensure new columns have defaults even if migration hasn't run
+            q.setdefault("question_type", "multiple_choice")
+            q.setdefault("question_group_label", "")
+            q.setdefault("correct_answer_text", "")
+            q.setdefault("question_data", {})
+
             options_res = (
                 client.table("options")
                 .select("*")
@@ -84,6 +96,11 @@ def get_passage_by_id(passage_id: str) -> dict | None:
     questions = questions_res.data or []
 
     for q in questions:
+        q.setdefault("question_type", "multiple_choice")
+        q.setdefault("question_group_label", "")
+        q.setdefault("correct_answer_text", "")
+        q.setdefault("question_data", {})
+
         options_res = (
             client.table("options")
             .select("*")
@@ -105,6 +122,33 @@ def get_passage_by_id(passage_id: str) -> dict | None:
 
     passage["questions"] = questions
     return passage
+
+
+def _normalize_answer(text: str) -> str:
+    """Normalize an answer string for comparison: lowercase, strip, collapse whitespace."""
+    if not text:
+        return ""
+    text = text.strip().lower()
+    text = re.sub(r"\s+", " ", text)
+    # Remove trailing punctuation for comparison
+    text = text.rstrip(".,;:!?")
+    return text
+
+
+def _check_text_answer(user_answer: str, correct_answer: str) -> bool:
+    """Check a text-based answer against the correct answer.
+    
+    Supports:
+    - Exact match (case-insensitive, whitespace-normalized)
+    - Multiple acceptable answers separated by '|' in correct_answer_text
+    """
+    if not user_answer or not correct_answer:
+        return False
+
+    user_norm = _normalize_answer(user_answer)
+    # Support multiple correct answers separated by pipe
+    correct_variants = [_normalize_answer(v) for v in correct_answer.split("|")]
+    return user_norm in correct_variants
 
 
 def score_submission(submission: MCQSubmission, user_id: str = None) -> MCQResult:
@@ -267,14 +311,35 @@ def _toefl_reading_raw_to_scaled(correct: int, total: int) -> float:
 
 
 def score_full_test(submission: FullTestSubmission, user_id: str = None) -> FullTestResult:
-    """Score a full Reading test, calculate band/scaled score, and log the session."""
+    """Score a full Reading test, supporting ALL question types.
+    
+    For option-based types (MCQ, TFNG, YNG): checks selected_option_id
+    For text-based types (all others): checks answer_text vs correct_answer_text
+    """
     client = get_client()
     exam_type = getattr(submission, 'exam_type', 'ielts') or 'ielts'
 
     question_ids = [ans.question_id for ans in submission.answers]
-    selected_option_ids = [ans.selected_option_id for ans in submission.answers if ans.selected_option_id]
+    selected_option_ids = [
+        ans.selected_option_id for ans in submission.answers
+        if ans.selected_option_id
+    ]
 
-    # Batch fetch all correct options
+    # Batch fetch all questions (including new fields)
+    question_map = {}
+    try:
+        questions_res = (
+            client.table("questions")
+            .select("id, explanation, question_type, correct_answer_text")
+            .in_("id", question_ids)
+            .execute()
+        )
+        if questions_res and questions_res.data:
+            question_map = {q["id"]: q for q in questions_res.data}
+    except Exception as e:
+        print(f"Error fetching questions batch: {e}")
+
+    # Batch fetch all correct options (for option-based types)
     correct_map = {}
     try:
         correct_res = (
@@ -289,21 +354,7 @@ def score_full_test(submission: FullTestSubmission, user_id: str = None) -> Full
     except Exception as e:
         print(f"Error fetching correct options batch: {e}")
 
-    # Batch fetch all questions explanations
-    question_map = {}
-    try:
-        questions_res = (
-            client.table("questions")
-            .select("id, explanation")
-            .in_("id", question_ids)
-            .execute()
-        )
-        if questions_res and questions_res.data:
-            question_map = {q["id"]: q for q in questions_res.data}
-    except Exception as e:
-        print(f"Error fetching questions batch: {e}")
-
-    # Batch fetch user selected options details
+    # Batch fetch user selected options details (for option-based types)
     selected_map = {}
     if selected_option_ids:
         try:
@@ -320,19 +371,42 @@ def score_full_test(submission: FullTestSubmission, user_id: str = None) -> Full
 
     results = []
     for answer in submission.answers:
-        selected_option = selected_map.get(answer.selected_option_id)
-        correct_option = correct_map.get(answer.question_id)
-        question = question_map.get(answer.question_id)
+        question = question_map.get(answer.question_id, {})
+        question_type = question.get("question_type", "multiple_choice")
+        correct_answer_text = question.get("correct_answer_text", "")
 
-        is_correct = selected_option and selected_option.get("is_correct", False) or False
+        if question_type in OPTION_BASED_TYPES:
+            # Option-based scoring (MCQ, TFNG, YNG)
+            selected_option = selected_map.get(answer.selected_option_id)
+            correct_option = correct_map.get(answer.question_id)
+            is_correct = (
+                selected_option and selected_option.get("is_correct", False)
+            ) or False
 
-        results.append({
-            "question_id": answer.question_id,
-            "selected": answer.selected_option_id,
-            "correct": str(correct_option["id"]) if correct_option else "",
-            "is_correct": is_correct,
-            "explanation": question.get("explanation", "") if question else "",
-        })
+            results.append({
+                "question_id": answer.question_id,
+                "question_type": question_type,
+                "selected": answer.selected_option_id,
+                "answer_text": "",
+                "correct": str(correct_option["id"]) if correct_option else "",
+                "correct_answer_text": correct_answer_text,
+                "is_correct": is_correct,
+                "explanation": question.get("explanation", ""),
+            })
+        else:
+            # Text-based scoring (matching, completion, short answer, etc.)
+            is_correct = _check_text_answer(answer.answer_text, correct_answer_text)
+
+            results.append({
+                "question_id": answer.question_id,
+                "question_type": question_type,
+                "selected": "",
+                "answer_text": answer.answer_text,
+                "correct": "",
+                "correct_answer_text": correct_answer_text,
+                "is_correct": is_correct,
+                "explanation": question.get("explanation", ""),
+            })
 
     correct_count = sum(1 for r in results if r["is_correct"])
     total = len(results)
@@ -368,5 +442,3 @@ def score_full_test(submission: FullTestSubmission, user_id: str = None) -> Full
         band_score=band_score,
         results=results,
     )
-
-

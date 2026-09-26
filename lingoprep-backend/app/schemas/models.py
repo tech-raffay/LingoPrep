@@ -69,7 +69,8 @@ class ListeningAudioSchema(BaseModel):
 
 class AnswerSubmission(BaseModel):
     question_id: str
-    selected_option_id: str
+    selected_option_id: str = ""  # For MCQ / TFNG / YNG types
+    answer_text: str = ""  # For text-input / matching / completion types
 
 
 class MCQSubmission(BaseModel):

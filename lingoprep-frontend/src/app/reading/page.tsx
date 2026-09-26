@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { useExam } from "@/components/theme/ExamThemeProvider";
+import { isOptionBasedType } from "@/types";
+import type { ReadingQuestionType } from "@/types";
+import QuestionGroupRenderer, { groupQuestions } from "@/components/reading/QuestionRenderers";
 
 interface Option {
   id: string;
@@ -14,6 +17,10 @@ interface Option {
 interface Question {
   id: string;
   question_text: string;
+  question_type: ReadingQuestionType;
+  question_group_label: string;
+  question_data: any;
+  correct_answer_text: string;
   options: Option[];
   correct_option_id: string;
   explanation?: string;
@@ -68,7 +75,7 @@ export default function ReadingPage() {
   const [showPassage, setShowPassage] = useState(true); // mobile toggle
 
   // Refs for scrolling to specific questions
-  const questionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const questionRefs = useRef<Record<string, HTMLElement | null>>({});
 
   useEffect(() => {
     async function fetchPassages() {
@@ -78,7 +85,16 @@ export default function ReadingPage() {
         const data = response.data?.data || [];
         if (data.length > 0) {
           // Sort passages by ID to ensure Section 1, 2, 3 ordering
-          const sorted = [...data].sort((a, b) => a.id.localeCompare(b.id));
+          const sorted = [...data].sort((a: Passage, b: Passage) => a.id.localeCompare(b.id));
+          // Ensure all questions have the new fields with defaults
+          for (const p of sorted) {
+            for (const q of p.questions) {
+              q.question_type = q.question_type || "multiple_choice";
+              q.question_group_label = q.question_group_label || "";
+              q.question_data = q.question_data || {};
+              q.correct_answer_text = q.correct_answer_text || "";
+            }
+          }
           setPassages(sorted);
         } else {
           setError(`No ${theme.name} reading passages available in the database.`);
@@ -93,7 +109,7 @@ export default function ReadingPage() {
     fetchPassages();
   }, [examType, theme.name]);
 
-  // Timer Effect
+  // Timer Effect — ONE continuous 60-minute timer for the entire exam
   useEffect(() => {
     if (!isTestStarted || submitted || timeLeft <= 0) return;
 
@@ -116,10 +132,16 @@ export default function ReadingPage() {
     return [...acc, ...p.questions];
   }, []);
 
-  // Handle option click
+  // Handle option click (MCQ / TFNG / YNG)
   const handleSelect = (qId: string, oId: string) => {
     if (submitted) return;
     setSelectedAnswers((prev) => ({ ...prev, [qId]: oId }));
+  };
+
+  // Handle text input / dropdown change (all other types)
+  const handleTextAnswer = (qId: string, text: string) => {
+    if (submitted) return;
+    setSelectedAnswers((prev) => ({ ...prev, [qId]: text }));
   };
 
   // Submit flow
@@ -136,10 +158,15 @@ export default function ReadingPage() {
 
     try {
       setLoading(true);
-      const answersPayload = allQuestions.map((q) => ({
-        question_id: q.id,
-        selected_option_id: selectedAnswers[q.id] || "",
-      }));
+      const answersPayload = allQuestions.map((q) => {
+        const qType = q.question_type || "multiple_choice";
+        const isOptionBased = isOptionBasedType(qType);
+        return {
+          question_id: q.id,
+          selected_option_id: isOptionBased ? (selectedAnswers[q.id] || "") : "",
+          answer_text: !isOptionBased ? (selectedAnswers[q.id] || "") : "",
+        };
+      });
 
       const res = await api.post("/api/reading/submit-full", {
         answers: answersPayload,
@@ -176,7 +203,7 @@ export default function ReadingPage() {
     setCorrectCount(null);
     setBandScore(null);
     setDbResults(null);
-    setTimeLeft(3600);
+    setTimeLeft(examConfig.timer);
     setIsTestStarted(false);
     setActiveSectionIdx(0);
   };
@@ -205,6 +232,12 @@ export default function ReadingPage() {
   const getOverallQuestionNumber = (qId: string) => {
     return allQuestions.findIndex((q) => q.id === qId) + 1;
   };
+
+  // Group questions for the current passage by question_group_label
+  const currentQuestionGroups = useMemo(() => {
+    if (passages.length === 0 || activeSectionIdx >= passages.length) return [];
+    return groupQuestions(passages[activeSectionIdx].questions as any);
+  }, [passages, activeSectionIdx]);
 
   if (loading && passages.length === 0) {
     return (
@@ -258,25 +291,25 @@ export default function ReadingPage() {
               <ul className="space-y-3 text-[14px] text-slate-600">
                 <li className="flex items-start gap-2.5">
                   <svg className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  <span><strong>Total Duration:</strong> {examConfig.duration}. The timer will auto-submit when it reaches 0.</span>
+                  <span><strong>Total Duration:</strong> {examConfig.duration}. ONE continuous timer — the clock does not reset between passages.</span>
                 </li>
                 <li className="flex items-start gap-2.5">
                   <svg className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  <span><strong>Sections:</strong> {examConfig.sections} covering {examType === "toefl" ? "science and social science topics" : "topics of increasing academic complexity"}.</span>
+                  <span><strong>Passages:</strong> {examConfig.sections} of increasing academic complexity. Navigate freely between passages at any time.</span>
                 </li>
                 <li className="flex items-start gap-2.5">
                   <svg className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  <span><strong>Questions:</strong> {examConfig.questions} covering detail, inference, vocabulary in context and purpose.</span>
+                  <span><strong>Questions:</strong> {examConfig.questions} across multiple question types — multiple choice, True/False/Not Given, matching, completion, tables, flow charts, and more.</span>
                 </li>
                 <li className="flex items-start gap-2.5">
                   <svg className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  <span><strong>Scoring:</strong> {examType === "toefl" ? "Scored 0–30 (TOEFL iBT section scale)" : "Scored as IELTS Academic Band 0–9"}.</span>
+                  <span><strong>Scoring:</strong> {examType === "toefl" ? "Scored 0–30 (TOEFL iBT section scale)" : "1 mark per correct answer → converted to IELTS Band 0–9"}.</span>
                 </li>
               </ul>
             </div>
 
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 text-[13px] text-slate-500 leading-relaxed">
-              <strong>Instructions:</strong> Ensure you are in a quiet workspace. Once you click "Start Exam", the countdown begins and cannot be paused. Read the texts and answer the questions. Good luck!
+              <strong>Instructions:</strong> Ensure you are in a quiet workspace. Once you click &ldquo;Start Exam&rdquo;, the countdown begins and cannot be paused. Read the texts carefully and answer the questions. You can navigate between all three passages while the timer continues. Good luck!
             </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
@@ -390,67 +423,26 @@ export default function ReadingPage() {
               </div>
             </div>
 
-            {/* Questions Review */}
+            {/* Questions Review — using the same renderers in submitted mode */}
             <div className="space-y-6">
-              {passages[activeSectionIdx].questions.map((q) => {
-                const dbRes = dbResults?.find((r) => r.question_id === q.id);
-                const isCorrect = dbRes?.is_correct;
-                const userSel = selectedAnswers[q.id];
-                const overallNum = getOverallQuestionNumber(q.id);
-
-                return (
-                  <div
-                    key={q.id}
-                    className={`border rounded-xl p-5 ${
-                      isCorrect
-                        ? "border-[var(--success)] bg-[var(--success-tint)]"
-                        : "border-[var(--error)] bg-[var(--error-tint)]"
-                    }`}
-                  >
-                    <p className="text-[14px] font-bold text-slate-800 mb-4 flex items-start">
-                      <span
-                        className="inline-flex items-center justify-center w-6 h-6 rounded-full text-white text-[12px] font-extrabold mr-2 flex-shrink-0 mt-0.5"
-                        style={{ backgroundColor: theme.color }}
-                      >
-                        {overallNum}
-                      </span>
-                      {q.question_text}
-                    </p>
-
-                    <div className="space-y-2.5 pl-8">
-                      {q.options.map((opt) => {
-                        const isUserSelected = userSel === opt.id;
-                        const isCorrectOption = opt.id === q.correct_option_id;
-
-                        let optionStyle = "border-slate-200 hover:bg-[#fafafa] text-slate-600";
-                        if (isCorrectOption) {
-                          optionStyle = "bg-[var(--success-tint)] text-[var(--success)] font-bold border-[var(--success)]";
-                        } else if (isUserSelected && !isCorrect) {
-                          optionStyle = "bg-[var(--error-tint)] text-[var(--error)] font-bold border-[var(--error)]";
-                        }
-
-                        return (
-                          <div
-                            key={opt.id}
-                            className={`flex items-center gap-3 py-2.5 px-3 border rounded-lg text-[13px] ${optionStyle}`}
-                          >
-                            <span className="font-bold text-[#888]">{opt.label}.</span>
-                            <span>{opt.text}</span>
-                            {isCorrectOption && <span className="ml-auto text-[11px] font-bold text-[var(--success)] uppercase tracking-[.12em]">Correct</span>}
-                            {isUserSelected && !isCorrect && <span className="ml-auto text-[11px] font-bold text-[var(--error)] uppercase tracking-[.12em]">Your answer</span>}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {q.explanation && (
-                      <div className="mt-4 ml-8 p-3 bg-white border-l-4 border-emerald-500 rounded-r-lg text-[13px] text-slate-600">
-                        <strong className="text-emerald-700">Explanation:</strong> {q.explanation}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+              {currentQuestionGroups.map((group, gi) => (
+                <div key={gi} className="space-y-4">
+                  <h4 className="text-[13px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200 pb-2">
+                    {group.label}
+                  </h4>
+                  <QuestionGroupRenderer
+                    group={group}
+                    selectedAnswers={selectedAnswers}
+                    onSelectOption={handleSelect}
+                    onTextAnswer={handleTextAnswer}
+                    getOverallNumber={getOverallQuestionNumber}
+                    theme={theme}
+                    submitted={true}
+                    dbResults={dbResults}
+                    questionRefs={questionRefs}
+                  />
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -532,92 +524,54 @@ export default function ReadingPage() {
 
             <div className="text-[15px] text-slate-800 leading-[1.85] space-y-5 font-normal">
               {currentPassage.content.split("\n\n").map((p, i) => (
-                <p key={i}>{p}</p>
+                <p key={i}>
+                  {/* Add paragraph labels (A, B, C...) for matching-info type support */}
+                  {currentPassage.questions.some(q => q.question_type === "matching_info") && (
+                    <span className="inline-block font-bold text-slate-500 mr-2 text-[13px]">
+                      {String.fromCharCode(65 + i)}
+                    </span>
+                  )}
+                  {p}
+                </p>
               ))}
             </div>
           </div>
         </div>
 
         {/* Right Side: Questions — hidden on mobile when showing passage */}
-        <div className={`md:col-span-5 bg-[#f8f9fb] p-4 sm:p-8 overflow-y-auto max-h-[calc(100vh-65px)] space-y-4 ${
+        <div className={`md:col-span-5 bg-[#f8f9fb] p-4 sm:p-8 overflow-y-auto max-h-[calc(100vh-65px)] space-y-6 ${
           showPassage ? "hidden md:block" : "block"
         }`}>
-          <div className="bg-amber-50 border border-amber-200/80 rounded-2xl p-4">
-            <p className="text-[13.5px] font-bold text-amber-900 mb-0.5 flex items-center gap-2">
-              <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span>Questions {qStart}-{qEnd}</span>
-            </p>
-            <p className="text-[12.5px] text-amber-800/90">
-              Read Passage {activeSectionIdx + 1} and choose the correct option (A, B, C, or D) for each question below.
-            </p>
-          </div>
-
-          {currentPassage.questions.map((q) => {
-            const overallNum = getOverallQuestionNumber(q.id);
-            const userSelectedOpt = selectedAnswers[q.id];
-
-            return (
-              <div
-                key={q.id}
-                ref={(el) => {
-                  questionRefs.current[q.id] = el;
-                }}
-                className={`bg-white rounded-2xl border p-5 shadow-sm transition-all ${
-                  userSelectedOpt ? "border-slate-300" : "border-slate-200"
-                }`}
-              >
-                <div className="flex items-start gap-3 mb-4">
-                  <span
-                    className="inline-flex items-center justify-center w-7 h-7 rounded-full text-white text-[12px] font-extrabold flex-shrink-0"
-                    style={{ backgroundColor: theme.color }}
-                  >
-                    {overallNum}
-                  </span>
-                  <p className="text-[14.5px] font-semibold text-slate-900 leading-snug pt-0.5">
-                    {q.question_text}
-                  </p>
-                </div>
-
-                <div className="space-y-2 pl-10">
-                  {q.options.map((opt) => {
-                    const isSelected = userSelectedOpt === opt.id;
-
-                    return (
-                      <label
-                        key={opt.id}
-                        onClick={() => handleSelect(q.id, opt.id)}
-                        className={`flex items-center gap-3 py-2.5 px-4 rounded-xl border cursor-pointer text-[13.5px] transition-all select-none ${
-                          isSelected
-                            ? "font-semibold border-transparent shadow-sm"
-                            : "border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-700"
-                        }`}
-                        style={
-                          isSelected
-                            ? { backgroundColor: theme.colorLight, borderColor: theme.color, color: theme.color }
-                            : undefined
-                        }
-                      >
-                        <span
-                          className="w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center"
-                          style={isSelected ? { borderColor: theme.color } : { borderColor: "#CBD5E1" }}
-                        >
-                          {isSelected && (
-                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.color }} />
-                          )}
-                        </span>
-                        <span className="font-bold w-4 text-slate-400">{opt.label}.</span>
-                        <span className="flex-1">{opt.text}</span>
-                      </label>
-                    );
-                  })}
-                </div>
+          {/* Question groups */}
+          {currentQuestionGroups.map((group, gi) => (
+            <div key={gi} className="space-y-4">
+              {/* Group label header */}
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-1 h-5 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: theme.color }}
+                />
+                <h3 className="text-[13px] font-bold text-slate-600 uppercase tracking-wider">
+                  {group.label}
+                </h3>
               </div>
-            );
-          })}
 
-          {/* Clean Inline Navigation Bar below questions */}
+              {/* Render the question group with the appropriate visual component */}
+              <QuestionGroupRenderer
+                group={group}
+                selectedAnswers={selectedAnswers}
+                onSelectOption={handleSelect}
+                onTextAnswer={handleTextAnswer}
+                getOverallNumber={getOverallQuestionNumber}
+                theme={theme}
+                submitted={false}
+                dbResults={null}
+                questionRefs={questionRefs}
+              />
+            </div>
+          ))}
+
+          {/* Navigation Bar below questions */}
           <div className="pt-6 border-t border-slate-200 flex items-center justify-between gap-3 mt-6">
             <button
               disabled={activeSectionIdx === 0}
@@ -646,6 +600,35 @@ export default function ReadingPage() {
                 <span>Submit Exam</span>
               </button>
             )}
+          </div>
+
+          {/* Question Navigator — mini grid of all 40 questions */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3">Question Navigator</p>
+            <div className="grid grid-cols-10 gap-1.5">
+              {allQuestions.map((q, qi) => {
+                const isAnswered = !!selectedAnswers[q.id];
+                const isCurrentSection = passages[activeSectionIdx].questions.some(pq => pq.id === q.id);
+
+                return (
+                  <button
+                    key={q.id}
+                    onClick={() => handleNavClick(qi)}
+                    className={`w-full aspect-square rounded-lg text-[11px] font-bold transition-all ${
+                      isAnswered
+                        ? "text-white shadow-sm"
+                        : isCurrentSection
+                          ? "bg-slate-200 text-slate-700 hover:bg-slate-300"
+                          : "bg-slate-100 text-slate-400 hover:bg-slate-200"
+                    }`}
+                    style={isAnswered ? { backgroundColor: theme.color } : undefined}
+                    title={`Question ${qi + 1}`}
+                  >
+                    {qi + 1}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
