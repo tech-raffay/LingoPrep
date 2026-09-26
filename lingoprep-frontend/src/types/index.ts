@@ -86,7 +86,7 @@ export interface QuestionData {
   // Diagram Label Completion
   diagram_type?: string;
   diagram_title?: string;
-  elements?: { label: string; text: string; position?: string }[];
+  elements?: { label?: string; text?: string; position?: string; clue?: string }[];
   diagram_description?: string;
 }
 

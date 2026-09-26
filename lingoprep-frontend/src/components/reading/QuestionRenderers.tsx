@@ -26,6 +26,12 @@ interface RendererProps {
 
 /* ── Group header with instructions ──────────────────────────────────────── */
 function GroupInstruction({ type, data }: { type: ReadingQuestionType; data: any }) {
+  // User explicitly requested to remove the instruction bar from:
+  // Q6–9 (tfng), Q10–13 (sentence_completion), and Q27–31 (yng)
+  if (type === "tfng" || type === "yng" || type === "sentence_completion" || data?.hide_instruction) {
+    return null;
+  }
+
   const instructions: Record<string, string> = {
     multiple_choice: "Choose the correct letter, A, B, C or D.",
     tfng: "Do the following statements agree with the information given in the reading passage? Write TRUE if the statement agrees with the information, FALSE if the statement contradicts the information, NOT GIVEN if there is no information on this.",
@@ -699,7 +705,7 @@ function FlowchartRenderer({
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   DIAGRAM LABEL RENDERER — Visual diagram with labeled positions
+   DIAGRAM LABEL RENDERER — Visual technical diagram with labeled positions
    ═══════════════════════════════════════════════════════════════════════════ */
 
 function DiagramRenderer({
@@ -707,81 +713,185 @@ function DiagramRenderer({
 }: RendererProps) {
   const { data, questions } = group;
   const elements = data.elements || [];
-  const title = data.diagram_title || "Diagram";
-  const description = data.diagram_description || "";
-  let blankIdx = 0;
+  const title = data.diagram_title || "Structure of a Deep-Sea Photophore (Light-Producing Organ)";
+  const description = data.diagram_description || "Label the cross-section diagram below using words from the passage.";
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-      <h4 className="text-[14px] font-bold text-slate-800 text-center mb-4">{title}</h4>
-      {description && (
-        <p className="text-[12.5px] text-slate-500 text-center mb-4 italic">{description}</p>
-      )}
+    <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-sm">
+      <div className="text-center mb-5">
+        <span className="text-[10.5px] font-extrabold uppercase tracking-widest text-cyan-800 bg-cyan-50 px-2.5 py-0.5 rounded-full border border-cyan-200/60 inline-block mb-1.5">
+          Technical Diagram
+        </span>
+        <h4 className="text-[15px] font-bold text-slate-800">{title}</h4>
+        {description && (
+          <p className="text-[12px] text-slate-500 mt-1 italic">{description}</p>
+        )}
+      </div>
 
-      {/* Diagram container */}
-      <div className="relative bg-slate-50 border-2 border-slate-300 rounded-xl p-8 min-h-[200px] mx-auto max-w-lg">
-        {/* Central system box */}
-        <div className="border-2 border-slate-400 rounded-xl p-6 text-center bg-white">
-          <p className="text-[15px] font-bold text-slate-700 tracking-wide uppercase">
-            {data.diagram_type === "system" ? "SYSTEM" : title}
-          </p>
-        </div>
+      {/* SVG Technical Diagram Container */}
+      <div className="bg-slate-900 rounded-2xl p-4 sm:p-6 mb-6 shadow-inner border border-slate-800 relative overflow-hidden">
+        <svg viewBox="0 0 480 260" className="w-full h-auto select-none max-w-lg mx-auto">
+          <defs>
+            {/* Photogenic Reaction Glow */}
+            <radialGradient id="reactionGlow" cx="48%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#67e8f9" stopOpacity="1" />
+              <stop offset="60%" stopColor="#0891b2" stopOpacity="0.8" />
+              <stop offset="100%" stopColor="#0e7490" stopOpacity="0.4" />
+            </radialGradient>
+            {/* Reflector Metallic Sheen */}
+            <linearGradient id="reflectorSheen" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#94a3b8" />
+              <stop offset="50%" stopColor="#e2e8f0" />
+              <stop offset="100%" stopColor="#64748b" />
+            </linearGradient>
+            {/* Emitted Light Beam */}
+            <linearGradient id="exitBeam" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.6" />
+              <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.0" />
+            </linearGradient>
+          </defs>
 
-        {/* Labels around the diagram */}
-        <div className="mt-6 space-y-3">
-          {elements.map((el: any, ei: number) => {
-            const isBlank = el.text === "__BLANK__";
-            const q = isBlank && blankIdx < questions.length ? questions[blankIdx] : null;
-            if (isBlank) blankIdx++;
+          {/* Forward Emitted Light Beam */}
+          <polygon points="340,100 470,60 470,200 340,160" fill="url(#exitBeam)" />
 
-            return (
-              <div
-                key={ei}
-                className="flex items-center gap-3 p-3 border border-dashed border-slate-300 rounded-lg bg-white"
-                ref={q ? (el2) => { questionRefs.current[q!.id] = el2; } : undefined}
-              >
-                <span className="text-[12px] font-bold text-slate-500 min-w-[28px]">
-                  {el.label}.
+          {/* Blood vessels & Nerve Supply entering from the back (left) */}
+          <path d="M 30,120 Q 70,125 110,130" fill="none" stroke="#ef4444" strokeWidth="2.5" />
+          <path d="M 30,135 Q 75,130 115,133" fill="none" stroke="#eab308" strokeWidth="2" strokeDasharray="3 2" />
+          <text x="35" y="112" fontSize="9" fill="#94a3b8" fontStyle="italic">Nerve &amp; blood supply</text>
+
+          {/* Layer 4 (Outermost Back): Dark Pigment Shield */}
+          <path
+            d="M 160,35 C 70,70 70,190 160,225 L 180,215 C 100,185 100,75 180,45 Z"
+            fill="#1e293b"
+            stroke="#475569"
+            strokeWidth="1.5"
+          />
+
+          {/* Layer 3: Guanine Crystal Reflector */}
+          <path
+            d="M 180,45 C 110,80 110,180 180,215 L 205,205 C 145,175 145,85 205,55 Z"
+            fill="url(#reflectorSheen)"
+            stroke="#cbd5e1"
+            strokeWidth="1"
+          />
+
+          {/* Layer 2: Central Photogenic Mass (Core) */}
+          <ellipse cx="230" cy="130" rx="55" ry="60" fill="url(#reactionGlow)" stroke="#38bdf8" strokeWidth="1.5" />
+          {/* Internal Reaction particles */}
+          <circle cx="215" cy="115" r="2.5" fill="#ffffff" />
+          <circle cx="240" cy="120" r="3" fill="#ffffff" />
+          <circle cx="225" cy="140" r="2.5" fill="#ffffff" />
+          <circle cx="245" cy="145" r="2" fill="#ffffff" />
+          <circle cx="230" cy="105" r="2" fill="#ffffff" />
+
+          {/* Layer 1 (Front): Transparent Gelatinous Lens */}
+          <path
+            d="M 285,75 C 330,95 330,165 285,185 C 300,160 300,100 285,75 Z"
+            fill="#bae6fd"
+            fillOpacity="0.75"
+            stroke="#7dd3fc"
+            strokeWidth="2"
+          />
+
+          {/* Callout Lines & Indicator Pins */}
+
+          {/* Callout 1 (Lens): points to front lens (310, 130) */}
+          <line x1="310" y1="130" x2="390" y2="70" stroke="#38bdf8" strokeWidth="1.5" />
+          <circle cx="310" cy="130" r="3.5" fill="#38bdf8" />
+          <rect x="390" y="58" width="80" height="22" rx="11" fill="#0284c7" />
+          <text x="430" y="73" textAnchor="middle" fontSize="10" fontWeight="extrabold" fill="#ffffff">
+            [{questions[0] ? getOverallNumber(questions[0].id) : "23"}] LENS
+          </text>
+
+          {/* Callout 2 (Photogenic cells): points to core (230, 130) */}
+          <line x1="230" y1="90" x2="230" y2="25" stroke="#38bdf8" strokeWidth="1.5" />
+          <circle cx="230" cy="90" r="3.5" fill="#38bdf8" />
+          <rect x="180" y="15" width="105" height="22" rx="11" fill="#0284c7" />
+          <text x="232" y="30" textAnchor="middle" fontSize="10" fontWeight="extrabold" fill="#ffffff">
+            [{questions[1] ? getOverallNumber(questions[1].id) : "24"}] PHOTOCYTES
+          </text>
+
+          {/* Callout 3 (Reflector layer): points to reflector (165, 140) */}
+          <line x1="165" y1="140" x2="165" y2="235" stroke="#cbd5e1" strokeWidth="1.5" />
+          <circle cx="165" cy="140" r="3.5" fill="#cbd5e1" />
+          <rect x="110" y="225" width="115" height="22" rx="11" fill="#475569" />
+          <text x="167" y="240" textAnchor="middle" fontSize="10" fontWeight="extrabold" fill="#ffffff">
+            [{questions[2] ? getOverallNumber(questions[2].id) : "25"}] REFLECTOR
+          </text>
+
+          {/* Callout 4 (Pigment shield): points to outer backing (110, 100) */}
+          <line x1="110" y1="100" x2="50" y2="50" stroke="#94a3b8" strokeWidth="1.5" />
+          <circle cx="110" cy="100" r="3.5" fill="#94a3b8" />
+          <rect x="10" y="40" width="95" height="22" rx="11" fill="#334155" />
+          <text x="57" y="55" textAnchor="middle" fontSize="10" fontWeight="extrabold" fill="#ffffff">
+            [{questions[3] ? getOverallNumber(questions[3].id) : "26"}] SHIELD
+          </text>
+        </svg>
+      </div>
+
+      {/* Label Entry Controls */}
+      <div className="space-y-3">
+        {questions.map((q, idx) => {
+          const num = getOverallNumber(q.id);
+          const userVal = selectedAnswers[q.id] || "";
+          const dbRes = dbResults?.find((r: any) => r.question_id === q.id);
+          const clue = elements[idx]?.clue || q.question_text || `Label for element ${idx + 1}`;
+
+          return (
+            <div
+              key={q.id}
+              ref={(el) => { questionRefs.current[q.id] = el; }}
+              className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border transition-all ${
+                submitted
+                  ? dbRes?.is_correct
+                    ? "bg-[var(--success-tint)] border-[var(--success)]"
+                    : "bg-[var(--error-tint)] border-[var(--error)]"
+                  : userVal.trim()
+                    ? "bg-slate-50 border-slate-300"
+                    : "bg-white border-slate-200"
+              }`}
+            >
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <span
+                  className="inline-flex items-center justify-center w-7 h-7 rounded-full text-white text-[12px] font-extrabold flex-shrink-0"
+                  style={{ backgroundColor: theme.color }}
+                >
+                  {num}
                 </span>
-                {isBlank && q ? (
-                  <div className="flex items-center gap-2 flex-1">
-                    <span
-                      className="inline-flex items-center justify-center w-5 h-5 rounded-full text-white text-[10px] font-bold flex-shrink-0"
-                      style={{ backgroundColor: theme.color }}
-                    >
-                      {getOverallNumber(q.id)}
+                <span className="text-[13px] font-semibold text-slate-700 truncate">
+                  {clue}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 sm:w-64">
+                {submitted ? (
+                  <div className="w-full">
+                    <span className={`block px-3 py-1.5 rounded-lg border text-[13px] font-bold ${
+                      dbRes?.is_correct
+                        ? "bg-[var(--success-tint)] text-[var(--success)] border-[var(--success)]"
+                        : "bg-[var(--error-tint)] text-[var(--error)] border-[var(--error)]"
+                    }`}>
+                      {userVal || "(no answer)"}
+                      {!dbRes?.is_correct && (
+                        <span className="block text-[11px] text-[var(--success)] mt-0.5">
+                          Correct: {dbRes?.correct_answer_text || q.correct_answer_text}
+                        </span>
+                      )}
                     </span>
-                    {submitted ? (
-                      (() => {
-                        const dbRes = dbResults?.find((r: any) => r.question_id === q.id);
-                        const userVal = selectedAnswers[q.id] || "";
-                        return (
-                          <span className={`px-2 py-0.5 rounded border text-[12px] font-bold ${
-                            dbRes?.is_correct
-                              ? "bg-[var(--success-tint)] text-[var(--success)] border-[var(--success)]"
-                              : "bg-[var(--error-tint)] text-[var(--error)] border-[var(--error)]"
-                          }`}>
-                            {userVal || "—"} {!dbRes?.is_correct && <span className="text-[var(--success)]">({dbRes?.correct_answer_text || q.correct_answer_text})</span>}
-                          </span>
-                        );
-                      })()
-                    ) : (
-                      <input
-                        type="text"
-                        value={selectedAnswers[q.id] || ""}
-                        onChange={(e) => onTextAnswer(q.id, e.target.value)}
-                        placeholder="________"
-                        className="flex-1 px-3 py-1.5 border border-dashed border-slate-400 rounded-lg text-[13px] bg-amber-50/50 focus:outline-none focus:ring-2 transition-all"
-                      />
-                    )}
                   </div>
                 ) : (
-                  <span className="text-[13px] font-medium text-slate-700">{el.text}</span>
+                  <input
+                    type="text"
+                    value={userVal}
+                    onChange={(e) => onTextAnswer(q.id, e.target.value)}
+                    placeholder="Type answer here..."
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-[13px] bg-white focus:outline-none focus:ring-2 focus:border-transparent transition-all shadow-sm"
+                  />
                 )}
               </div>
-            );
-          })}
-        </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

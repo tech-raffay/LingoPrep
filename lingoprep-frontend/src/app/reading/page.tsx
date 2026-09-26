@@ -7,6 +7,7 @@ import { useExam } from "@/components/theme/ExamThemeProvider";
 import { isOptionBasedType } from "@/types";
 import type { ReadingQuestionType } from "@/types";
 import QuestionGroupRenderer, { groupQuestions } from "@/components/reading/QuestionRenderers";
+import { TelegraphFigure, BioluminescenceFigure, UrbanPlanningFigure } from "@/components/reading/PassageVisuals";
 
 interface Option {
   id: string;
@@ -418,7 +419,16 @@ export default function ReadingPage() {
               </h3>
               <div className="text-[14px] text-slate-700 leading-[1.8] space-y-4 font-medium">
                 {passages[activeSectionIdx].content.split("\n\n").map((p, i) => (
-                  <p key={i}>{p}</p>
+                  <div key={i} className="space-y-4">
+                    <p key={i}>{p}</p>
+                    {i === 1 && (
+                      <>
+                        {activeSectionIdx === 0 && <TelegraphFigure />}
+                        {activeSectionIdx === 1 && <BioluminescenceFigure />}
+                        {activeSectionIdx === 2 && <UrbanPlanningFigure />}
+                      </>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>
@@ -524,15 +534,26 @@ export default function ReadingPage() {
 
             <div className="text-[15px] text-slate-800 leading-[1.85] space-y-5 font-normal">
               {currentPassage.content.split("\n\n").map((p, i) => (
-                <p key={i}>
-                  {/* Add paragraph labels (A, B, C...) for matching-info type support */}
-                  {currentPassage.questions.some(q => q.question_type === "matching_info") && (
-                    <span className="inline-block font-bold text-slate-500 mr-2 text-[13px]">
-                      {String.fromCharCode(65 + i)}
-                    </span>
+                <div key={i} className="space-y-5">
+                  <p>
+                    {/* Add paragraph labels (A, B, C...) for matching-info type support */}
+                    {currentPassage.questions.some(q => q.question_type === "matching_info") && (
+                      <span className="inline-block font-bold text-slate-500 mr-2 text-[13px]">
+                        {String.fromCharCode(65 + i)}
+                      </span>
+                    )}
+                    {p}
+                  </p>
+
+                  {/* Authentic scientific/demographic figures integrated into passage */}
+                  {i === 1 && (
+                    <>
+                      {activeSectionIdx === 0 && <TelegraphFigure />}
+                      {activeSectionIdx === 1 && <BioluminescenceFigure />}
+                      {activeSectionIdx === 2 && <UrbanPlanningFigure />}
+                    </>
                   )}
-                  {p}
-                </p>
+                </div>
               ))}
             </div>
           </div>
