@@ -98,7 +98,7 @@ export default function Questions({ ctaHref }: { ctaHref: string }) {
                 actually demands, and where a practice score stops being
                 useful. No hedging.
               </p>
-              <div className="flex flex-wrap gap-x-6 gap-y-4 pt-1">
+              <div className="grid grid-cols-3 gap-x-4 sm:flex sm:flex-wrap sm:gap-x-6 gap-y-4 pt-1">
                 {FACTS.map((f) => (
                   <div key={f.label}>
                     <div className="text-[26px] font-bold leading-none tracking-[-0.02em] text-ink">

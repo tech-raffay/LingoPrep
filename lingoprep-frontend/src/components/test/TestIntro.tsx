@@ -57,6 +57,8 @@ export default function TestIntro({
           style={{ borderColor: "color-mix(in srgb, var(--accent) 10%, var(--n-200))" }}
         >
           <div className="py-8 sm:py-11 flex flex-col items-start gap-3.5 min-w-0">
+            {/* Phones: a small illustration above the badge instead of beside it */}
+            <Art art={art} priority sizes="120px" className="sm:hidden w-[120px] -mt-2 -mb-1" />
             <span className="rounded-full bg-accent px-[13px] py-[5px] text-[12px] font-bold tracking-[.06em] text-accent-on">
               {exam === "toefl" ? "TOEFL iBT" : "IELTS ACADEMIC"}
             </span>
@@ -91,17 +93,18 @@ export default function TestIntro({
             <strong className="text-n-700">Instructions:</strong> {instructions}
           </div>
 
-          <div className="mt-[26px] pt-5 border-t border-n-200 flex flex-wrap justify-end gap-3.5">
+          {/* Phones: full-width, primary on top. Wider: right-aligned row. */}
+          <div className="mt-[26px] pt-5 border-t border-n-200 flex flex-col-reverse sm:flex-row sm:justify-end gap-3 sm:gap-3.5">
             <Link
               href={withExam("/")}
-              className="inline-flex items-center h-12 px-[26px] rounded-full border border-n-400 bg-n-0 text-[14.5px] font-bold text-ink hover:text-ink hover:border-ink transition-colors duration-[120ms]"
+              className="inline-flex items-center justify-center h-12 px-[26px] rounded-full border border-n-400 bg-n-0 text-[14.5px] font-bold text-ink hover:text-ink hover:border-ink transition-colors duration-[120ms]"
             >
               Back to practice tests
             </Link>
             <button
               type="button"
               onClick={onStart}
-              className="inline-flex items-center gap-2 h-12 px-[30px] rounded-full bg-accent text-[14.5px] font-bold text-accent-on shadow-accent hover:bg-accent-strong transition-colors duration-[120ms] cursor-pointer"
+              className="inline-flex items-center justify-center gap-2 h-12 px-[30px] rounded-full bg-accent text-[14.5px] font-bold text-accent-on shadow-accent hover:bg-accent-strong transition-colors duration-[120ms] cursor-pointer"
             >
               {startLabel}
               <Icon name="next" size={16} />

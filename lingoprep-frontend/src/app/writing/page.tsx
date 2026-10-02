@@ -114,6 +114,10 @@ export default function WritingPage() {
   };
 
   const maxBand = examType === "toefl" ? 30 : 9;
+  // IELTS Task 1 asks for 150 words in ~20 minutes; Task 2 for 250 in ~40.
+  const isTask1 = String(selectedPrompt?.task_type ?? "") === "1";
+  const targetWords = examType === "ielts" ? (isTask1 ? 150 : 250) : 300;
+  const targetMinutes = examType === "ielts" ? (isTask1 ? 20 : 40) : 30;
 
   if (!started) {
     return (
@@ -161,13 +165,13 @@ export default function WritingPage() {
     <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="mb-8 pb-5 border-b border-slate-200/80">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-11 h-11 rounded-xl bg-accent-tint text-accent flex items-center justify-center">
+        <div className="flex items-start gap-3 mb-2">
+          <div className="w-11 h-11 shrink-0 rounded-xl bg-accent-tint text-accent flex items-center justify-center">
             <Icon name="writing" size={24} />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-[24px] sm:text-[28px] font-extrabold text-slate-900 tracking-tight">{theme.name} Writing Assessment</h1>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <h1 className="text-[22px] leading-[1.25] sm:text-[28px] sm:leading-[1.2] font-extrabold text-slate-900 tracking-tight">{theme.name} Writing Assessment</h1>
               <span
                 className="text-[10px] font-extrabold uppercase text-white px-2.5 py-0.5 rounded-full tracking-wider"
                 style={{ backgroundColor: theme.color }}
@@ -175,7 +179,7 @@ export default function WritingPage() {
                 {theme.name}
               </span>
             </div>
-            <p className="text-slate-500 text-[13.5px] font-medium mt-0.5">
+            <p className="text-slate-500 text-[13.5px] font-medium mt-1">
               Draft a formal academic response based on the prompt instructions.
             </p>
           </div>
@@ -213,39 +217,39 @@ export default function WritingPage() {
 
       {/* Prompt Card */}
       {selectedPrompt && (
-        <div className="bg-white border border-slate-200/70 rounded-3xl p-7 mb-8 shadow-[0_8px_30px_rgb(0,0,0,0.03)]">
-          <div className="flex items-center gap-2 mb-4">
+        <div className="bg-white border border-slate-200/70 rounded-3xl p-5 sm:p-7 mb-8 shadow-[0_8px_30px_rgb(0,0,0,0.03)]">
+          <div className="flex flex-wrap items-center gap-2 mb-4">
             <span
-              className="px-3 py-1 rounded-full text-[10.5px] font-extrabold uppercase tracking-wider"
+              className="whitespace-nowrap px-3 py-1 rounded-full text-[10.5px] font-extrabold uppercase tracking-wider"
               style={{ backgroundColor: theme.colorLight, color: theme.color }}
             >
               {theme.name} Writing
             </span>
-            <span className="px-3 py-1 rounded-full text-[10.5px] font-extrabold bg-slate-100 text-slate-700 uppercase tracking-wider">
+            <span className="whitespace-nowrap px-3 py-1 rounded-full text-[10.5px] font-extrabold bg-slate-100 text-slate-700 uppercase tracking-wider">
               Task {selectedPrompt.task_type}
             </span>
             {selectedPrompt.overall > 0 && (
-              <span className="px-3 py-1 rounded-full text-[10.5px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200/60 uppercase tracking-wider">
+              <span className="whitespace-nowrap px-3 py-1 rounded-full text-[10.5px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200/60 uppercase tracking-wider">
                 Ref Score: {selectedPrompt.overall}
               </span>
             )}
           </div>
           <p className="text-slate-800 leading-relaxed font-medium text-[15.5px]">{selectedPrompt.question}</p>
-          <div className="mt-5 pt-4 border-t border-slate-100 text-[12px] text-slate-400 font-semibold flex items-center gap-2">
-            <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <div className="mt-5 pt-4 border-t border-slate-100 text-[12px] text-slate-400 font-semibold flex items-start gap-2">
+            <svg className="w-4 h-4 shrink-0 mt-px text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
             </svg>
-            <span>Target Word Count: Minimum {examType === "ielts" ? "250" : "300"} words • Suggested Time: {examType === "ielts" ? "40" : "30"} minutes</span>
+            <span>Target Word Count: Minimum {targetWords} words • Suggested Time: {targetMinutes} minutes</span>
           </div>
         </div>
       )}
 
       {/* Essay Editor */}
       <div className="bg-white border border-slate-200/70 rounded-3xl overflow-hidden mb-8 shadow-[0_8px_30px_rgb(0,0,0,0.03)]">
-        <div className="flex items-center justify-between px-7 py-4 border-b border-slate-100 bg-slate-50/50 text-[12px] font-extrabold text-slate-500 uppercase tracking-wider">
+        <div className="flex items-center justify-between gap-3 px-5 sm:px-7 py-4 border-b border-slate-100 bg-slate-50/50 text-[12px] font-extrabold text-slate-500 uppercase tracking-wider">
           <span>Writing Workspace</span>
-          <span className={`px-3 py-1 rounded-full text-[11px] font-bold ${wordCount >= (examType === "ielts" ? 250 : 300) ? "bg-emerald-50 text-emerald-700 border border-emerald-200/60" : "bg-slate-100 text-slate-600"}`}>
-            {wordCount} / {examType === "ielts" ? "250" : "300"} words
+          <span className={`px-3 py-1 rounded-full text-[11px] font-bold ${wordCount >= targetWords ? "bg-emerald-50 text-emerald-700 border border-emerald-200/60" : "bg-slate-100 text-slate-600"}`}>
+            {wordCount} / {targetWords} words
           </span>
         </div>
         <textarea

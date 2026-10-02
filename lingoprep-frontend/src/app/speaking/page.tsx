@@ -286,9 +286,10 @@ export default function SpeakingPage() {
         
         {/* Left Side: Examiner Video simulation & audio state controls */}
         <div className="lg:col-span-7 bg-white border border-slate-200/70 rounded-3xl p-6 sm:p-7 shadow-[0_8px_30px_rgb(0,0,0,0.03)]">
-          <div className="bg-gradient-to-b from-slate-900 to-slate-950 rounded-2xl aspect-video mb-6 flex flex-col items-center justify-center border border-slate-800 relative overflow-hidden shadow-inner">
+          <div className="bg-gradient-to-b from-slate-900 to-slate-950 rounded-2xl min-h-[250px] sm:min-h-0 sm:aspect-video mb-6 flex flex-col items-center justify-center border border-slate-800 relative overflow-hidden shadow-inner">
             {/* Visual simulation of examiner */}
-            <div className="flex flex-col items-center justify-center text-center p-6 space-y-3">
+            {/* pb-12 keeps the content clear of the "Session Active" pill on phones */}
+            <div className="flex flex-col items-center justify-center text-center p-6 pb-12 sm:pb-6 space-y-3">
               <div className="relative">
                 <div className="w-16 h-16 rounded-full bg-slate-800/80 border border-slate-700/80 flex items-center justify-center text-slate-300 shadow-lg">
                   <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
