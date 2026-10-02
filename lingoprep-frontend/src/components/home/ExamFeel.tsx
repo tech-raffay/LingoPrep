@@ -25,6 +25,7 @@
 
 import { useEffect, useRef } from "react";
 import Icon from "@/components/brand/Icon";
+import Reveal from "@/components/brand/Reveal";
 
 const POINTS = [
   "The same on-screen layout you will see in the test centre.",
@@ -62,10 +63,10 @@ export default function ExamFeel({
 
   return (
     <section className="bg-n-0">
-      <div className="mx-auto max-w-[1200px] px-5 sm:px-7 pt-20 sm:pt-24">
+      <div className="mx-auto max-w-[1200px] px-5 sm:px-7 pt-16">
         <div className="grid lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] gap-10 items-center">
           {/* ── Clip ──────────────────────────────────────────────────────── */}
-          <div className="relative rounded-[22px] overflow-hidden bg-[#14100b] aspect-video shadow-[0_24px_54px_rgb(18_23_43/0.16)]">
+          <Reveal className="relative rounded-[22px] overflow-hidden bg-[#14100b] aspect-video shadow-[0_24px_54px_rgb(18_23_43/0.16)]">
             <div
               className="absolute inset-0"
               aria-hidden="true"
@@ -103,11 +104,11 @@ export default function ExamFeel({
                 </div>
               </div>
             )}
-          </div>
+          </Reveal>
 
           {/* ── Copy ──────────────────────────────────────────────────────── */}
-          <div className="flex flex-col gap-4">
-            <span className="t-label text-amber-ink text-[12.5px]">
+          <Reveal delay={110} className="flex flex-col gap-[18px]">
+            <span className="t-label text-amber-ink tracking-[.16em] text-[12.5px]">
               Test day, without the surprises
             </span>
             <h2 className="text-[28px] sm:text-[34px] max-w-[20rem]">
@@ -137,13 +138,13 @@ export default function ExamFeel({
             <div className="pt-1">
               <a
                 href={ctaHref}
-                className="inline-flex h-[50px] items-center gap-2 rounded-full bg-accent px-7 text-[15px] font-bold text-accent-on shadow-accent transition-colors duration-[120ms] hover:bg-accent-strong"
+                className="inline-flex h-[50px] items-center gap-2 rounded-full bg-accent px-7 text-[15px] font-bold text-accent-on shadow-accent transition-colors duration-[120ms] hover:bg-accent-strong hover:text-accent-on"
               >
                 Sit a practice test
                 <Icon name="next" size={16} />
               </a>
             </div>
-          </div>
+          </Reveal>
         </div>
       </div>
     </section>

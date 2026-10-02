@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
+import TestIntro from "@/components/test/TestIntro";
 import { useExam } from "@/components/theme/ExamThemeProvider";
 import Icon from "@/components/brand/Icon";
 
@@ -48,6 +49,8 @@ export default function WritingPage() {
   const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loadingPrompts, setLoadingPrompts] = useState(true);
+  // Intro screen first, as for every skill. Prompts load behind it.
+  const [started, setStarted] = useState(false);
 
   // Load prompts from the API on mount
   useEffect(() => {
@@ -111,6 +114,32 @@ export default function WritingPage() {
   };
 
   const maxBand = examType === "toefl" ? 30 : 9;
+
+  if (!started) {
+    return (
+      <TestIntro
+        skill="writing"
+        title={`${theme.name} Writing Test`}
+        meta={examType === "toefl" ? "Academic writing prompts · Scored 0–30" : "Task 1 & Task 2 prompts · Band 0–9"}
+        subhead="How this practice works"
+        points={[
+          { label: "Prompts:", text: examType === "toefl"
+              ? "Choose a TOEFL writing prompt, or draw a random one. Each response is scored on its own."
+              : "Choose a Task 1 or Task 2 prompt, or draw a random one. Each essay is scored on its own." },
+          { label: "Length:", text: examType === "toefl"
+              ? "Write at least 50 words for the AI to score your response; aim for the length the real task expects."
+              : "Write at least 50 words for the AI to score your essay. The real exam expects 150 words for Task 1 and 250 for Task 2." },
+          { label: "Timing:", text: "Write at your own pace. There is no countdown, so set your own clock if you want exam conditions." },
+          { label: "Scoring:", text: examType === "toefl"
+              ? "An AI-estimated section score on the 0–30 scale, with feedback and suggestions."
+              : "An AI-estimated band against the four criteria: Task Achievement, Coherence & Cohesion, Lexical Resource, and Grammatical Range & Accuracy." },
+        ]}
+        instructions={<>Find a quiet workspace. Your essay is only sent for scoring when you choose to evaluate it, and you can reset and try the same prompt again afterwards.</>}
+        startLabel="Start writing"
+        onStart={() => setStarted(true)}
+      />
+    );
+  }
 
   if (loadingPrompts) {
     return (

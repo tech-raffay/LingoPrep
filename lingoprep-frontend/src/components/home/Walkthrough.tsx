@@ -18,6 +18,7 @@
 
 import { useRef, useState } from "react";
 import Icon from "@/components/brand/Icon";
+import Reveal from "@/components/brand/Reveal";
 
 const BAR_HEIGHTS = [8, 18, 12, 26, 16, 30, 20, 34, 14, 24, 10, 28, 18, 32, 12, 22, 9, 16];
 
@@ -83,9 +84,9 @@ export default function Walkthrough({
         />
       )}
 
-      <div className="relative mx-auto max-w-[1200px] px-5 sm:px-7 py-20 sm:py-[88px]">
+      <div className="relative mx-auto max-w-[1200px] px-5 sm:px-7 py-16 sm:py-[78px]">
         <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,0.82fr)] gap-10 lg:gap-13 items-center">
-          <div className="flex flex-col gap-5">
+          <Reveal className="flex flex-col gap-5">
             <h2 className="text-[30px] sm:text-[38px] text-white max-w-[22rem]">
               A full practice test, start to score, in 90 seconds
             </h2>
@@ -146,10 +147,10 @@ export default function Walkthrough({
                 />
               ))}
             </div>
-          </div>
+          </Reveal>
 
           {/* Glass stat cards */}
-          <div className="grid gap-3.5">
+          <Reveal delay={110} className="grid gap-3.5">
             {STATS.map((s) => (
               <div
                 key={s.label}
@@ -163,7 +164,7 @@ export default function Walkthrough({
                 </span>
               </div>
             ))}
-          </div>
+          </Reveal>
         </div>
       </div>
     </section>

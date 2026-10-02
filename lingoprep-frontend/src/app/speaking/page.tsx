@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import api from "@/lib/api";
+import TestIntro from "@/components/test/TestIntro";
 import { useExam } from "@/components/theme/ExamThemeProvider";
 
 interface SpeakingPrompt {
@@ -75,6 +76,8 @@ export default function SpeakingPage() {
   const [error, setError] = useState<string | null>(null);
   const [recordingTime, setRecordingTime] = useState(0);
   const [useManualTranscript, setUseManualTranscript] = useState(false);
+  // Intro screen first, as for every skill.
+  const [started, setStarted] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -207,6 +210,30 @@ export default function SpeakingPage() {
   const wordCount = transcript.trim() ? transcript.trim().split(/\s+/).length : 0;
   const maxScale = examType === "toefl" ? 30 : 9;
   const subScoreMax = examType === "toefl" ? 4 : 9;
+
+  if (!started) {
+    return (
+      <TestIntro
+        skill="speaking"
+        title={`${theme.name} Speaking Test`}
+        meta={examType === "toefl" ? "Task 1 · Independent speaking" : "Part 2 · Individual long turn"}
+        subhead="Exam structure & recording"
+        points={[
+          { label: "The task:", text: examType === "toefl"
+              ? "Give your opinion on a familiar topic and support it with reasons and examples."
+              : "Speak on a cue-card topic. In the real exam you get 1 minute to prepare and speak for up to 2 minutes." },
+          { label: "Recording:", text: "Your answer is recorded in the browser and transcribed. You can also type a transcript if the microphone is unavailable." },
+          { label: "Topics:", text: "Pick from the topics above the recorder; switching topic clears the current answer." },
+          { label: "Scoring:", text: examType === "toefl"
+              ? "An AI-estimated score on the 0–30 scale, with sub-scores for Pronunciation & Fluency, Grammar, Lexical Resource, and Coherence & Structure."
+              : "An AI-estimated band for Pronunciation & Fluency, Grammar, Lexical Resource, and Coherence & Structure." },
+        ]}
+        instructions={<>Allow microphone access when prompted and find a quiet room. Speak naturally, as you would to an examiner.</>}
+        startLabel="Start speaking"
+        onStart={() => setStarted(true)}
+      />
+    );
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8">

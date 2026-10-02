@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+<style>
+  body{margin:0;background:#fff;color:#12172b;font-family:'proxima-nova','Proxima Nova','Figtree',system-ui,sans-serif;font-weight:500;-webkit-font-smoothing:antialiased}
+  h1,h2,h3,h4{margin:0;font-weight:700;letter-spacing:-0.025em;line-height:1.18}
+  p{margin:0}
+  a{color:#c8102e;text-decoration:none}
+  a:hover{color:#96091f}
+  button{font-family:inherit;cursor:pointer}
+</style>
+<script src="motion.js"></script>
+</helmet>
+<div style="min-height:100%;display:flex;flex-direction:column;background:#fff">
+  <nav style="position:sticky;top:0;z-index:50;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);border-bottom:1px solid #eef0f5">
+    <div style="max-width:1200px;margin:0 auto;padding:0 28px;height:68px;display:flex;align-items:center;justify-content:space-between;gap:20px">
+      <div style="display:flex;align-items:center;gap:14px;flex-shrink:0">
+        <div style="display:flex;align-items:center;gap:9px">
+          <svg width="30" height="30" viewBox="0 0 48 48" fill="none"><rect x="4" y="6" width="40" height="30" rx="10" stroke="#c8102e" stroke-width="3.4" /><path d="M16 34v10l11-9" fill="#c8102e" /><rect x="14" y="24" width="4.5" height="6" rx="2.25" fill="#c8102e" /><rect x="21.5" y="20" width="4.5" height="10" rx="2.25" fill="#c8102e" /><rect x="29" y="15.5" width="4.5" height="14.5" rx="2.25" fill="#c8102e" /></svg>
+          <span style="font-size:21px;font-weight:700;letter-spacing:-0.035em"><span style="color:#12172b">Lingo</span><span style="color:#c8102e">Prep</span></span>
+        </div>
+        <span style="padding:5px 11px;border-radius:999px;background:#fef2f4;color:#c8102e;font-size:11.5px;font-weight:700;letter-spacing:.14em">IELTS</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:24px;flex-shrink:0">
+        <span style="font-size:14px;font-weight:700;color:#333b52;cursor:pointer;white-space:nowrap" style-hover="color:#c8102e">Your results</span>
+        <span style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:700;color:#333b52;cursor:pointer" style-hover="color:#c8102e">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+          Sign in
+        </span>
+        <button style="padding:11px 22px;border:none;border-radius:999px;background:#c8102e;color:#fff;font-size:14px;font-weight:700;white-space:nowrap;box-shadow:0 4px 14px rgba(200,16,46,.26)" style-hover="background:#96091f">Start free</button>
+      </div>
+    </div>
+  </nav>
+
+  <main style="flex:1;padding:50px 28px 52px">
+    <div style="max-width:820px;margin:0 auto;display:flex;gap:6px;justify-content:center;margin-bottom:22px">
+      <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+        <button onClick="{{ t.go }}" style="{{ t.style }}">{{ t.label }}</button>
+      </sc-for>
+    </div>
+
+    <div style="max-width:820px;margin:0 auto;border:1px solid #e3e6ee;border-radius:22px;background:#fff;box-shadow:0 10px 30px rgba(18,23,43,.06)">
+      <sc-if value="{{ isA }}" hint-placeholder-val="{{ true }}">
+        <div style="background:#fef2f4;border-bottom:1px solid #f6e3e6;border-radius:22px 22px 0 0;padding:0 28px 0 42px;display:flex;align-items:stretch;justify-content:space-between;gap:16px;overflow:hidden">
+          <div style="padding:44px 0;display:flex;flex-direction:column;align-items:flex-start;gap:14px">
+            <span style="padding:5px 13px;border-radius:999px;background:#c8102e;color:#fff;font-size:12px;font-weight:700;letter-spacing:.06em">IELTS ACADEMIC</span>
+            <h1 style="font-size:34px">{{ d.title }}</h1>
+            <p style="font-size:15px;color:#4b5266">{{ d.meta }}</p>
+          </div>
+          <div style="width:220px;flex-shrink:0;display:flex;align-items:flex-end;justify-content:center;padding-top:16px">
+            <img src="{{ d.img }}" alt="{{ d.alt }}" style="width:100%;height:auto;display:block;margin-bottom:-6px" />
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ isB }}">
+        <div style="position:relative;background:#fef2f4;border-bottom:1px solid #f6e3e6;border-radius:22px 22px 0 0;padding:44px 42px">
+          <div style="display:flex;flex-direction:column;align-items:flex-start;gap:14px;max-width:calc(100% - 260px)">
+            <span style="padding:5px 13px;border-radius:999px;background:#c8102e;color:#fff;font-size:12px;font-weight:700;letter-spacing:.06em">IELTS ACADEMIC</span>
+            <h1 style="font-size:34px">{{ d.title }}</h1>
+            <p style="font-size:15px;color:#4b5266">{{ d.meta }}</p>
+          </div>
+          <div style="position:absolute;right:30px;bottom:-34px;width:250px;height:250px;border-radius:999px;background:#fff;border:1px solid #f6e3e6;box-shadow:0 14px 34px rgba(200,16,46,.10);display:flex;align-items:center;justify-content:center">
+            <img src="{{ d.img }}" alt="{{ d.alt }}" style="width:88%;height:auto;display:block" />
+          </div>
+        </div>
+      </sc-if>
+
+      <div style="padding:40px 42px 42px">
+        <h2 style="font-size:17px;letter-spacing:-0.01em;margin-bottom:20px">{{ d.subhead }}</h2>
+        <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:14px">
+          <sc-for list="{{ d.bullets }}" as="b" hint-placeholder-count="4">
+            <li style="display:flex;align-items:flex-start;gap:12px;font-size:15px;line-height:1.75;color:#333b52">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:3px"><circle cx="12" cy="12" r="9.5" /><polyline points="8 12.5 11 15.5 16.5 9.5" /></svg>
+              <span><strong style="color:#12172b">{{ b.label }}</strong> {{ b.text }}</span>
+            </li>
+          </sc-for>
+        </ul>
+        <div style="margin-top:26px;border:1px solid #e3e6ee;border-radius:14px;background:#f8f9fb;padding:20px 22px;font-size:14px;line-height:1.8;color:#4b5266"><strong style="color:#333b52">Instructions:</strong> {{ d.instructions }}</div>
+        <div style="margin-top:26px;padding-top:20px;border-top:1px solid #eef0f5;display:flex;justify-content:flex-end;gap:14px;flex-wrap:wrap">
+          <button style="padding:14px 26px;border:1px solid #c9cfdd;border-radius:999px;background:#fff;color:#12172b;font-size:14.5px;font-weight:700" style-hover="border-color:#12172b">Back to Dashboard</button>
+          <button style="padding:14px 30px;border:none;border-radius:999px;background:#c8102e;color:#fff;font-size:14.5px;font-weight:700;box-shadow:0 8px 20px rgba(200,16,46,.24)" style-hover="background:#96091f">Start Exam</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer style="background:#12172b;color:#fff">
+    <div style="max-width:1200px;margin:0 auto;padding:56px 28px 40px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;padding-bottom:26px;border-bottom:1px solid #2b3450">
+        <div style="display:flex;align-items:center;gap:9px">
+          <svg width="30" height="30" viewBox="0 0 48 48" fill="none"><rect x="4" y="6" width="40" height="30" rx="10" stroke="#fff" stroke-width="3.4" /><path d="M16 34v10l11-9" fill="#ff4d6a" /><rect x="14" y="24" width="4.5" height="6" rx="2.25" fill="#ff4d6a" /><rect x="21.5" y="20" width="4.5" height="10" rx="2.25" fill="#ff4d6a" /><rect x="29" y="15.5" width="4.5" height="14.5" rx="2.25" fill="#ff4d6a" /></svg>
+          <span style="font-size:21px;font-weight:700;letter-spacing:-0.035em"><span style="color:#fff">Lingo</span><span style="color:#ff4d6a">Prep</span></span>
+        </div>
+        <span style="display:flex;align-items:center;gap:7px;font-size:13.5px;font-weight:700;color:#c9cfdd">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18" /></svg>
+          Pakistan
+        </span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:36px;padding:34px 0">
+        <div>
+          <div style="font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8b91a4;margin-bottom:16px">Practice IELTS</div>
+          <ul style="margin:0;padding:0 0 22px;list-style:none;display:flex;flex-direction:column;gap:12px;border-bottom:1px solid #2b3450">
+            <sc-for list="{{ footerSkills }}" as="i" hint-placeholder-count="4">
+              <li style="display:flex;align-items:center;gap:10px;font-size:14px;color:#c9cfdd;cursor:pointer" style-hover="color:#fff">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8b91a4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><sc-for list="{{ i.paths }}" as="p" hint-placeholder-count="2"><path d="{{ p }}"></path></sc-for></svg>
+                IELTS {{ i.label }}
+              </li>
+            </sc-for>
+          </ul>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:20px;font-size:14px;font-weight:700;color:#fff;cursor:pointer">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8b91a4" stroke-width="1.8"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1.5" /></svg>
+            Practice TOEFL instead
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8b91a4" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8b91a4;margin-bottom:16px">Platform</div>
+          <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px">
+            <li style="font-size:14px;color:#c9cfdd;cursor:pointer" style-hover="color:#fff">Your practice results</li>
+            <li style="font-size:14px;color:#c9cfdd;cursor:pointer" style-hover="color:#fff">Choose your exam</li>
+            <li style="font-size:14px;color:#c9cfdd;cursor:pointer" style-hover="color:#fff">How AI scoring works</li>
+            <li style="font-size:14px;color:#c9cfdd;cursor:pointer" style-hover="color:#fff">Band 1–9 explained</li>
+          </ul>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8b91a4;margin-bottom:16px">What this is</div>
+          <p style="font-size:14px;line-height:1.7;color:#c9cfdd">An independent, free practice platform. All four skills, instant AI-generated estimates, and no locked modules. Built as a final year project.</p>
+          <div style="display:flex;gap:10px;margin-top:18px">
+            <span style="width:36px;height:36px;border-radius:999px;background:#1f2742;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#c9cfdd;cursor:pointer" style-hover="background:#c8102e;color:#fff">f</span>
+            <span style="width:36px;height:36px;border-radius:999px;background:#1f2742;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#c9cfdd;cursor:pointer" style-hover="background:#c8102e;color:#fff">ig</span>
+            <span style="width:36px;height:36px;border-radius:999px;background:#1f2742;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#c9cfdd;cursor:pointer" style-hover="background:#c8102e;color:#fff">X</span>
+          </div>
+        </div>
+      </div>
+      <div style="border-top:1px solid #2b3450;padding-top:24px;display:flex;flex-direction:column;gap:16px">
+        <p style="font-size:12px;line-height:1.75;color:#787c8f">LingoPrep is an independent learning platform. IELTS® is a registered trademark of the University of Cambridge ESOL Examinations, the British Council and IDP Education Australia. TOEFL® and TOEFL iBT® are registered trademarks of Educational Testing Service (ETS). This platform is not endorsed by, affiliated with, or approved by any of these trademark owners. Practice scores are AI-generated estimates and are not official results.</p>
+        <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:12px;color:#787c8f">
+          <span>© 2026 LingoPrep. All rights reserved.</span>
+          <div style="display:flex;gap:18px"><span style="cursor:pointer">Legal notice</span><span style="cursor:pointer">Privacy policy</span><span style="cursor:pointer">Terms of use</span></div>
+        </div>
+      </div>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;layout&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;A&quot;,&quot;B&quot;],&quot;default&quot;:&quot;A&quot;,&quot;tsType&quot;:&quot;\&quot;A\&quot; | \&quot;B\&quot;&quot;,&quot;section&quot;:&quot;Illustrations&quot;},&quot;skill&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Reading&quot;,&quot;Listening&quot;,&quot;Writing&quot;,&quot;Speaking&quot;],&quot;default&quot;:&quot;Reading&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Illustrations&quot;}}">
+class Component extends DCLogic {
+  state = { skill: null };
+  data = {
+    Reading: {
+      title: "IELTS Reading Test", meta: "3 Passages · 40 Questions · 60 Minutes", subhead: "Exam Structure & Timing",
+      img: "illustrations/reading-2.svg", alt: "Student reading an IELTS passage with a magnifier",
+      bullets: [
+        { label: "Total Duration:", text: "60 Minutes. ONE continuous timer — the clock does not reset between passages." },
+        { label: "Passages:", text: "3 Passages of increasing academic complexity. Navigate freely between passages at any time." },
+        { label: "Questions:", text: "40 Questions across multiple question types — multiple choice, True/False/Not Given, matching, completion, tables, flow charts, and more." },
+        { label: "Scoring:", text: "1 mark per correct answer → converted to IELTS Band 0–9." }
+      ],
+      instructions: "Ensure you are in a quiet workspace. Once you click “Start Exam”, the countdown begins and cannot be paused. Read the texts carefully and answer the questions. You can navigate between all three passages while the timer continues. Good luck!"
+    },
+    Listening: {
+      title: "IELTS Listening Test", meta: "4 Sections · 40 Questions", subhead: "Exam Structure & Audio rules",
+      img: "illustrations/listening.svg", alt: "Student listening with headphones",
+      bullets: [
+        { label: "Audio Playback:", text: "Each recording is played exactly ONCE. Playback cannot be restarted once completed." },
+        { label: "Sections:", text: "4 distinct conversational and academic listening modules (40 questions total)." },
+        { label: "Review Period:", text: "A 2-minute review countdown begins automatically after all audios complete." },
+        { label: "Native Voice Output:", text: "Audio utilizes the browser Speech Synthesis engine. Make sure audio output is unmuted." }
+      ],
+      instructions: "Ensure your speakers/headphones are connected and set to a comfortable volume. Once you press “Start Exam”, the audio player interface will load."
+    },
+    Writing: {
+      title: "IELTS Writing Test", meta: "2 Tasks · 60 Minutes", subhead: "Exam Structure & Timing",
+      img: "illustrations/writing-2.svg", alt: "Student writing an IELTS essay with a checklist",
+      bullets: [
+        { label: "Total Duration:", text: "60 Minutes. ONE continuous timer covers both tasks." },
+        { label: "Task 1:", text: "Describe a chart, graph, table or process in at least 150 words. Aim for about 20 minutes." },
+        { label: "Task 2:", text: "Write an essay of at least 250 words in response to an argument or problem. Task 2 carries twice the weight of Task 1." },
+        { label: "Scoring:", text: "AI-estimated band against the four criteria — Task Achievement, Coherence & Cohesion, Lexical Resource, Grammatical Range & Accuracy." }
+      ],
+      instructions: "Ensure you are in a quiet workspace. Once you click “Start Exam”, the countdown begins and cannot be paused. Both tasks are open at once; manage your own time between them."
+    },
+    Speaking: {
+      title: "IELTS Speaking Test", meta: "3 Parts · 11–14 Minutes", subhead: "Exam Structure & Recording",
+      img: "illustrations/speaking-2.svg", alt: "Student speaking into a microphone",
+      bullets: [
+        { label: "Part 1:", text: "4–5 minutes of short questions about familiar topics such as home, work and studies." },
+        { label: "Part 2:", text: "A cue card topic with 1 minute to prepare, then speak for up to 2 minutes." },
+        { label: "Part 3:", text: "4–5 minutes of discussion on more abstract ideas linked to the Part 2 topic." },
+        { label: "Scoring:", text: "AI-estimated band for Fluency & Coherence, Lexical Resource, Grammatical Range & Accuracy, and Pronunciation." }
+      ],
+      instructions: "Allow microphone access when prompted and find a quiet room. Each answer is recorded once; you cannot re-record a response after it is submitted."
+    }
+  };
+  renderVals() {
+    const L = this.props.layout ?? "A";
+    const skill = this.state.skill || this.props.skill || "Reading";
+    const icons = {
+      Listening: ["M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"],
+      Reading: ["M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z", "M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"],
+      Writing: ["M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"],
+      Speaking: ["M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z", "M19 10v2a7 7 0 0 1-14 0v-2", "M12 19v3"]
+    };
+    const order = ["Listening", "Reading", "Writing", "Speaking"];
+    return {
+      isA: L !== "B",
+      isB: L === "B",
+      d: this.data[skill],
+      listMax: L === "B" ? "calc(100% - 200px)" : "100%",
+      tabs: order.map(k => ({
+        label: k, go: () => this.setState({ skill: k }),
+        style: { padding: "7px 14px", borderRadius: "999px", border: "1px solid " + (k === skill ? "#12172b" : "#e3e6ee"), background: k === skill ? "#12172b" : "#fff", color: k === skill ? "#fff" : "#4b5266", fontSize: "12.5px", fontWeight: 700 }
+      })),
+      footerSkills: order.map(k => ({ label: k, paths: icons[k] }))
+    };
+  }
+}
+</script>
+</body>
+</html>

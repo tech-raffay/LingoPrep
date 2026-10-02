@@ -10,12 +10,13 @@
  */
 
 import Icon from "@/components/brand/Icon";
+import Reveal from "@/components/brand/Reveal";
 
 export default function ExploreAll({ href }: { href: string }) {
   return (
     <section className="bg-n-0">
-      <div className="mx-auto max-w-[1200px] px-5 sm:px-7 pt-20 sm:pt-24 pb-24 sm:pb-28">
-        <div className="flex flex-col items-center text-center gap-4">
+      <div className="mx-auto max-w-[1200px] px-5 sm:px-7 pt-[70px] pb-[78px]">
+        <Reveal className="flex flex-col items-center text-center gap-4">
           <svg width="76" height="76" viewBox="0 0 76 76" fill="none" aria-hidden="true">
             <circle cx="38" cy="30" r="22" fill="var(--amber-100)" />
             <rect x="20" y="40" width="36" height="22" rx="4" fill="var(--ink)" />
@@ -38,12 +39,12 @@ export default function ExploreAll({ href }: { href: string }) {
           </p>
           <a
             href={href}
-            className="mt-1.5 inline-flex h-[50px] items-center gap-2 rounded-full border border-n-400 px-7 text-[15px] font-bold text-ink transition-[border-color,transform] duration-[120ms] hover:border-ink hover:-translate-y-0.5"
+            className="mt-1.5 inline-flex h-[50px] items-center gap-2 rounded-full border border-n-400 px-7 text-[15px] font-bold text-ink transition-[border-color,transform] duration-[120ms] hover:border-ink hover:text-ink hover:-translate-y-0.5"
           >
             Explore all preparation
             <Icon name="next" size={16} />
           </a>
-        </div>
+        </Reveal>
       </div>
     </section>
   );

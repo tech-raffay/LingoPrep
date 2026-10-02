@@ -19,10 +19,15 @@
  * real FAQ with real answers. The three stats are facts about the product, and
  * each card carries an answer instead of a reply count. If you build the forum
  * later, the original copy is in the design file.
+ *
+ * The top-right slot is the design's three-students illustration (variant A).
  */
 
 import { useState } from "react";
 import Icon from "@/components/brand/Icon";
+import Art from "@/components/brand/Art";
+import Reveal from "@/components/brand/Reveal";
+import { LANDING } from "@/lib/illustrations";
 
 const FACTS = [
   { value: "All 4", label: "Skills scored end to end" },
@@ -75,13 +80,13 @@ export default function Questions({ ctaHref }: { ctaHref: string }) {
 
   return (
     <section className="bg-n-0">
-      <div className="mx-auto max-w-[1200px] px-5 sm:px-7 pt-20 sm:pt-24">
-        <h2 className="flex items-center gap-3 text-[26px] sm:text-[32px] mb-6">
+      <div className="mx-auto max-w-[1200px] px-5 sm:px-7 pt-16">
+        <Reveal as="h2" className="flex items-center gap-3 text-[26px] sm:text-[32px] mb-6">
           <span className="w-[5px] h-[30px] rounded-full bg-amber-500" />
           Questions candidates ask
-        </h2>
+        </Reveal>
 
-        <div className="rounded-[26px] border border-amber-200 bg-amber-100 p-6 sm:p-10 flex flex-col gap-9">
+        <Reveal delay={90} className="rounded-[26px] border border-amber-200 bg-amber-100 p-6 sm:p-10 flex flex-col gap-9">
           {/* ── Top: copy + illustration ──────────────────────────────────── */}
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-10 items-center">
             <div className="flex flex-col gap-4">
@@ -108,7 +113,7 @@ export default function Questions({ ctaHref }: { ctaHref: string }) {
               <div className="pt-2">
                 <a
                   href={ctaHref}
-                  className="inline-flex h-[50px] items-center gap-2 rounded-full bg-accent px-7 text-[15px] font-bold text-accent-on shadow-accent transition-colors duration-[120ms] hover:bg-accent-strong"
+                  className="inline-flex h-[50px] items-center gap-2 rounded-full bg-accent px-7 text-[15px] font-bold text-accent-on shadow-accent transition-colors duration-[120ms] hover:bg-accent-strong hover:text-accent-on"
                 >
                   Start practicing
                   <Icon name="next" size={16} />
@@ -116,44 +121,12 @@ export default function Questions({ ctaHref }: { ctaHref: string }) {
               </div>
             </div>
 
-            {/* Illustration slot — composed from the two questions themselves */}
-            <div
-              className="relative min-h-[260px] rounded-[20px] overflow-hidden"
-              aria-hidden="true"
-              style={{
-                background:
-                  "linear-gradient(150deg, #ffe9c2, var(--amber-400))",
-              }}
-            >
-              <div
-                className="absolute inset-0"
-                style={{
-                  backgroundImage:
-                    "linear-gradient(rgb(255 255 255 / .4) 1px, transparent 1px)," +
-                    "linear-gradient(90deg, rgb(255 255 255 / .4) 1px, transparent 1px)",
-                  backgroundSize: "26px 26px",
-                }}
-              />
-              <div className="absolute top-8 left-8 right-20 rounded-[14px] bg-n-0 shadow-[0_14px_28px_rgb(120_80_10/0.16)] px-[18px] py-4">
-                <div className="text-[13px] font-bold text-ink mb-1.5">
-                  How do I stop running out of time in Reading?
-                </div>
-                <div className="text-[12px] font-bold text-n-500">
-                  Answered below
-                </div>
-              </div>
-              <div
-                className="absolute bottom-9 left-[76px] right-8 rounded-[14px] bg-n-0 shadow-[0_14px_28px_rgb(120_80_10/0.16)] px-[18px] py-4"
-                style={{ animation: "lp-float 7s ease-in-out infinite" }}
-              >
-                <div className="text-[13px] font-bold text-ink mb-1.5">
-                  Is a practice 7.0 the same as a real 7.0?
-                </div>
-                <div className="text-[12px] font-bold text-n-500">
-                  Short answer: no
-                </div>
-              </div>
-            </div>
+            <Art
+              art={LANDING.questions}
+              float
+              sizes="520px"
+              className="w-full max-w-[520px] justify-self-center"
+            />
           </div>
 
           {/* ── FAQ carousel ──────────────────────────────────────────────── */}
@@ -211,7 +184,7 @@ export default function Questions({ ctaHref }: { ctaHref: string }) {
               />
             </div>
           </div>
-        </div>
+        </Reveal>
       </div>
     </section>
   );

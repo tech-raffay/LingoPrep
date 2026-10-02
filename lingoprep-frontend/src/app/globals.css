@@ -61,6 +61,7 @@
      exam accents so it never reads as IELTS crimson or TOEFL blue. */
   --amber-50:  #FFFAF0;
   --amber-100: #FFF7EC;
+  --amber-150: #FFF1D6;   /* illustration grounds (self-assessment panel) */
   --amber-200: #F5E3C4;
   --amber-300: #F2D9A8;
   --amber-400: #F5C069;
@@ -172,6 +173,7 @@ html[data-theme-switching] *::after {
 
   --color-amber-50:  var(--amber-50);
   --color-amber-100: var(--amber-100);
+  --color-amber-150: var(--amber-150);
   --color-amber-200: var(--amber-200);
   --color-amber-300: var(--amber-300);
   --color-amber-400: var(--amber-400);
@@ -344,4 +346,44 @@ html[data-theme-switching] *::after {
   0%   { transform: scale(1.06) translate3d(0, 0, 0); }
   50%  { transform: scale(1.14) translate3d(-2%, -1.5%, 0); }
   100% { transform: scale(1.06) translate3d(0, 0, 0); }
+}
+@keyframes lp-orb-a {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(60px, 40px, 0) scale(1.15); }
+}
+@keyframes lp-orb-b {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1.1); }
+  50%      { transform: translate3d(-70px, -30px, 0) scale(.9); }
+}
+@keyframes lp-bob {
+  0%, 100% { translate: 0 0; }
+  50%      { translate: 0 -9px; }
+}
+
+/* ═══ Marketing motion — the design's motion.js, as CSS ═════════════════════
+   .lp-reveal  rises and un-blurs once, when <Reveal> sees it on screen.
+   .lp-float   slow bob for illustrations. Uses `translate`, not `transform`,
+               so it composes with hover transforms on the same element.
+   Both are opt-in and used only on marketing pages and test intros — never
+   inside an active test (§11).
+   ═══════════════════════════════════════════════════════════════════════ */
+.lp-reveal {
+  opacity: 0;
+  transform: translateY(26px);
+  filter: blur(6px);
+  transition:
+    opacity .9s cubic-bezier(.2, .7, .2, 1),
+    transform .9s cubic-bezier(.2, .7, .2, 1),
+    filter .9s cubic-bezier(.2, .7, .2, 1);
+}
+.lp-reveal.is-in {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+.lp-float { animation: lp-bob 6.5s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-reveal { opacity: 1; transform: none; filter: none; }
+  .lp-float  { animation: none; }
 }

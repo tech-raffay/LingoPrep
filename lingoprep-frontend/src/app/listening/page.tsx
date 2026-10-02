@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
+import TestIntro from "@/components/test/TestIntro";
 import { useExam } from "@/components/theme/ExamThemeProvider";
 
 interface Option {
@@ -334,67 +335,26 @@ export default function ListeningPage() {
   // 1. Welcome / Instructions Screen
   if (!isTestStarted && !submitted) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-12">
-        <div className="bg-white border border-[#e0e0e0] rounded-2xl shadow-sm overflow-hidden">
-          <div className="p-6 sm:p-10 border-b border-[#f0f0f0]" style={{ backgroundColor: theme.colorLight }}>
-            <span className="px-3 py-1 text-[11px] font-extrabold uppercase rounded-full text-white tracking-wider" style={{ backgroundColor: theme.color }}>
-              {theme.name} Academic
-            </span>
-            <h1 className="text-[26px] sm:text-[32px] font-bold text-slate-900 mt-3">{theme.name} Listening Test</h1>
-            <p className="text-[14px] text-slate-600 mt-1">
-              {examType === "toefl" ? "1 Conversation + 2 Academic Lectures · 17 Questions" : "4 sections · 40-question listening practice simulation"}
-            </p>
-          </div>
-
-          <div className="p-6 sm:p-10 space-y-6">
-            <div>
-              <h2 className="text-[16px] font-bold text-slate-800 mb-3">Exam Structure & Audio rules</h2>
-              <ul className="space-y-3 text-[14px] text-slate-600">
-                <li className="flex items-start gap-2.5">
-                  <svg className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  <span><strong>Audio Playback:</strong> Each recording is played exactly ONCE. Playback cannot be restarted once completed.</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <svg className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  <span><strong>Sections:</strong> 4 distinct conversational and academic listening modules (40 questions total).</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <svg className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  <span><strong>Review Period:</strong> A 2-minute review countdown begins automatically after all audios complete.</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <svg className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  <span><strong>Native Voice Output:</strong> Audio utilizes the browser Speech Synthesis engine. Make sure audio output is unmuted.</span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 text-[13px] text-slate-500 leading-relaxed">
-              <strong>Instructions:</strong> Ensure your speakers/headphones are connected and set to a comfortable volume. Once you press "Start Exam", the audio player interface will load.
-            </div>
-
-            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-              <button
-                onClick={() => router.push("/")}
-                className="px-5 py-2.5 border border-slate-300 text-slate-700 font-semibold text-[13px] rounded-full hover:bg-slate-50 transition-colors"
-              >
-                Back to Dashboard
-              </button>
-              <button
-                onClick={() => {
-                  setIsTestStarted(true);
-                  // Trigger voices pre-loading for browser speech synthesis
-                  window.speechSynthesis.getVoices();
-                }}
-                className="px-6 py-2.5 text-white font-semibold text-[13px] rounded-full hover:shadow transition-all"
-                style={{ backgroundColor: theme.color }}
-              >
-                Start Exam
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <TestIntro
+        skill="listening"
+        title={`${theme.name} Listening Test`}
+        meta={examType === "toefl" ? "1 Conversation + 2 Academic Lectures · 17 Questions" : "4 Sections · 40 Questions"}
+        subhead="Exam structure & audio rules"
+        points={[
+          { label: "Audio playback:", text: "Each recording is played exactly ONCE. Playback cannot be restarted once completed." },
+          examType === "toefl"
+            ? { label: "Recordings:", text: "One campus conversation and two academic lectures (17 questions total)." }
+            : { label: "Sections:", text: "4 distinct conversational and academic listening modules (40 questions total)." },
+          { label: "Review period:", text: "A 2-minute review countdown begins automatically after all audios complete." },
+          { label: "Native voice output:", text: "Audio uses the browser's Speech Synthesis engine. Make sure audio output is unmuted." },
+        ]}
+        instructions={<>Ensure your speakers or headphones are connected and set to a comfortable volume. Once you press &ldquo;Start exam&rdquo;, the audio player interface will load.</>}
+        onStart={() => {
+          setIsTestStarted(true);
+          // Trigger voices pre-loading for browser speech synthesis
+          window.speechSynthesis.getVoices();
+        }}
+      />
     );
   }
 

@@ -19,6 +19,7 @@
  */
 
 import Icon, { type IconName } from "@/components/brand/Icon";
+import Reveal from "@/components/brand/Reveal";
 
 interface Row {
   title: string;
@@ -77,20 +78,20 @@ export default function StartHere({
 
   return (
     <section className="bg-n-0">
-      <div className="mx-auto max-w-[1200px] px-5 sm:px-7 pt-20 sm:pt-24">
-        <h2 className="flex items-center gap-3 text-[26px] sm:text-[32px] mb-6">
+      <div className="mx-auto max-w-[1200px] px-5 sm:px-7 pt-16">
+        <Reveal as="h2" className="flex items-center gap-3 text-[26px] sm:text-[32px] mb-6">
           <span className="w-[5px] h-[30px] rounded-full bg-accent" />
           New to IELTS or TOEFL? Start here
-        </h2>
+        </Reveal>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {rows.map((r) => (
+          {rows.map((r, i) => (
+            <Reveal key={r.title} delay={(i % 3) * 110} className="flex">
             <a
-              key={r.title}
               href={r.href}
-              className="group flex items-start gap-4 rounded-card border border-n-300 bg-n-0 px-5 py-5
+              className="group flex-1 flex items-start gap-4 rounded-card border border-n-300 bg-n-0 px-5 py-5
                          transition-[border-color,transform,box-shadow] duration-200
-                         hover:border-accent hover:-translate-y-0.5 hover:shadow-[0_16px_34px_rgb(18_23_43/0.1)]"
+                         hover:border-accent hover:-translate-y-[3px] hover:shadow-[0_16px_34px_rgb(18_23_43/0.1)]"
             >
               <span className="w-11 h-11 rounded-xl bg-accent-tint text-accent flex items-center justify-center shrink-0">
                 <Icon name={r.icon} size={24} />
@@ -109,6 +110,7 @@ export default function StartHere({
                 className="text-n-500 shrink-0 mt-3 transition-transform duration-[120ms] group-hover:translate-x-0.5"
               />
             </a>
+            </Reveal>
           ))}
         </div>
       </div>

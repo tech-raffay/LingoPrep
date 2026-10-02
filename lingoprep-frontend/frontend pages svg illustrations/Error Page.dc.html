@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@500;600;700;800;900&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#fff;color:#12172b;font-family:'proxima-nova','Proxima Nova','Figtree',system-ui,sans-serif;font-weight:500;-webkit-font-smoothing:antialiased}
+  h1,h2,h3,h4{margin:0;font-weight:700;letter-spacing:-0.025em;line-height:1.18}
+  p{margin:0}
+  a{color:#c8102e;text-decoration:none}
+  a:hover{color:#96091f}
+  button{font-family:inherit;cursor:pointer}
+</style>
+<script src="motion.js"></script>
+</helmet>
+<div style="min-height:100%;display:flex;flex-direction:column;background:#fff">
+  <nav style="position:sticky;top:0;z-index:50;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);border-bottom:1px solid #eef0f5">
+    <div style="max-width:1200px;margin:0 auto;padding:0 28px;height:68px;display:flex;align-items:center;justify-content:space-between;gap:20px">
+      <a href="LingoPrep Home.dc.html" style="display:flex;align-items:center;gap:9px;flex-shrink:0">
+        <svg width="30" height="30" viewBox="0 0 48 48" fill="none"><rect x="4" y="6" width="40" height="30" rx="10" stroke="#c8102e" stroke-width="3.4"></rect><path d="M16 34v10l11-9" fill="#c8102e"></path><rect x="14" y="24" width="4.5" height="6" rx="2.25" fill="#c8102e"></rect><rect x="21.5" y="20" width="4.5" height="10" rx="2.25" fill="#c8102e"></rect><rect x="29" y="15.5" width="4.5" height="14.5" rx="2.25" fill="#c8102e"></rect></svg>
+        <span style="font-size:21px;font-weight:700;letter-spacing:-0.035em"><span style="color:#12172b">Lingo</span><span style="color:#c8102e">Prep</span></span>
+      </a>
+      <div style="display:flex;align-items:center;gap:24px;flex-shrink:0">
+        <span style="font-size:14px;font-weight:700;color:#333b52;cursor:pointer;white-space:nowrap" style-hover="color:#c8102e">Your results</span>
+        <span style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:700;color:#333b52;cursor:pointer" style-hover="color:#c8102e">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          Sign in
+        </span>
+        <button style="padding:11px 22px;border:none;border-radius:999px;background:#c8102e;color:#fff;font-size:14px;font-weight:700;white-space:nowrap;box-shadow:0 4px 14px rgba(200,16,46,.26)" style-hover="background:#96091f">Start free</button>
+      </div>
+    </div>
+  </nav>
+
+  <section style="position:relative;overflow:hidden;background:linear-gradient(110deg,#fef2f4 0%,#fff 48%,#f6f7fa 100%);border-bottom:1px solid #eef0f5">
+    <div style="position:relative;max-width:1200px;margin:0 auto;padding:84px 28px 80px;display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center">
+      <h1 style="font-size:48px;color:#12172b">{{ e.title }}</h1>
+      <div style="display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700;color:#4b5266">
+        <a href="LingoPrep Home.dc.html" style="color:#4b5266" style-hover="color:#c8102e">Home</a>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8b91a4" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        <span style="color:#c8102e">{{ e.crumb }}</span>
+      </div>
+    </div>
+    
+    
+  </section>
+
+  <main style="flex:1">
+    <div style="max-width:1200px;margin:0 auto;padding:80px 28px 96px;display:flex;flex-direction:column;align-items:center;text-align:center">
+      <div style="position:relative;display:flex;align-items:center;justify-content:center;gap:clamp(4px,1.5vw,18px);margin-bottom:46px">
+        <span style="font-size:clamp(120px,19vw,230px);font-weight:900;line-height:.9;letter-spacing:-0.06em;color:#c8102e">{{ e.d1 }}</span>
+        <div style="position:relative;width:clamp(150px,22vw,270px);aspect-ratio:1;border-radius:999px;background:#fef2f4;border:1px solid #f6e3e6;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <img src="illustrations/beginner-map.svg" alt="Student holding a map, looking for the way" style="width:98%;height:auto;display:block">
+          <span style="position:absolute;top:-6px;left:50%;transform:translateX(-50%);padding:6px 14px;border-radius:999px;background:#12172b;color:#fff;font-size:12px;font-weight:700;letter-spacing:.14em;white-space:nowrap">{{ e.tag }}</span>
+        </div>
+        <span style="font-size:clamp(120px,19vw,230px);font-weight:900;line-height:.9;letter-spacing:-0.06em;color:#c8102e">{{ e.d3 }}</span>
+      </div>
+      <h2 style="font-size:36px;margin-bottom:14px">{{ e.heading }}</h2>
+      <p style="font-size:17px;line-height:1.75;color:#4b5266;max-width:34rem;text-wrap:pretty;margin-bottom:32px">{{ e.body }}</p>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center">
+        <a href="LingoPrep Home.dc.html" style="display:flex;align-items:center;gap:9px;padding:15px 28px;border-radius:999px;background:#c8102e;color:#fff;font-size:15px;font-weight:700;box-shadow:0 8px 20px rgba(200,16,46,.24);transition:transform .2s ease,background .2s ease" style-hover="background:#96091f;color:#fff;transform:translateY(-2px)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+          Back to homepage
+        </a>
+        <a href="{{ e.altHref }}" style="display:flex;align-items:center;gap:9px;padding:15px 28px;border-radius:999px;border:1px solid #c9cfdd;background:#fff;color:#12172b;font-size:15px;font-weight:700;transition:transform .2s ease,border-color .2s ease" style-hover="border-color:#12172b;color:#12172b;transform:translateY(-2px)">{{ e.alt }}</a>
+      </div>
+    </div>
+  </main>
+
+  <footer style="background:#12172b;color:#fff">
+    <div style="max-width:1200px;margin:0 auto;padding:56px 28px 40px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;padding-bottom:26px;border-bottom:1px solid #2b3450">
+        <div style="display:flex;align-items:center;gap:9px">
+          <svg width="30" height="30" viewBox="0 0 48 48" fill="none"><rect x="4" y="6" width="40" height="30" rx="10" stroke="#fff" stroke-width="3.4"></rect><path d="M16 34v10l11-9" fill="#ff4d6a"></path><rect x="14" y="24" width="4.5" height="6" rx="2.25" fill="#ff4d6a"></rect><rect x="21.5" y="20" width="4.5" height="10" rx="2.25" fill="#ff4d6a"></rect><rect x="29" y="15.5" width="4.5" height="14.5" rx="2.25" fill="#ff4d6a"></rect></svg>
+          <span style="font-size:21px;font-weight:700;letter-spacing:-0.035em"><span style="color:#fff">Lingo</span><span style="color:#ff4d6a">Prep</span></span>
+        </div>
+        <span style="display:flex;align-items:center;gap:7px;font-size:13.5px;font-weight:700;color:#c9cfdd">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18"></path></svg>
+          Pakistan
+        </span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:36px;padding:34px 0">
+        <div>
+          <div style="font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8b91a4;margin-bottom:16px">Practice IELTS</div>
+          <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px">
+            <li style="font-size:14px;color:#c9cfdd;cursor:pointer" style-hover="color:#fff">IELTS Listening</li>
+            <li style="font-size:14px;color:#c9cfdd;cursor:pointer" style-hover="color:#fff">IELTS Reading</li>
+            <li style="font-size:14px;color:#c9cfdd;cursor:pointer" style-hover="color:#fff">IELTS Writing</li>
+            <li style="font-size:14px;color:#c9cfdd;cursor:pointer" style-hover="color:#fff">IELTS Speaking</li>
+          </ul>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8b91a4;margin-bottom:16px">Platform</div>
+          <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px">
+            <li style="font-size:14px;color:#c9cfdd;cursor:pointer" style-hover="color:#fff">Your practice results</li>
+            <li style="font-size:14px;color:#c9cfdd;cursor:pointer" style-hover="color:#fff">Choose your exam</li>
+            <li style="font-size:14px;color:#c9cfdd;cursor:pointer" style-hover="color:#fff">How AI scoring works</li>
+            <li style="font-size:14px;color:#c9cfdd;cursor:pointer" style-hover="color:#fff">Band 1–9 explained</li>
+          </ul>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8b91a4;margin-bottom:16px">What this is</div>
+          <p style="font-size:14px;line-height:1.7;color:#c9cfdd">An independent, free practice platform. All four skills, instant AI-generated estimates, and no locked modules. Built as a final year project.</p>
+        </div>
+      </div>
+      <div style="border-top:1px solid #2b3450;padding-top:24px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:12px;color:#787c8f">
+        <span>© 2026 LingoPrep. All rights reserved.</span>
+        <div style="display:flex;gap:18px"><span style="cursor:pointer">Legal notice</span><span style="cursor:pointer">Privacy policy</span><span style="cursor:pointer">Terms of use</span></div>
+      </div>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;errorType&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;404&quot;,&quot;500&quot;,&quot;403&quot;],&quot;default&quot;:&quot;404&quot;,&quot;tsType&quot;:&quot;\&quot;404\&quot; | \&quot;500\&quot; | \&quot;403\&quot;&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const t = this.props.errorType ?? "404";
+    const all = {
+      "404": { title: "404: Page not found", crumb: "Error 404", d1: "4", d3: "4", tag: "LOST?", heading: "404 error", body: "The page you are looking for does not exist or has moved. Head back to the homepage or pick a skill to practise.", alt: "Browse practice tests", altHref: "IELTS Practice Tests.dc.html" },
+      "500": { title: "500: Something went wrong", crumb: "Error 500", d1: "5", d3: "0", tag: "OOPS", heading: "500 error", body: "Something broke on our side. Your progress is saved. Try again in a moment.", alt: "Try again", altHref: "#" },
+      "403": { title: "403: Access denied", crumb: "Error 403", d1: "4", d3: "3", tag: "LOCKED", heading: "403 error", body: "You need to be signed in to view this page. Sign in to see your results and continue practising.", alt: "Sign in", altHref: "#" }
+    };
+    return { e: all[t] || all["404"] };
+  }
+}
+</script>
+</body>
+</html>
