@@ -92,16 +92,14 @@ export default function ExamFeel({
                 className="absolute inset-0 w-full h-full object-cover"
               />
             ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3.5 text-center p-8">
-                <Icon name="playCircle" size={32} className="text-white/80" />
-                <div className="text-[14px] font-bold text-white/90">
-                  Video placeholder
-                </div>
-                <div className="text-[13px] leading-[1.6] text-white/60 max-w-[20rem]">
-                  Drop in the clip of a student working through a test at their
-                  screen. It fills this whole panel.
-                </div>
-              </div>
+              /* SVG illustration shown while there is no walkthrough clip */
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src="/illustrations/ielts-hero.svg"
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 w-full h-full object-contain p-6"
+              />
             )}
           </div>
 

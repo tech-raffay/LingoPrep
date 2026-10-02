@@ -26,28 +26,37 @@ export default function FreeForever({ ctaHref }: { ctaHref: string }) {
     <section className="bg-n-0">
       <div className="mx-auto max-w-[1200px] px-5 sm:px-7 pt-20 sm:pt-24">
         <div className="grid lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] rounded-feature border border-n-300 overflow-hidden">
-          {/* ── Image slot ────────────────────────────────────────────────── */}
+          {/* ── Illustration ────────────────────────────────────────────── */}
           <div
-            className="relative min-h-[300px] flex items-end p-8"
+            className="relative min-h-[300px] flex items-center justify-center overflow-hidden"
             style={{ background: "linear-gradient(160deg, #12172b, #1f2742)" }}
           >
             <div
-              className="absolute inset-0"
+              className="absolute inset-0 pointer-events-none"
               aria-hidden="true"
               style={{
                 backgroundImage:
-                  "radial-gradient(rgb(255 255 255 / .08) 1.1px, transparent 1.1px)",
+                  "radial-gradient(rgb(255 255 255 / .06) 1.1px, transparent 1.1px)",
                 backgroundSize: "20px 20px",
               }}
             />
-            <div className="relative flex flex-col gap-3.5">
+            {/* Free forever badge — kept from original design */}
+            <div className="absolute top-7 left-7 flex flex-col gap-3">
               <span className="self-start rounded-full bg-amber-500 px-3 py-1.5 text-[11.5px] font-bold uppercase tracking-[.1em] text-ink">
                 Free forever
               </span>
-              <div className="text-[24px] sm:text-[26px] font-bold leading-[1.3] text-white max-w-[16rem]">
-                Every module unlocked, for every candidate
+              <div className="text-[22px] font-bold leading-[1.3] text-white max-w-[14rem]">
+                Every module unlocked
               </div>
             </div>
+            {/* SVG illustration — person speaking confidently */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/illustrations/speaking-person.svg"
+              alt=""
+              className="relative w-full max-w-[280px] h-auto object-contain mt-8"
+              aria-hidden="true"
+            />
           </div>
 
           {/* ── Copy ──────────────────────────────────────────────────────── */}

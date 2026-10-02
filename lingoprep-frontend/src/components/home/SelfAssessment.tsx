@@ -57,61 +57,32 @@ export default function SelfAssessment({ ctaHref }: { ctaHref: string }) {
             </div>
           </div>
 
-          {/* ── Illustration slot ─────────────────────────────────────────── */}
+          {/* ── Illustration ──────────────────────────────────────────────── */}
           <div
-            className="relative min-h-[320px] overflow-hidden"
+            className="relative min-h-[320px] overflow-hidden flex items-center justify-center"
             style={{
               background:
-                "linear-gradient(150deg, var(--amber-400), var(--amber-500) 55%, var(--amber-600))",
+                "linear-gradient(150deg, var(--amber-50), var(--amber-100) 60%, var(--amber-200))",
             }}
             aria-hidden="true"
           >
+            {/* subtle dot texture */}
             <div
-              className="absolute inset-0"
+              className="absolute inset-0 pointer-events-none"
               style={{
                 backgroundImage:
-                  "radial-gradient(rgb(255 255 255 / .35) 1.4px, transparent 1.4px)",
+                  "radial-gradient(rgb(180 119 13 / .15) 1.4px, transparent 1.4px)",
                 backgroundSize: "22px 22px",
               }}
             />
-
-            {/* Floating bar-chart card */}
-            <div
-              className="absolute top-11 left-11 w-[124px] h-[88px] rounded-[14px] bg-white/95 shadow-[0_12px_26px_rgb(120_60_0/0.18)] p-3.5 flex items-end gap-2"
-              style={{ animation: "lp-float 6s ease-in-out infinite" }}
-            >
-              <div className="flex-1 h-[34%] rounded bg-amber-500" />
-              <div className="flex-1 h-[62%] rounded bg-amber-600" />
-              <div className="flex-1 h-[88%] rounded bg-accent" />
-              <div className="flex-1 h-[50%] rounded bg-amber-400" />
-            </div>
-
-            {/* Floating progress ring */}
-            <div
-              className="absolute top-16 right-14 w-[104px] h-[104px] rounded-full shadow-[0_12px_26px_rgb(120_60_0/0.18)] flex items-center justify-center"
-              style={{
-                background:
-                  "conic-gradient(var(--accent) 0 62%, rgb(255 255 255 / .92) 62% 100%)",
-                animation: "lp-float 7.5s ease-in-out infinite",
-              }}
-            >
-              <div className="w-[62px] h-[62px] rounded-full bg-amber-50 flex items-center justify-center text-[17px] font-bold tabular-nums text-ink">
-                62%
-              </div>
-            </div>
-
-            {/* Suggested focus card */}
-            <div className="absolute bottom-10 left-14 right-14 rounded-[14px] bg-white/95 shadow-[0_12px_26px_rgb(120_60_0/0.18)] px-[18px] py-4">
-              <div className="t-label text-n-500 mb-2">Suggested focus</div>
-              <div className="flex gap-2.5 flex-wrap">
-                <span className="rounded-full bg-accent-tint px-3 py-1.5 text-[12.5px] font-bold text-accent-on-tint">
-                  Listening · Part 3
-                </span>
-                <span className="rounded-full bg-n-100 px-3 py-1.5 text-[12.5px] font-bold text-n-700">
-                  Writing Task 2
-                </span>
-              </div>
-            </div>
+            {/* SVG illustration — person writing at a large piece of paper */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/illustrations/writing-person-2.svg"
+              alt=""
+              className="relative w-full max-w-[340px] h-auto object-contain drop-shadow-lg"
+              style={{ animation: "lp-float 7s ease-in-out infinite" }}
+            />
           </div>
         </div>
       </div>

@@ -21,9 +21,11 @@ interface Article {
   excerpt: string;
   readTime: string;
   icon: IconName;
-  /** Tint used for the striped thumbnail and the category chip. */
+  /** Tint used for the category chip. */
   tone: string;
   ink: string;
+  /** SVG illustration path (relative to /public). Null = use icon fallback. */
+  illustration: string | null;
 }
 
 const ARTICLES: Article[] = [
@@ -36,6 +38,7 @@ const ARTICLES: Article[] = [
     icon: "schedule",
     tone: "var(--accent-tint)",
     ink: "var(--accent-on-tint)",
+    illustration: "/illustrations/reading-person.svg",
   },
   {
     category: "Test format",
@@ -46,6 +49,7 @@ const ARTICLES: Article[] = [
     icon: "monitor",
     tone: "var(--info-tint)",
     ink: "var(--info)",
+    illustration: "/illustrations/listening-person.svg",
   },
   {
     category: "Results",
@@ -56,6 +60,7 @@ const ARTICLES: Article[] = [
     icon: "report",
     tone: "var(--amber-100)",
     ink: "var(--amber-ink)",
+    illustration: "/illustrations/writing-person.svg",
   },
   {
     category: "Practice",
@@ -66,6 +71,7 @@ const ARTICLES: Article[] = [
     icon: "progress",
     tone: "var(--success-tint)",
     ink: "var(--success)",
+    illustration: "/illustrations/students-group.svg",
   },
 ];
 
@@ -95,19 +101,31 @@ export default function Library({ href }: { href: string }) {
                          transition-[transform,box-shadow] duration-200
                          hover:-translate-y-1 hover:shadow-[0_20px_44px_rgb(18_23_43/0.12)]"
             >
-              {/* Image slot — replace with a real 4:3 asset when available */}
+              {/* Thumbnail — SVG illustration or icon fallback */}
               <div
-                className="h-[150px] flex items-center justify-center border-b border-n-200"
+                className="h-[160px] flex items-center justify-center border-b border-n-200 overflow-hidden"
                 style={{
-                  background: `repeating-linear-gradient(135deg, ${a.tone}, ${a.tone} 10px, #ffffff 10px, #ffffff 20px)`,
+                  background: a.illustration
+                    ? `linear-gradient(135deg, color-mix(in srgb, ${a.tone} 80%, white), white)`
+                    : `repeating-linear-gradient(135deg, ${a.tone}, ${a.tone} 10px, #ffffff 10px, #ffffff 20px)`,
                 }}
               >
-                <span
-                  className="w-14 h-14 rounded-2xl bg-n-0/90 flex items-center justify-center shadow-e1"
-                  style={{ color: a.ink }}
-                >
-                  <Icon name={a.icon} size={24} />
-                </span>
+                {a.illustration ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={a.illustration}
+                    alt=""
+                    aria-hidden="true"
+                    className="h-full w-auto max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
+                  />
+                ) : (
+                  <span
+                    className="w-14 h-14 rounded-2xl bg-n-0/90 flex items-center justify-center shadow-e1"
+                    style={{ color: a.ink }}
+                  >
+                    <Icon name={a.icon} size={24} />
+                  </span>
+                )}
               </div>
 
               <div className="p-5 flex flex-col gap-2.5 flex-1">

@@ -51,15 +51,32 @@ export default function ChoosePath() {
         </p>
 
         <div className="grid gap-6 sm:grid-cols-2">
-          {(["ielts", "toefl"] as ExamType[]).map((id) => {
+          {([["ielts", "/illustrations/students-group-2.svg"], ["toefl", "/illustrations/student-map.svg"]] as [ExamType, string][]).map(([id, illustration]) => {
             const t = EXAM_THEMES[id];
             return (
               <div
                 key={id}
-                className="group flex flex-col rounded-[22px] border border-n-300 bg-n-0 p-7 sm:p-[30px]
+                className="group flex flex-col rounded-[22px] border border-n-300 bg-n-0 overflow-hidden
                            transition-[transform,box-shadow] duration-200
                            hover:-translate-y-1 hover:shadow-[0_20px_44px_rgb(18_23_43/0.11)]"
               >
+                {/* Illustration banner */}
+                <div
+                  className="h-[160px] flex items-center justify-center overflow-hidden border-b border-n-200"
+                  style={{
+                    background: `linear-gradient(135deg, color-mix(in srgb, ${t.accent}22, white) 0%, white 100%)`,
+                  }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={illustration}
+                    alt=""
+                    aria-hidden="true"
+                    className="h-full w-auto max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
+                  />
+                </div>
+
+                <div className="p-7 sm:p-[30px] flex flex-col flex-1">
                 <div className="flex items-center gap-3.5 mb-4.5">
                   {/* Identity swatch — the one correct use of a fixed exam
                       colour, because it labels the choice itself. */}
@@ -108,6 +125,7 @@ export default function ChoosePath() {
                   Start {t.name} practice
                   <Icon name="next" size={16} />
                 </a>
+                </div>
               </div>
             );
           })}
