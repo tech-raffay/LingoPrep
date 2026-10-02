@@ -125,19 +125,8 @@ export default function Hero() {
             </ul>
           </div>
 
-          {/* ── Score card + illustration ─────────────────────────────────── */}
-          <div className="relative flex items-center justify-center">
-            {/* Floating decorative illustration — sits behind the card */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/illustrations/reading-person-2.svg"
-              alt=""
-              aria-hidden="true"
-              className="absolute -right-8 -bottom-8 w-[200px] h-auto object-contain opacity-90 pointer-events-none select-none hidden lg:block"
-              style={{ animation: "lp-float 9s ease-in-out infinite" }}
-            />
-
-            <div className="relative rounded-[22px] border border-n-300 bg-n-0 p-6 sm:p-7 shadow-[0_22px_50px_rgb(18_23_43/0.09)] w-full">
+          {/* ── Sample score report ───────────────────────────────────────── */}
+          <div className="rounded-[22px] border border-n-300 bg-n-0 p-6 sm:p-7 shadow-[0_22px_50px_rgb(18_23_43/0.09)]">
             <div className="flex items-center justify-between gap-3 mb-6">
               <span className="flex items-center gap-2 t-label text-n-500 text-[11px] sm:text-[12px] whitespace-nowrap">
                 <Icon name="report" size={16} />
@@ -200,7 +189,6 @@ export default function Hero() {
               An illustration of the report you receive. Practice scores are
               AI-generated estimates, not official results.
             </p>
-          </div>
           </div>
         </div>
       </div>

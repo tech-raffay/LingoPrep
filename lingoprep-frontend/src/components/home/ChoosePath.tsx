@@ -51,7 +51,7 @@ export default function ChoosePath() {
         </p>
 
         <div className="grid gap-6 sm:grid-cols-2">
-          {([["ielts", "/illustrations/students-group-2.svg"], ["toefl", "/illustrations/student-map.svg"]] as [ExamType, string][]).map(([id, illustration]) => {
+          {([["ielts", "/illustrations/speaking-person-2.svg"], ["toefl", "/illustrations/ielts-hero-2.svg"]] as [ExamType, string][]).map(([id, illustration]) => {
             const t = EXAM_THEMES[id];
             return (
               <div

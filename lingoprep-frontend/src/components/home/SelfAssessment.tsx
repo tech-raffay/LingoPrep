@@ -24,14 +24,34 @@ export default function SelfAssessment({ ctaHref }: { ctaHref: string }) {
   return (
     <section className="bg-n-0">
       <div className="mx-auto max-w-[1200px] px-5 sm:px-7 pt-20 sm:pt-24">
-        <div className="grid lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] rounded-feature border border-amber-300 bg-amber-50 overflow-hidden">
+        <div className="relative rounded-feature border border-amber-300 bg-amber-50 overflow-hidden">
+          {/* Dot texture over full card */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            aria-hidden="true"
+            style={{
+              backgroundImage:
+                "radial-gradient(rgb(180 119 13 / .13) 1.4px, transparent 1.4px)",
+              backgroundSize: "22px 22px",
+            }}
+          />
+
+          {/* SVG floated to the right — hidden on small screens */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/illustrations/writing-person-2.svg"
+            alt=""
+            aria-hidden="true"
+            className="absolute bottom-0 right-0 h-full max-h-[340px] w-auto object-contain pointer-events-none select-none hidden lg:block"
+          />
+
           {/* ── Copy ──────────────────────────────────────────────────────── */}
-          <div className="p-8 sm:p-10 flex flex-col gap-4 justify-center">
+          <div className="relative p-8 sm:p-10 lg:pr-[340px] flex flex-col gap-4 justify-center min-h-[280px]">
             <Icon name="sparkle" size={32} className="text-amber-500" />
             <h2 className="text-[28px] sm:text-[34px] text-ink">
               English self-assessment tool
             </h2>
-            <p className="text-[15.5px] leading-[1.72] text-amber-800">
+            <p className="text-[15.5px] leading-[1.72] text-amber-800 max-w-[30rem]">
               Not sure where to start? Answer twelve short questions and get an
               estimated starting band, the two skills holding your score back,
               and a practice plan for your first week.
@@ -55,34 +75,6 @@ export default function SelfAssessment({ ctaHref }: { ctaHref: string }) {
                 <Icon name="next" size={16} />
               </a>
             </div>
-          </div>
-
-          {/* ── Illustration ──────────────────────────────────────────────── */}
-          <div
-            className="relative min-h-[320px] overflow-hidden flex items-center justify-center"
-            style={{
-              background:
-                "linear-gradient(150deg, var(--amber-50), var(--amber-100) 60%, var(--amber-200))",
-            }}
-            aria-hidden="true"
-          >
-            {/* subtle dot texture */}
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                backgroundImage:
-                  "radial-gradient(rgb(180 119 13 / .15) 1.4px, transparent 1.4px)",
-                backgroundSize: "22px 22px",
-              }}
-            />
-            {/* SVG illustration — person writing at a large piece of paper */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/illustrations/writing-person-2.svg"
-              alt=""
-              className="relative w-full max-w-[340px] h-auto object-contain drop-shadow-lg"
-              style={{ animation: "lp-float 7s ease-in-out infinite" }}
-            />
           </div>
         </div>
       </div>
