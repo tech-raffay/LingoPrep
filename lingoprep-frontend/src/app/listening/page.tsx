@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import TestIntro from "@/components/test/TestIntro";
+import ScoreReport, { type ReviewSection } from "@/components/test/ScoreReport";
 import { useExam } from "@/components/theme/ExamThemeProvider";
 
 interface Option {
@@ -34,7 +34,6 @@ interface AudioExercise {
 
 
 export default function ListeningPage() {
-  const router = useRouter();
   // Exam theme comes from the shared provider (src/lib/exam.ts), never a
   // local copy — see brand book §07: one accent token, set in one place.
   const { exam: examType, theme: examTheme } = useExam();
@@ -70,9 +69,9 @@ export default function ListeningPage() {
   const [correctCount, setCorrectCount] = useState<number | null>(null);
   const [scorePercentage, setScorePercentage] = useState<number | null>(null);
   const [dbResults, setDbResults] = useState<any[] | null>(null);
+  // Backend-confirmed: this attempt is now in the candidate's Results page.
+  const [saved, setSaved] = useState<boolean | undefined>(undefined);
 
-  // Show transcripts in review mode
-  const [showTranscript, setShowTranscript] = useState<Record<number, boolean>>({});
   
   const questionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -240,8 +239,10 @@ export default function ListeningPage() {
       setScorePercentage(res.data.score_percentage);
       setBandScore(res.data.band_score);
       setDbResults(res.data.results);
+      setSaved(typeof res.data.saved === "boolean" ? res.data.saved : undefined);
       setSubmitted(true);
       setIsReviewPeriod(false);
+      window.scrollTo({ top: 0 });
     } catch (err) {
       console.error("Listening submission error:", err);
       setError("Failed to submit answers. Please try again.");
@@ -267,6 +268,7 @@ export default function ListeningPage() {
     setCorrectCount(null);
     setBandScore(null);
     setDbResults(null);
+    setSaved(undefined);
     setIsReviewPeriod(false);
     setReviewTimeLeft(120);
     setPlayedSections({});
@@ -358,168 +360,40 @@ export default function ListeningPage() {
     );
   }
 
-  // 2. Results Screen
+  // 2. Score report ("Listening Score Report.dc.html")
   if (submitted) {
+    const optionText = (q: Question, id?: string) => {
+      const o = q.options.find((x) => x.id === id);
+      return o ? `${o.label}. ${o.text}` : null;
+    };
+    const sections: ReviewSection[] = exercises.map((ex) => ({
+      title: ex.title,
+      material: ex.transcript ? { kind: "transcript", text: ex.transcript } : undefined,
+      items: ex.questions.map((q) => {
+        const r = dbResults?.find((x) => x.question_id === q.id);
+        const correctId = (r?.correct as string) || q.correct_option_id;
+        return {
+          id: q.id,
+          num: getOverallQuestionNumber(q.id),
+          question: q.question_text,
+          your: optionText(q, selectedAnswers[q.id] || (r?.selected as string)),
+          answer: optionText(q, correctId) ?? "",
+          ok: !!r?.is_correct,
+          why: (r?.explanation as string) || q.explanation || null,
+        };
+      }),
+    }));
     return (
-      <div className="mx-auto max-w-6xl px-4 py-8">
-        {/* Results Header Card */}
-        <div className="bg-white border border-[#e0e0e0] rounded-2xl shadow-sm overflow-hidden mb-8">
-          <div className="p-6 sm:p-10 text-center border-b border-[#f0f0f0]">
-            <span className="px-3 py-1 text-[11px] font-extrabold uppercase rounded-full text-white tracking-wider" style={{ backgroundColor: theme.color }}>
-              Test Completed
-            </span>
-            <h1 className="text-[28px] font-bold text-slate-900 mt-4">Your Listening Score Report</h1>
-            <p className="text-[13px] text-[#999] mt-1">{examType === "toefl" ? "TOEFL iBT Listening, scored 0 to 30" : "Scored on the IELTS Listening band scale"}</p>
-
-            <div className="flex flex-col sm:flex-row justify-center items-center gap-6 sm:gap-16 my-8">
-              {/* Score Circle */}
-              <div className="relative w-36 h-36 flex flex-col items-center justify-center rounded-full border-8 bg-slate-50" style={{ borderColor: theme.colorLight }}>
-                <span className="text-[12px] font-bold uppercase tracking-wider text-slate-500">{examType === "toefl" ? "TOEFL" : "IELTS Band"}</span>
-                <span className="text-[42px] font-extrabold text-slate-900 leading-none mt-1">{bandScore !== null ? (examType === "toefl" ? bandScore.toFixed(0) : bandScore.toFixed(1)) : "0"}</span>
-                {examType === "toefl" && <span className="text-[11px] text-slate-400 font-semibold">out of 30</span>}
-              </div>
-
-              {/* Statistics */}
-              <div className="text-left space-y-2">
-                <div className="flex items-center gap-8">
-                  <span className="text-[14px] text-slate-500 font-medium">Raw Score:</span>
-                  <span className="text-[16px] font-bold text-slate-800">{correctCount} / {allQuestions.length} correct</span>
-                </div>
-                <div className="flex items-center gap-8">
-                  <span className="text-[14px] text-slate-500 font-medium">Percentage:</span>
-                  <span className="text-[16px] font-bold text-slate-800">{scorePercentage}%</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-center gap-4">
-              <button
-                onClick={handleReset}
-                className="px-6 py-2.5 border border-slate-300 text-slate-700 font-bold text-[13px] rounded-full hover:bg-slate-50 transition-colors"
-              >
-                Restart Test
-              </button>
-              <button
-                onClick={() => router.push("/")}
-                className="px-6 py-2.5 text-white font-bold text-[13px] rounded-full transition-all shadow-sm"
-                style={{ backgroundColor: theme.color }}
-              >
-                Dashboard
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Detailed Question Review & Audio Transcripts */}
-        <h2 className="text-[20px] font-bold text-slate-800 mb-4">Detailed Review & Section Transcripts</h2>
-        <div className="border border-[#e0e0e0] rounded-2xl bg-white p-4 sm:p-6 mb-6">
-          <div className="flex gap-2 border-b border-[#f0f0f0] pb-4 mb-6 overflow-x-auto">
-            {exercises.map((ex, idx) => (
-              <button
-                key={ex.id}
-                onClick={() => setActiveSectionIdx(idx)}
-                className={`px-4 py-2 text-[13px] font-bold rounded-lg transition-colors whitespace-nowrap ${
-                  activeSectionIdx === idx
-                    ? "text-white"
-                    : "bg-[#f5f5f5] text-slate-700 hover:bg-[#eee]"
-                }`}
-                style={activeSectionIdx === idx ? { backgroundColor: theme.color } : undefined}
-              >
-                Section {idx + 1}: {ex.title}
-              </button>
-            ))}
-          </div>
-
-          <div className="grid lg:grid-cols-12 gap-8 items-start">
-            {/* Transcript & Learning Support */}
-            <div className="lg:col-span-5 bg-slate-50 border border-slate-200 rounded-xl p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-[16px] font-bold text-slate-800">Learning Materials</h3>
-                <button
-                  onClick={() => setShowTranscript((prev) => ({ ...prev, [activeSectionIdx]: !prev[activeSectionIdx] }))}
-                  className="text-[12px] font-bold hover:underline"
-                  style={{ color: theme.color }}
-                >
-                  {showTranscript[activeSectionIdx] ? "Hide Transcript" : "Show Transcript"}
-                </button>
-              </div>
-
-              {showTranscript[activeSectionIdx] && exercises[activeSectionIdx].transcript ? (
-                <div className="p-4 rounded-lg bg-white border border-slate-200 text-[13px] leading-[1.8] text-slate-700 whitespace-pre-line font-medium max-h-[400px] overflow-y-auto">
-                  {exercises[activeSectionIdx].transcript}
-                </div>
-              ) : (
-                <div className="text-center py-12 text-slate-400 text-[13px]">
-                  <p>Click "Show Transcript" to read full conversation dialogues and see explanations.</p>
-                </div>
-              )}
-            </div>
-
-            {/* Questions Correction Review */}
-            <div className="lg:col-span-7 space-y-6">
-              {exercises[activeSectionIdx].questions.map((q) => {
-                const dbRes = dbResults?.find((r) => r.question_id === q.id);
-                const isCorrect = dbRes?.is_correct;
-                const userSel = selectedAnswers[q.id];
-                const overallNum = getOverallQuestionNumber(q.id);
-
-                return (
-                  <div
-                    key={q.id}
-                    className={`border rounded-xl p-5 ${
-                      isCorrect
-                        ? "border-[var(--success)] bg-[var(--success-tint)]"
-                        : "border-[var(--error)] bg-[var(--error-tint)]"
-                    }`}
-                  >
-                    <p className="text-[14px] font-bold text-slate-800 mb-4 flex items-start">
-                      <span
-                        className="inline-flex items-center justify-center w-6 h-6 rounded-full text-white text-[12px] font-extrabold mr-2 flex-shrink-0 mt-0.5"
-                        style={{ backgroundColor: theme.color }}
-                      >
-                        {overallNum}
-                      </span>
-                      {q.question_text}
-                    </p>
-
-                    <div className="space-y-2.5 pl-8">
-                      {q.options.map((opt) => {
-                        const isUserSelected = userSel === opt.id;
-                        const isCorrectOption = opt.id === q.correct_option_id;
-
-                        let optionStyle = "border-slate-200 hover:bg-[#fafafa] text-slate-600";
-                        if (isCorrectOption) {
-                          optionStyle = "bg-[var(--success-tint)] text-[var(--success)] font-bold border-[var(--success)]";
-                        } else if (isUserSelected && !isCorrect) {
-                          optionStyle = "bg-[var(--error-tint)] text-[var(--error)] font-bold border-[var(--error)]";
-                        }
-
-                        return (
-                          <div
-                            key={opt.id}
-                            className={`flex items-center gap-3 py-2.5 px-3 border rounded-lg text-[13px] ${optionStyle}`}
-                          >
-                            <span className="font-bold text-[#888]">{opt.label}.</span>
-                            <span>{opt.text}</span>
-                            {isCorrectOption && <span className="ml-auto text-[11px] font-bold text-[var(--success)] uppercase tracking-[.12em]">Correct</span>}
-                            {isUserSelected && !isCorrect && <span className="ml-auto text-[11px] font-bold text-[var(--error)] uppercase tracking-[.12em]">Your answer</span>}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {q.explanation && (
-                      <div className="mt-4 ml-8 p-3 bg-white border-l-4 border-emerald-500 rounded-r-lg text-[13px] text-slate-600">
-                        <strong className="text-emerald-700">Explanation:</strong> {q.explanation}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
+      <ScoreReport
+        skill="listening"
+        score={bandScore ?? 0}
+        correct={correctCount ?? 0}
+        total={allQuestions.length}
+        percentage={scorePercentage ?? 0}
+        saved={saved}
+        sections={sections}
+        onRetake={() => { handleReset(); window.scrollTo({ top: 0 }); }}
+      />
     );
   }
 

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
 import TestIntro from "@/components/test/TestIntro";
+import ScoreReport, { CriteriaReview } from "@/components/test/ScoreReport";
 import { useExam } from "@/components/theme/ExamThemeProvider";
 import Icon from "@/components/brand/Icon";
 
@@ -51,6 +52,8 @@ export default function WritingPage() {
   const [loadingPrompts, setLoadingPrompts] = useState(true);
   // Intro screen first, as for every skill. Prompts load behind it.
   const [started, setStarted] = useState(false);
+  // Backend-confirmed: this essay is now in the candidate's Results page.
+  const [saved, setSaved] = useState<boolean | undefined>(undefined);
 
   // Load prompts from the API on mount
   useEffect(() => {
@@ -83,6 +86,8 @@ export default function WritingPage() {
       });
       // The submit endpoint returns { success, feedback, score }
       setEvaluation(res.data.feedback);
+      setSaved(typeof res.data.saved === "boolean" ? res.data.saved : undefined);
+      window.scrollTo({ top: 0 });
     } catch (err: any) {
       console.error("Evaluation error:", err);
       setError(
@@ -97,6 +102,7 @@ export default function WritingPage() {
   const handleReset = () => {
     setEssay("");
     setEvaluation(null);
+    setSaved(undefined);
     setError(null);
   };
 
@@ -118,6 +124,38 @@ export default function WritingPage() {
   const isTask1 = String(selectedPrompt?.task_type ?? "") === "1";
   const targetWords = examType === "ielts" ? (isTask1 ? 150 : 250) : 300;
   const targetMinutes = examType === "ielts" ? (isTask1 ? 20 : 40) : 30;
+
+  // Score report ("Listening Score Report.dc.html" frame, criteria review)
+  if (evaluation) {
+    const subMax = examType === "ielts" ? 9 : 30;
+    return (
+      <ScoreReport
+        skill="writing"
+        score={evaluation.overall_band}
+        saved={saved}
+        facts={[
+          ...(selectedPrompt ? [{ label: "Task", value: examType === "ielts" ? `Task ${String(selectedPrompt.task_type).replace(/D/g, "") || "2"}` : "Writing task" }] : []),
+          { label: "Word count", value: `${wordCount} words` },
+        ]}
+        review={
+          <CriteriaReview
+            skill="writing"
+            prompt={selectedPrompt?.question}
+            response={essay}
+            responseLabel="your essay"
+            criteria={Object.entries(bandLabels).map(([key, label]) => ({
+              label,
+              value: Number((evaluation as unknown as Record<string, number>)[key]) || 0,
+              max: subMax,
+            }))}
+            feedback={evaluation.feedback}
+            suggestions={evaluation.suggestions}
+          />
+        }
+        onRetake={() => { handleReset(); window.scrollTo({ top: 0 }); }}
+      />
+    );
+  }
 
   if (!started) {
     return (
@@ -298,78 +336,7 @@ export default function WritingPage() {
       )}
 
       {/* Evaluation Results */}
-      {evaluation && (
-        <div className="space-y-6">
-          {/* Main Result Header Card */}
-          <div className="bg-white border border-slate-200/70 rounded-3xl p-7 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.03)]">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
-              <div>
-                <h3 className="text-[20px] font-extrabold text-slate-900">{theme.name} Writing Band Score</h3>
-                <p className="text-slate-500 text-[13px] mt-1">Evaluated based on official criteria</p>
-              </div>
-              <div className="flex items-center gap-4 bg-slate-50 border border-slate-200/80 px-6 py-4 rounded-2xl shadow-sm">
-                <div className="text-center">
-                  <div className="text-5xl font-extrabold leading-none" style={{ color: theme.color }}>
-                    {evaluation.overall_band}
-                  </div>
-                  <div className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider mt-1.5">
-                    {examType === "ielts" ? "Band" : "Score"} / {maxBand}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Subscores Grid */}
-          <div className="grid sm:grid-cols-2 gap-5">
-            {Object.entries(bandLabels).map(([key, label]) => {
-              const val = evaluation[key as keyof EvaluationResult] as number;
-              return (
-                <div key={key} className="bg-white border border-slate-200/70 rounded-3xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-[14px] font-bold text-slate-800">{label}</span>
-                    <span className="font-extrabold text-[16px] text-slate-900">{val}</span>
-                  </div>
-                  {/* Clean progress indicator */}
-                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{ width: `${(val / (examType === "ielts" ? 9 : 30)) * 100}%`, backgroundColor: theme.color }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Detailed Feedback & Improvements */}
-          <div className="bg-white border border-slate-200/70 rounded-3xl p-7 shadow-[0_8px_30px_rgb(0,0,0,0.03)]">
-            <h4 className="font-bold text-slate-900 text-[16px] mb-4 border-b border-slate-100 pb-3">Assessment Feedback</h4>
-            <p className="text-slate-800 leading-relaxed whitespace-pre-line text-[14px]">{evaluation.feedback}</p>
-          </div>
-
-          <div className="bg-white border border-slate-200/70 rounded-3xl p-7 shadow-[0_8px_30px_rgb(0,0,0,0.03)]">
-            <h4 className="font-bold text-slate-900 text-[16px] mb-4 border-b border-slate-100 pb-3">Improvement Suggestions</h4>
-            <ul className="space-y-3">
-              {evaluation.suggestions.map((s, i) => (
-                <li key={i} className="flex items-start gap-3 text-slate-800 text-[14px]">
-                  <svg className="w-4 h-4 flex-shrink-0 mt-1" fill="none" viewBox="0 0 24 24" stroke={theme.color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  <span className="leading-relaxed">{s}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <button
-            onClick={handleReset}
-            className="px-6 py-3 border border-slate-200 bg-white text-slate-700 font-bold text-[13px] rounded-full hover:bg-slate-50 transition-colors shadow-sm"
-          >
-            Start New Practice Essay
-          </button>
-        </div>
-      )}
+      {/* Results now render as the full-page ScoreReport above. */}
     </div>
   );
 }

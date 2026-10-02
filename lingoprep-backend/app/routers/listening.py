@@ -42,7 +42,9 @@ async def submit_answers(
     """Submit answers for a listening exercise and get scored results."""
     try:
         user_id = user.id if user else None
-        result = listening_service.score_submission(submission, user_id=user_id)
+        result = listening_service.score_submission(
+            submission, user_id=user_id, access_token=(user.token if user else None)
+        )
         return result
 
     except ValueError as e:
@@ -57,7 +59,9 @@ async def submit_full_test(
     """Submit answers for a full 40-question Listening test and get detailed band scoring."""
     try:
         user_id = user.id if user else None
-        result = listening_service.score_full_test(submission, user_id=user_id)
+        result = listening_service.score_full_test(
+            submission, user_id=user_id, access_token=(user.token if user else None)
+        )
         return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

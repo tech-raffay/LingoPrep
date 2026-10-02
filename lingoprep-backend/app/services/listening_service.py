@@ -104,9 +104,9 @@ def get_audio_by_id(audio_id: str) -> dict | None:
     return audio
 
 
-def score_submission(submission: MCQSubmission, user_id: str = None) -> MCQResult:
+def score_submission(submission: MCQSubmission, user_id: str = None, access_token: str = None) -> MCQResult:
     """Score listening MCQ answers against correct options in the database."""
-    client = get_client()
+    client = get_client(access_token)
 
     results = []
     for answer in submission.answers:
@@ -259,9 +259,9 @@ def _toefl_listening_raw_to_scaled(correct: int, total: int) -> float:
     return 0.0
 
 
-def score_full_test(submission: FullTestSubmission, user_id: str = None) -> FullTestResult:
+def score_full_test(submission: FullTestSubmission, user_id: str = None, access_token: str = None) -> FullTestResult:
     """Score a full Listening test, calculate band/scaled score, and log the session."""
-    client = get_client()
+    client = get_client(access_token)
     exam_type = getattr(submission, 'exam_type', 'ielts') or 'ielts'
 
     question_ids = [ans.question_id for ans in submission.answers]
@@ -340,6 +340,7 @@ def score_full_test(submission: FullTestSubmission, user_id: str = None) -> Full
         max_score = 9.0
 
     # Log the session
+    saved = False
     try:
         client.table("session_logs").insert({
             "user_id": user_id,
@@ -351,6 +352,7 @@ def score_full_test(submission: FullTestSubmission, user_id: str = None) -> Full
             "band_score": band_score,
             "details": {"exam_type": exam_type, "results": results, "is_full_test": True},
         })
+        saved = bool(user_id)
     except Exception as e:
         print(f"Failed to log full listening session: {str(e)}")
 
@@ -360,6 +362,7 @@ def score_full_test(submission: FullTestSubmission, user_id: str = None) -> Full
         score_percentage=percentage,
         band_score=band_score,
         results=results,
+        saved=saved,
     )
 
 

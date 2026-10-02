@@ -30,6 +30,11 @@ const SOURCES = [
   "reading-person.svg",
   "writing-person.svg",
   "speaking-person.svg",
+  // Score-report mascots ("Listening Score Report.dc.html")
+  "mascot/k0.svg",
+  "mascot/k1.svg",
+  "mascot/k2.svg",
+  "mascot/k3.svg",
 ];
 
 /** TOEFL blue (#0057B8) sits at ~212°. */
@@ -94,6 +99,7 @@ for (const file of SOURCES) {
     if (next.toUpperCase() !== hex.toUpperCase()) changed++;
     return "#" + next;
   });
+  mkdirSync(dirname(join(OUT, file)), { recursive: true });
   writeFileSync(join(OUT, file), out);
   console.log(`${file}: ${changed} fills shifted`);
 }

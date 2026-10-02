@@ -3,10 +3,12 @@ from fastapi import Header, HTTPException, Depends
 from app.config import settings
 
 class AuthenticatedUser:
-    def __init__(self, user_id: str, email: str, full_name: str | None = None):
+    def __init__(self, user_id: str, email: str, full_name: str | None = None, token: str | None = None):
         self.id = user_id
         self.email = email
         self.full_name = full_name
+        # The verified access token, so database calls can run as this user.
+        self.token = token
 
 async def get_current_user(authorization: str | None = Header(None)) -> AuthenticatedUser:
     """
@@ -55,7 +57,7 @@ async def get_current_user(authorization: str | None = Header(None)) -> Authenti
                     detail="Token verification succeeded but user ID or email is missing."
                 )
 
-            return AuthenticatedUser(user_id=user_id, email=email, full_name=full_name)
+            return AuthenticatedUser(user_id=user_id, email=email, full_name=full_name, token=token)
     except httpx.RequestError as e:
         raise HTTPException(
             status_code=503,

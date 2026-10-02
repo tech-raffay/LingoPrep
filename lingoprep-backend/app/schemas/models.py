@@ -99,6 +99,9 @@ class FullTestResult(BaseModel):
     score_percentage: float
     band_score: float
     results: list[dict]
+    # True only when the attempt was stored against a signed-in user, so the
+    # score report can say "Saved to your results" truthfully.
+    saved: bool = False
 
 
 # --- Writing Module ---
@@ -118,6 +121,9 @@ class EssayEvaluationSchema(BaseModel):
     grammatical_range: float
     feedback: str
     suggestions: list[str]
+    # True only when the attempt was stored against a signed-in user, so the
+    # score report can say "Saved to your results" truthfully.
+    saved: bool = False
     improved_version: Optional[str] = None
 
 
@@ -141,6 +147,9 @@ class SpeakingEvaluationSchema(BaseModel):
     coherence_structure: float
     feedback: str
     suggestions: list[str]
+    # True only when the attempt was stored against a signed-in user, so the
+    # score report can say "Saved to your results" truthfully.
+    saved: bool = False
 
 
 # --- Session Logs ---

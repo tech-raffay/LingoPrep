@@ -63,7 +63,7 @@ async def get_current_user_profile(user: AuthenticatedUser = Depends(verify_user
     Get the authenticated user's profile from the profiles table.
     """
     try:
-        client = get_client()
+        client = get_client(user.token)
         res = client.table("profiles").select("*").eq("id", user.id).single().execute()
         profile_data = res.data or {}
     except Exception:
@@ -85,7 +85,7 @@ async def get_current_user_profile(user: AuthenticatedUser = Depends(verify_user
 async def get_all_sessions(user: AuthenticatedUser = Depends(verify_user)):
     """Get session logs for the currently authenticated user."""
     try:
-        client = get_client()
+        client = get_client(user.token)
         res = (
             client.table("session_logs")
             .select("*")
@@ -119,7 +119,7 @@ async def get_all_sessions(user: AuthenticatedUser = Depends(verify_user)):
 async def get_user_stats(user: AuthenticatedUser = Depends(verify_user)):
     """Get aggregated stats for the dashboard of the authenticated user."""
     try:
-        client = get_client()
+        client = get_client(user.token)
         res = client.table("session_logs").select("*").eq("user_id", user.id).execute()
         sessions = res.data or []
 

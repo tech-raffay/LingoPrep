@@ -118,7 +118,8 @@ async def submit_essay(
     3. Saves user_essay, ai_feedback, and score into writing_submissions.
     4. Returns the AI feedback to the frontend.
     """
-    db = get_client()
+    # Act as the signed-in user so their submission passes row-level security.
+    db = get_client(user.token if user else None)
 
     # 1. Fetch the prompt text
     prompt_data = None
@@ -160,7 +161,9 @@ async def submit_essay(
             task_type=prompt_data.get("task_type", "2"),
         )
         evaluation = await writing_service.evaluate_essay(
-            submission, user_id=(user.id if user else req.user_id)
+            submission,
+            user_id=(user.id if user else None),
+            access_token=(user.token if user else None),
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -192,12 +195,14 @@ async def submit_essay(
         "suggestions": evaluation.suggestions,
     }
     # Determine user_id
-    current_uid = user.id if user else req.user_id
+    # Only a verified user can own a row; an unverified user_id in the body
+    # would be rejected by row-level security anyway.
+    current_uid = user.id if user else None
     if current_uid:
         insert_data["user_id"] = current_uid
 
     try:
-        db.table("writing_submissions").insert(insert_data).execute()
+        db.table("writing_submissions").insert(insert_data)  # sends immediately; no .execute()
     except Exception as e:
         print(f"Failed to save writing submission: {e}")
 
@@ -206,6 +211,8 @@ async def submit_essay(
         "success": True,
         "feedback": feedback_json,
         "score": evaluation.overall_band,
+        # Whether this attempt now appears in the candidate's results.
+        "saved": evaluation.saved,
     }
 
 

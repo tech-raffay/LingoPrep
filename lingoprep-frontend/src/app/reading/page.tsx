@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import TestIntro from "@/components/test/TestIntro";
+import ScoreReport, { type ReviewSection } from "@/components/test/ScoreReport";
 import { useExam } from "@/components/theme/ExamThemeProvider";
 import { isOptionBasedType } from "@/types";
 import type { ReadingQuestionType } from "@/types";
@@ -41,7 +41,6 @@ interface Passage {
 
 
 export default function ReadingPage() {
-  const router = useRouter();
   // Exam theme comes from the shared provider (src/lib/exam.ts), never a
   // local copy — see brand book §07: one accent token, set in one place.
   const { exam: examType, theme: examTheme } = useExam();
@@ -68,6 +67,8 @@ export default function ReadingPage() {
   const [correctCount, setCorrectCount] = useState<number | null>(null);
   const [scorePercentage, setScorePercentage] = useState<number | null>(null);
   const [dbResults, setDbResults] = useState<any[] | null>(null);
+  // Backend-confirmed: this attempt is now in the candidate's Results page.
+  const [saved, setSaved] = useState<boolean | undefined>(undefined);
 
   // Exam config: TOEFL = 35 min, IELTS = 60 min
   const examConfig = examType === "toefl"
@@ -179,7 +180,9 @@ export default function ReadingPage() {
       setScorePercentage(res.data.score_percentage);
       setBandScore(res.data.band_score);
       setDbResults(res.data.results);
+      setSaved(typeof res.data.saved === "boolean" ? res.data.saved : undefined);
       setSubmitted(true);
+      window.scrollTo({ top: 0 });
     } catch (err) {
       console.error("Submission error:", err);
       setError("Failed to submit answers. Please try again.");
@@ -205,6 +208,7 @@ export default function ReadingPage() {
     setCorrectCount(null);
     setBandScore(null);
     setDbResults(null);
+    setSaved(undefined);
     setTimeLeft(examConfig.timer);
     setIsTestStarted(false);
     setActiveSectionIdx(0);
@@ -293,129 +297,49 @@ export default function ReadingPage() {
     );
   }
 
-  // 2. Results Screen
+  // 2. Score report (same frame as "Listening Score Report.dc.html")
   if (submitted) {
+    const optionText = (q: Question, id?: string) => {
+      const o = q.options?.find((x) => x.id === id);
+      return o ? `${o.label}. ${o.text}` : null;
+    };
+    const sections: ReviewSection[] = passages.map((p) => ({
+      title: p.title,
+      material: { kind: "passage", text: p.content },
+      items: p.questions.map((q) => {
+        const r = dbResults?.find((x: any) => x.question_id === q.id);
+        const optionBased = isOptionBasedType(q.question_type || "multiple_choice");
+        const num = getOverallQuestionNumber(q.id);
+        const your = optionBased
+          ? optionText(q, selectedAnswers[q.id])
+          : ((r?.answer_text as string) || selectedAnswers[q.id] || null);
+        const answer = optionBased
+          ? optionText(q, (r?.correct as string) || q.correct_option_id) ?? (r?.correct_answer_text as string) ?? ""
+          : ((r?.correct_answer_text as string) || q.correct_answer_text || "");
+        return {
+          id: q.id,
+          num,
+          question: q.question_text?.trim() || q.question_group_label || `Question ${num}`,
+          your,
+          answer,
+          ok: !!r?.is_correct,
+          why: (r?.explanation as string) || q.explanation || null,
+        };
+      }),
+    }));
     return (
-      <div className="mx-auto max-w-6xl px-4 py-8">
-        {/* Results Header Card */}
-        <div className="bg-white border border-[#e0e0e0] rounded-2xl shadow-sm overflow-hidden mb-8">
-          <div className="p-6 sm:p-10 text-center border-b border-[#f0f0f0]">
-            <span className="px-3 py-1 text-[11px] font-extrabold uppercase rounded-full text-white tracking-wider" style={{ backgroundColor: theme.color }}>
-              Test Completed
-            </span>
-            <h1 className="text-[28px] font-bold text-slate-900 mt-4">Your Reading Score Report</h1>
-            <p className="text-[13px] text-[#999] mt-1">{examType === "toefl" ? "TOEFL iBT Reading, scored 0 to 30" : "Scored on the IELTS Academic Reading criteria"}</p>
-
-            <div className="flex flex-col sm:flex-row justify-center items-center gap-6 sm:gap-16 my-8">
-              {/* Band Score Circle */}
-              <div className="relative w-36 h-36 flex flex-col items-center justify-center rounded-full border-8 bg-slate-50" style={{ borderColor: theme.colorLight }}>
-                <span className="text-[12px] font-bold uppercase tracking-wider text-slate-500">{examType === "toefl" ? "TOEFL" : "IELTS Band"}</span>
-                <span className="text-[42px] font-extrabold text-slate-900 leading-none mt-1">{bandScore !== null ? (examType === "toefl" ? bandScore.toFixed(0) : bandScore.toFixed(1)) : "0"}</span>
-                {examType === "toefl" && <span className="text-[11px] text-slate-400 font-semibold">out of 30</span>}
-              </div>
-
-              {/* Statistics */}
-              <div className="text-left space-y-2">
-                <div className="flex items-center gap-8">
-                  <span className="text-[14px] text-slate-500 font-medium">Raw Score:</span>
-                  <span className="text-[16px] font-bold text-slate-800">{correctCount} / {allQuestions.length} correct</span>
-                </div>
-                <div className="flex items-center gap-8">
-                  <span className="text-[14px] text-slate-500 font-medium">Percentage:</span>
-                  <span className="text-[16px] font-bold text-slate-800">{scorePercentage}%</span>
-                </div>
-                <div className="flex items-center gap-8">
-                  <span className="text-[14px] text-slate-500 font-medium">Time Remaining:</span>
-                  <span className="text-[16px] font-bold text-slate-800">{formatTime(timeLeft)}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-center gap-4">
-              <button
-                onClick={handleReset}
-                className="px-6 py-2.5 border border-slate-300 text-slate-700 font-bold text-[13px] rounded-full hover:bg-slate-50 transition-colors"
-              >
-                Restart Test
-              </button>
-              <button
-                onClick={() => router.push("/")}
-                className="px-6 py-2.5 text-white font-bold text-[13px] rounded-full transition-all shadow-sm"
-                style={{ backgroundColor: theme.color }}
-              >
-                Dashboard
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Interactive Review Section */}
-        <h2 className="text-[20px] font-bold text-slate-800 mb-4">Detailed Answers Review</h2>
-        <div className="border border-[#e0e0e0] rounded-2xl bg-white p-4 sm:p-6 mb-6">
-          {/* Section Selector for Review */}
-          <div className="flex gap-2 border-b border-[#f0f0f0] pb-4 mb-6 overflow-x-auto">
-            {passages.map((p, idx) => (
-              <button
-                key={p.id}
-                onClick={() => setActiveSectionIdx(idx)}
-                className={`px-4 py-2 text-[13px] font-bold rounded-lg transition-colors whitespace-nowrap ${
-                  activeSectionIdx === idx
-                    ? "text-white"
-                    : "bg-[#f5f5f5] text-slate-700 hover:bg-[#eee]"
-                }`}
-                style={activeSectionIdx === idx ? { backgroundColor: theme.color } : undefined}
-              >
-                Section {idx + 1}: {p.title.length > 25 ? `${p.title.substring(0, 25)}...` : p.title}
-              </button>
-            ))}
-          </div>
-
-          <div className="grid lg:grid-cols-2 gap-8 items-start">
-            {/* Passage Text */}
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 max-h-[600px] overflow-y-auto">
-              <h3 className="text-[18px] font-bold mb-4" style={{ color: theme.color }}>
-                Section {activeSectionIdx + 1}: {passages[activeSectionIdx].title}
-              </h3>
-              <div className="text-[14px] text-slate-700 leading-[1.8] space-y-4 font-medium">
-                {passages[activeSectionIdx].content.split("\n\n").map((p, i) => (
-                  <div key={i} className="space-y-4">
-                    <p key={i}>{p}</p>
-                    {i === 1 && (
-                      <>
-                        {activeSectionIdx === 0 && <TelegraphFigure />}
-                        {activeSectionIdx === 1 && <BioluminescenceFigure />}
-                        {activeSectionIdx === 2 && <UrbanPlanningFigure />}
-                      </>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Questions Review — using the same renderers in submitted mode */}
-            <div className="space-y-6">
-              {currentQuestionGroups.map((group, gi) => (
-                <div key={gi} className="space-y-4">
-                  <h4 className="text-[13px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200 pb-2">
-                    {group.label}
-                  </h4>
-                  <QuestionGroupRenderer
-                    group={group}
-                    selectedAnswers={selectedAnswers}
-                    onSelectOption={handleSelect}
-                    onTextAnswer={handleTextAnswer}
-                    getOverallNumber={getOverallQuestionNumber}
-                    theme={theme}
-                    submitted={true}
-                    dbResults={dbResults}
-                    questionRefs={questionRefs}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+      <ScoreReport
+        skill="reading"
+        score={bandScore ?? 0}
+        saved={saved}
+        facts={[
+          { label: "Raw score", value: `${correctCount ?? 0} / ${allQuestions.length} correct` },
+          { label: "Percentage", value: `${Math.round(scorePercentage ?? 0)}%` },
+          { label: "Time left", value: formatTime(timeLeft) },
+        ]}
+        sections={sections}
+        onRetake={() => { handleReset(); window.scrollTo({ top: 0 }); }}
+      />
     );
   }
 

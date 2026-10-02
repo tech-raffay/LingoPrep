@@ -117,3 +117,22 @@ export const MOOD_ART = {
   low: { src: "/illustrations/mood/m4.svg", alt: "Student looking a little disappointed", ...SQUARE },
   none: { src: "/illustrations/mood/p2.svg", alt: "Student ready to start practising", ...SQUARE },
 } satisfies Record<string, Illustration>;
+
+/* ── Score-report mascot ─────────────────────────────────────────────────
+ * From "Listening Score Report.dc.html" (illustrations/mascot/). Crimson on
+ * IELTS; TOEFL gets the blue copies from scripts/recolor-illustrations.mjs. */
+
+export type MascotMood = "best" | "good" | "mid" | "low";
+const MASCOT_FILE: Record<MascotMood, string> = { best: "k3", good: "k2", mid: "k1", low: "k0" };
+const MASCOT_ALT: Record<MascotMood, string> = {
+  best: "Mascot celebrating with a trophy",
+  good: "Mascot giving a thumbs up",
+  mid: "Mascot thinking it over",
+  low: "Mascot looking a little disappointed",
+};
+
+export const mascotArt = (exam: ExamType, mood: MascotMood): Illustration => ({
+  src: `/illustrations/${exam === "toefl" ? "toefl/" : ""}mascot/${MASCOT_FILE[mood]}.svg`,
+  alt: MASCOT_ALT[mood],
+  ...SQUARE,
+});

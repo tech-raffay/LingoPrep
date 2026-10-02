@@ -80,7 +80,9 @@ async def evaluate_speaking(
     """Evaluate speech transcript with Llama 3 via Groq."""
     try:
         user_id = user.id if user else None
-        evaluation = await speaking_service.evaluate_speaking(submission, user_id=user_id)
+        evaluation = await speaking_service.evaluate_speaking(
+            submission, user_id=user_id, access_token=(user.token if user else None)
+        )
         return evaluation
 
     except ValueError as e:

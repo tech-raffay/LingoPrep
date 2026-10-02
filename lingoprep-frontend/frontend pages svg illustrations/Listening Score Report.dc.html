@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@500;600;700;800;900&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#fff;color:#12172b;font-family:'proxima-nova','Proxima Nova','Figtree',system-ui,sans-serif;font-weight:500;-webkit-font-smoothing:antialiased}
+  h1,h2,h3,h4{margin:0;font-weight:700;letter-spacing:-0.025em;line-height:1.18}
+  p{margin:0}
+  a{color:#c8102e;text-decoration:none}
+  a:hover{color:#96091f}
+  button{font-family:inherit;cursor:pointer}
+  @keyframes lpFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+  @keyframes lpSpin{to{transform:rotate(360deg)}}
+  @keyframes lpJump{0%,100%{transform:translateY(0) scale(1,1)}12%{transform:translateY(4px) scale(1.04,.96)}45%{transform:translateY(-34px) scale(.98,1.03)}60%{transform:translateY(-36px) scale(1,1)}88%{transform:translateY(2px) scale(1.03,.97)}}
+  @keyframes lpJumpShadow{0%,12%,88%,100%{transform:scale(1);opacity:.22}50%{transform:scale(.6);opacity:.1}}
+  @keyframes lpSway{0%,100%{transform:rotate(-2.2deg)}50%{transform:rotate(2.2deg)}}
+  @keyframes lpBreathe{0%,100%{transform:translateY(0) scaleY(1)}50%{transform:translateY(-6px) scaleY(1.012)}}
+  @keyframes lpDroop{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(5px) rotate(-1.4deg)}}
+  @keyframes lpTwinkle{0%,100%{transform:scale(.4) rotate(0);opacity:0}50%{transform:scale(1) rotate(45deg);opacity:1}}
+  @keyframes lpPop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+  @keyframes lpRain{0%{transform:translateY(-10px);opacity:0}30%{opacity:.8}100%{transform:translateY(60px);opacity:0}}
+  @keyframes lpFill{from{width:0}}
+</style>
+<script src="motion.js"></script>
+</helmet>
+<div style="min-height:100%;display:flex;flex-direction:column;background:#fff">
+  <nav style="position:sticky;top:0;z-index:50;background:rgba(255,255,255,.88);backdrop-filter:blur(14px) saturate(1.4);border-bottom:1px solid rgba(18,23,43,.06)">
+    <div style="max-width:1200px;margin:0 auto;padding:0 28px;height:68px;display:flex;align-items:center;justify-content:space-between;gap:20px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <a href="LingoPrep Home.dc.html" style="display:flex;align-items:center;gap:9px;flex-shrink:0">
+          <svg width="30" height="30" viewBox="0 0 48 48" fill="none"><rect x="4" y="6" width="40" height="30" rx="10" stroke="#c8102e" stroke-width="3.4"></rect><path d="M16 34v10l11-9" fill="#c8102e"></path><rect x="14" y="24" width="4.5" height="6" rx="2.25" fill="#c8102e"></rect><rect x="21.5" y="20" width="4.5" height="10" rx="2.25" fill="#c8102e"></rect><rect x="29" y="15.5" width="4.5" height="14.5" rx="2.25" fill="#c8102e"></rect></svg>
+          <span style="font-size:21px;font-weight:700;letter-spacing:-0.035em"><span style="color:#12172b">Lingo</span><span style="color:#c8102e">Prep</span></span>
+        </a>
+        <span style="padding:4px 10px;border-radius:999px;background:#fdebee;color:#c8102e;font-size:11.5px;font-weight:800;letter-spacing:.12em">IELTS</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:18px;flex-shrink:0">
+        <a href="IELTS Practice Tests v2.dc.html" style="font-size:14px;font-weight:700;color:#333b52;white-space:nowrap" style-hover="color:#c8102e">Practice tests</a>
+        <a href="IELTS Results.dc.html" style="font-size:14px;font-weight:700;color:#333b52;white-space:nowrap" style-hover="color:#c8102e">Your results</a>
+        <div style="width:1px;height:26px;background:#e9ecf2"></div>
+        <div style="display:flex;align-items:center;gap:10px;padding:4px 12px 4px 4px;border-radius:999px;border:1px solid #eef0f5;background:#fff;cursor:pointer;transition:border-color .2s ease,box-shadow .2s ease" style-hover="border-color:#f4c5ce;box-shadow:0 6px 16px rgba(200,16,46,.10)">
+          <span style="width:34px;height:34px;border-radius:999px;background:linear-gradient(145deg,#dc1c3c,#96091f);color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.3)">MA</span>
+          <span style="display:flex;flex-direction:column;line-height:1.2">
+            <span style="font-size:13.5px;font-weight:700;color:#12172b;white-space:nowrap">Muhammad Raffay Akhtar</span>
+            <span style="font-size:11.5px;font-weight:600;color:#8b91a4">IELTS Academic</span>
+          </span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8b91a4" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </div>
+        <button style="display:flex;align-items:center;gap:7px;padding:9px 14px;border:none;border-radius:999px;background:transparent;color:#333b52;font-size:14px;font-weight:700;white-space:nowrap" style-hover="background:#f6f7fa;color:#12172b">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          Sign out
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <section style="position:relative;overflow:hidden;background:#fffafa;border-bottom:1px solid #f3e6e9">
+    <div style="position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(rgba(200,16,46,.12) 1.2px,transparent 1.2px);background-size:22px 22px;mask-image:radial-gradient(ellipse 60% 70% at 50% 40%,#000 15%,transparent 70%);-webkit-mask-image:radial-gradient(ellipse 60% 70% at 50% 40%,#000 15%,transparent 70%)"></div>
+    <div style="position:relative;max-width:1200px;margin:0 auto;padding:44px 28px 56px;display:flex;justify-content:center">
+      <div style="position:relative;width:100%;max-width:640px;border-radius:28px;background:#fff;border:1px solid #f1e3e6;box-shadow:0 30px 70px -24px rgba(200,16,46,.25),0 4px 14px rgba(18,23,43,.04);padding:32px 36px 36px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:20px">
+        {{ hero }}
+        <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+          <span style="padding:5px 12px;border-radius:999px;background:{{ mood.bg }};color:{{ mood.fg }};font-size:11.5px;font-weight:800;letter-spacing:.12em;white-space:nowrap">{{ mood.sub }}</span>
+          <h1 style="font-size:clamp(28px,3.6vw,36px);letter-spacing:-0.035em">Your Listening Score Report</h1>
+          <p style="font-size:15px;color:#4b5266">{{ mood.line }}</p>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:32px;flex-wrap:wrap;width:100%;padding:22px 0;border-top:1px solid #f1f3f7;border-bottom:1px solid #f1f3f7">
+          <div style="width:132px;height:132px;border-radius:999px;background:conic-gradient(#c8102e 0 {{ ringPct }},#fde8ec {{ ringPct }} 100%);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <div style="width:108px;height:108px;border-radius:999px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
+              <span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#8b91a4">IELTS BAND</span>
+              <span style="font-size:38px;font-weight:800;letter-spacing:-0.03em;line-height:1">{{ band }}</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;text-align:left">
+            <div style="display:flex;align-items:baseline;gap:14px">
+              <span style="font-size:14px;font-weight:600;color:#8b91a4;width:92px">Raw score</span>
+              <span style="font-size:17px;font-weight:700;white-space:nowrap">{{ correct }} / 40 correct</span>
+            </div>
+            <div style="display:flex;align-items:baseline;gap:14px">
+              <span style="font-size:14px;font-weight:600;color:#8b91a4;width:92px">Percentage</span>
+              <span style="font-size:17px;font-weight:700">{{ pctLabel }}</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
+          <a href="IELTS Test Intro.dc.html" style="display:flex;align-items:center;gap:9px;padding:0 22px;height:50px;border:1px solid #e3e6ee;border-radius:999px;background:#fff;color:#12172b;font-size:15px;font-weight:700;white-space:nowrap;transition:border-color .2s ease,transform .25s ease" style-hover="color:#12172b;border-color:#12172b;transform:translateY(-2px)">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"></path><polyline points="3 3 3 9 9 9"></polyline></svg>
+            Retake test
+          </a>
+          <a href="IELTS Results.dc.html" style="display:flex;align-items:center;gap:12px;padding:6px 6px 6px 22px;border-radius:999px;background:linear-gradient(180deg,#dc1c3c,#b30d28);color:#fff;font-size:15px;font-weight:700;white-space:nowrap;box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 10px 24px rgba(200,16,46,.3);transition:transform .25s ease,box-shadow .25s ease" style-hover="color:#fff;transform:translateY(-2px);box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 16px 32px rgba(200,16,46,.38)">
+            See your results
+            <span style="width:38px;height:38px;border-radius:999px;background:#fff;color:#c8102e;display:flex;align-items:center;justify-content:center">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <main style="background:#fafbfc;flex:1">
+    <div style="max-width:1200px;margin:0 auto;padding:56px 28px 96px">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px">
+        <div>
+          <span style="font-size:12.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#c8102e">Detailed review</span>
+          <h2 style="font-size:30px;margin-top:8px">Review your answers</h2>
+        </div>
+        <div style="display:flex;gap:4px;padding:4px;border-radius:999px;background:#fff;border:1px solid #e9ecf2">
+          <sc-for list="{{ filters }}" as="f" hint-placeholder-count="3">
+            <button onClick="{{ f.pick }}" style="padding:8px 16px;border:none;border-radius:999px;background:{{ f.bg }};color:{{ f.fg }};font-size:13.5px;font-weight:700;white-space:nowrap;transition:background .2s ease">{{ f.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:24px">
+        <sc-for list="{{ sections }}" as="s" hint-placeholder-count="4">
+          <button onClick="{{ s.pick }}" style="flex:1 1 200px;min-width:0;display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:16px;border:1px solid {{ s.border }};background:{{ s.bg }};text-align:left;transition:border-color .2s ease,background .2s ease">
+            <span style="width:34px;height:34px;border-radius:11px;background:{{ s.numBg }};color:{{ s.numFg }};font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">{{ s.n }}</span>
+            <span style="display:flex;flex-direction:column;min-width:0;flex:1">
+              <span style="font-size:14px;font-weight:700;color:#12172b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ s.title }}</span>
+              <span style="font-size:12px;font-weight:600;color:#8b91a4">{{ s.score }}/10 correct</span>
+            </span>
+          </button>
+        </sc-for>
+      </div>
+
+      <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
+        <aside style="flex:1 1 280px;max-width:100%;position:sticky;top:88px;border-radius:22px;background:#fff;border:1px solid #e9ecf2;overflow:hidden">
+          <div style="position:relative;height:150px;background:#fff4de;display:flex;align-items:center;justify-content:center;overflow:hidden">
+            <div style="position:absolute;inset:0;background-image:radial-gradient(rgba(245,158,11,.28) 1.3px,transparent 1.3px);background-size:18px 18px"></div>
+            <div style="position:absolute;width:140px;height:140px;border-radius:44% 56% 50% 50% / 55% 45% 55% 45%;background:rgba(255,255,255,.85)"></div>
+            <img src="illustrations/listening.svg" alt="Student listening with headphones" style="position:relative;height:132px;width:auto">
+          </div>
+          <div style="padding:20px 22px 22px;display:flex;flex-direction:column;gap:12px">
+            <span style="font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8b91a4">Section {{ active.n }} · Learning materials</span>
+            <h3 style="font-size:18px">{{ active.title }}</h3>
+            <p style="font-size:14px;line-height:1.7;color:#4b5266">{{ transcriptText }}</p>
+            <button onClick="{{ toggleTranscript }}" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:4px;padding:11px 16px;border:none;border-radius:999px;background:#fef2f4;color:#c8102e;font-size:14px;font-weight:700;transition:background .2s ease" style-hover="background:#fde3e8">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="13" y2="17"></line></svg>
+              {{ transcriptBtn }}
+            </button>
+          </div>
+        </aside>
+
+        <div style="flex:999 1 480px;min-width:0;display:flex;flex-direction:column;gap:12px">
+          <sc-for list="{{ questions }}" as="q" hint-placeholder-count="5">
+            <div style="border-radius:20px;background:#fff;border:1px solid #e9ecf2;padding:20px 22px;display:flex;gap:16px;transition:box-shadow .3s ease,transform .3s ease" style-hover="box-shadow:0 16px 36px -14px rgba(18,23,43,.18);transform:translateY(-2px)">
+              <span style="width:32px;height:32px;border-radius:999px;background:{{ q.tint }};color:{{ q.fg }};font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">{{ q.num }}</span>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:12px">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+                  <h4 style="font-size:16px;line-height:1.45;letter-spacing:-0.01em">{{ q.q }}</h4>
+                  <span style="display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:999px;background:{{ q.tint }};color:{{ q.fg }};font-size:11.5px;font-weight:800;letter-spacing:.08em;white-space:nowrap;flex-shrink:0">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="{{ q.icon }}"></path></svg>
+                    {{ q.status }}
+                  </span>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:8px">
+                  <div style="padding:10px 14px;border-radius:12px;background:{{ q.yourBg }}">
+                    <div style="font-size:11px;font-weight:800;letter-spacing:.1em;color:#8b91a4">YOUR ANSWER</div>
+                    <div style="font-size:14.5px;font-weight:700;color:{{ q.yourFg }};margin-top:3px">{{ q.your }}</div>
+                  </div>
+                  <div style="padding:10px 14px;border-radius:12px;background:#f0faf4">
+                    <div style="font-size:11px;font-weight:800;letter-spacing:.1em;color:#8b91a4">CORRECT ANSWER</div>
+                    <div style="font-size:14.5px;font-weight:700;color:#15803d;margin-top:3px">{{ q.answer }}</div>
+                  </div>
+                </div>
+                <p style="font-size:13.5px;line-height:1.6;color:#4b5266"><strong style="color:#12172b">Why:</strong> {{ q.why }}</p>
+              </div>
+            </div>
+          </sc-for>
+          <sc-if value="{{ noneShown }}" hint-placeholder-val="{{ false }}">
+            <div style="border-radius:20px;background:#fff;border:1px dashed #e3e6ee;padding:36px;text-align:center;font-size:14.5px;color:#4b5266">{{ noneText }}</div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer style="background:#12172b;color:#fff">
+    <div style="max-width:1200px;margin:0 auto;padding:56px 28px 40px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;padding-bottom:26px;border-bottom:1px solid #2b3450">
+        <div style="display:flex;align-items:center;gap:9px">
+          <svg width="30" height="30" viewBox="0 0 48 48" fill="none"><rect x="4" y="6" width="40" height="30" rx="10" stroke="#fff" stroke-width="3.4"></rect><path d="M16 34v10l11-9" fill="#ff4d6a"></path><rect x="14" y="24" width="4.5" height="6" rx="2.25" fill="#ff4d6a"></rect><rect x="21.5" y="20" width="4.5" height="10" rx="2.25" fill="#ff4d6a"></rect><rect x="29" y="15.5" width="4.5" height="14.5" rx="2.25" fill="#ff4d6a"></rect></svg>
+          <span style="font-size:21px;font-weight:700;letter-spacing:-0.035em"><span style="color:#fff">Lingo</span><span style="color:#ff4d6a">Prep</span></span>
+        </div>
+        <span style="display:flex;align-items:center;gap:7px;font-size:13.5px;font-weight:700;color:#c9cfdd">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18"></path></svg>
+          Pakistan
+        </span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:36px;padding:34px 0">
+        <div>
+          <div style="font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8b91a4;margin-bottom:16px">Practice IELTS</div>
+          <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px">
+            <li style="font-size:14px;color:#c9cfdd;cursor:pointer" style-hover="color:#fff">IELTS Listening</li>
+            <li style="font-size:14px;color:#c9cfdd;cursor:pointer" style-hover="color:#fff">IELTS Reading</li>
+            <li style="font-size:14px;color:#c9cfdd;cursor:pointer" style-hover="color:#fff">IELTS Writing</li>
+            <li style="font-size:14px;color:#c9cfdd;cursor:pointer" style-hover="color:#fff">IELTS Speaking</li>
+          </ul>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8b91a4;margin-bottom:16px">Platform</div>
+          <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px">
+            <li style="font-size:14px;color:#c9cfdd;cursor:pointer" style-hover="color:#fff">Your practice results</li>
+            <li style="font-size:14px;color:#c9cfdd;cursor:pointer" style-hover="color:#fff">Choose your exam</li>
+            <li style="font-size:14px;color:#c9cfdd;cursor:pointer" style-hover="color:#fff">How AI scoring works</li>
+            <li style="font-size:14px;color:#c9cfdd;cursor:pointer" style-hover="color:#fff">Band 1–9 explained</li>
+          </ul>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8b91a4;margin-bottom:16px">What this is</div>
+          <p style="font-size:14px;line-height:1.7;color:#c9cfdd">An independent, free practice platform. All four skills, instant AI-generated estimates, and no locked modules. Built as a final year project.</p>
+        </div>
+      </div>
+      <div style="border-top:1px solid #2b3450;padding-top:24px;display:flex;flex-direction:column;gap:16px">
+        <p style="font-size:12px;line-height:1.75;color:#787c8f">LingoPrep is an independent learning platform. IELTS® is a registered trademark of the University of Cambridge ESOL Examinations, the British Council and IDP Education Australia. TOEFL® and TOEFL iBT® are registered trademarks of Educational Testing Service (ETS). This platform is not endorsed by, affiliated with, or approved by any of these trademark owners. Practice scores are AI-generated estimates and are not official results.</p>
+        <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:12px;color:#787c8f">
+          <span>© 2026 LingoPrep. All rights reserved.</span>
+          <div style="display:flex;gap:18px"><span style="cursor:pointer">Legal notice</span><span style="cursor:pointer">Privacy policy</span><span style="cursor:pointer">Terms of use</span></div>
+        </div>
+      </div>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;correct&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0,&quot;max&quot;:40,&quot;step&quot;:1,&quot;default&quot;:30,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Preview&quot;}}">
+class Component extends DCLogic {
+  state = { sec: 0, filter: "All", transcript: false };
+  secTitles = ["Library registration", "Westfield Museum tour", "Research project discussion", "Lecture"];
+  qs = [
+    ["What is the student's surname?", ["Chang", "Chen", "Cheng", "Chan"], 1, "The student spells it out: C-H-E-N."],
+    ["What is the student's ID number?", ["GU-2025-4817", "GU-2025-4871", "GU-2025-4781", "GU-2024-4871"], 1, "GU-2025-4871."],
+    ["What degree programme is the student enrolled in?", ["Bachelor's in Biology", "Master's in Environmental Science", "PhD in Chemistry", "Master's in Marine Biology"], 1, "Master's in Environmental Science."],
+    ["How many books can postgraduate students borrow at one time?", ["Ten", "Twelve", "Fifteen", "Twenty"], 2, "Fifteen books."],
+    ["What is the standard loan period for books?", ["Two weeks", "Three weeks", "Four weeks", "One month"], 1, "Three weeks."],
+    ["How many times can books be renewed online?", ["Once", "Twice", "Three times", "Unlimited times"], 1, "Up to two times."],
+    ["What is the daily late fee for overdue books?", ["Ten pence", "Twenty pence", "Thirty pence", "Fifty pence"], 1, "Twenty pence per day per book."],
+    ["How many e-books and journal articles are available in the digital collection?", ["Over one million", "Over two million", "Over three million", "Over five million"], 2, "Over three million."],
+    ["How many group study rooms are on the second floor?", ["Eight", "Ten", "Twelve", "Fifteen"], 2, "Twelve rooms."],
+    ["What are the library's weekday opening hours during term time?", ["7 a.m. to 9 p.m.", "8 a.m. to 10 p.m.", "9 a.m. to 9 p.m.", "8 a.m. to 8 p.m."], 1, "Eight a.m. to ten p.m."]
+  ];
+  moods = {
+    best: { img: "illustrations/mascot/k3.svg", alt: "Mascot celebrating with a trophy", anim: "lpJump 1.6s cubic-bezier(.45,0,.3,1) infinite", sub: "OUTSTANDING", line: "Brilliant result. Scored on the IELTS Listening band scale.", bg: "#fff4de", fg: "#b4690d", spark: "#f59e0b" },
+    good: { img: "illustrations/mascot/k2.svg", alt: "Mascot giving a thumbs up", anim: "lpSway 3.2s ease-in-out infinite", sub: "GREAT WORK", line: "Strong result. Scored on the IELTS Listening band scale.", bg: "#e8f6ee", fg: "#15803d", spark: "#22c55e" },
+    mid: { img: "illustrations/mascot/k1.svg", alt: "Mascot thinking", anim: "lpBreathe 4s ease-in-out infinite", sub: "GETTING THERE", line: "Good progress. Scored on the IELTS Listening band scale.", bg: "#ebf3fd", fg: "#0057b8" },
+    low: { img: "illustrations/mascot/k0.svg", alt: "Mascot looking a little disappointed", anim: "lpDroop 5s ease-in-out infinite", sub: "KEEP PRACTISING", line: "Every test helps. Scored on the IELTS Listening band scale.", bg: "#eef0f6", fg: "#333b52" }
+  };
+  toBand(c) { const t = [[39, 9], [37, 8.5], [35, 8], [32, 7.5], [30, 7], [26, 6.5], [23, 6], [18, 5.5], [16, 5], [13, 4.5], [10, 4], [8, 3.5], [6, 3], [4, 2.5], [2, 2], [1, 1]]; for (const [m, b] of t) if (c >= m) return b; return 0; }
+  isRight(i, c) { return ((i * 17) % 40) < c; }
+  renderVals() {
+    const c = Math.max(0, Math.min(40, Math.round(this.props.correct ?? 30)));
+    const band = this.toBand(c);
+    const key = band >= 7.5 ? "best" : band >= 6.5 ? "good" : band >= 5.5 ? "mid" : "low";
+    const m = this.moods[key], h = React.createElement;
+    const sparks = m.spark ? [[-6, 18, 0, 16], [92, 26, .5, 14], [0, 70, 1.1, 12], [90, 72, .8, 14]].map(([x, y, d, s], i) =>
+      h("svg", { key: "s" + i, width: s, height: s, viewBox: "0 0 24 24", style: { position: "absolute", left: x + "%", top: y + "%", animation: "lpTwinkle " + (key === "best" ? 1.4 : 2.4) + "s ease-in-out " + d + "s infinite" } },
+        h("path", { d: "M12 0l2.6 9.4L24 12l-9.4 2.6L12 24l-2.6-9.4L0 12l9.4-2.6z", fill: i % 2 ? "#c8102e" : m.spark }))) : [];
+    const rain = m.rain ? [38, 46, 54, 62].map((x, i) => h("span", { key: "r" + i, style: { position: "absolute", left: x + "%", top: "14%", width: 2, height: 12, borderRadius: 2, background: "#9aa3b8", animation: "lpRain 1.8s linear " + (i * .45) + "s infinite" } })) : [];
+    const hero = h("div", { key, style: { position: "relative", width: 150, height: 150, marginBottom: -8, animation: "lpPop .5s cubic-bezier(.2,.8,.2,1.2)" } },
+      h("div", { style: { position: "absolute", left: "28%", right: "28%", bottom: "3%", height: "5%", borderRadius: "50%", background: "#12172b", opacity: .2, filter: "blur(4px)", animation: key === "best" ? "lpJumpShadow 1.6s cubic-bezier(.45,0,.3,1) infinite" : "none" } }),
+      h("img", { src: m.img, alt: m.alt, style: { position: "relative", width: "100%", height: "100%", objectFit: "contain", display: "block", mixBlendMode: "multiply", transformOrigin: "50% 100%", animation: m.anim, mixBlendMode: "normal" } }),
+      ...sparks);
+    const secScore = n => { let k = 0; for (let i = n * 10; i < n * 10 + 10; i++) if (this.isRight(i, c)) k++; return k; };
+    const sec = this.state.sec, f = this.state.filter;
+    const all = this.qs.map((q, i) => {
+      const gi = sec * 10 + i, ok = this.isRight(gi, c), skip = !ok && gi % 3 === 0;
+      const yours = ok ? q[1][q[2]] : skip ? "No answer" : q[1][(q[2] + 1) % 4];
+      return {
+        ok, num: gi + 1, q: q[0], answer: q[1][q[2]], why: q[3], your: yours,
+        status: ok ? "CORRECT" : skip ? "UNANSWERED" : "INCORRECT",
+        icon: ok ? "M20 6 9 17 4 12" : skip ? "M5 12h14" : "M18 6 6 18M6 6l12 12",
+        tint: ok ? "#e8f6ee" : skip ? "#f1f3f7" : "#fdecef",
+        fg: ok ? "#15803d" : skip ? "#4b5266" : "#c8102e",
+        yourBg: ok ? "#f0faf4" : skip ? "#f6f7fa" : "#fff5f6",
+        yourFg: ok ? "#15803d" : skip ? "#8b91a4" : "#c8102e"
+      };
+    });
+    const questions = all.filter(q => f === "All" || (f === "Correct" ? q.ok : !q.ok));
+    return {
+      hero, mood: m, band: band.toFixed(1), correct: String(c), pctLabel: Math.round(c / 40 * 100) + "%", ringPct: (band / 9 * 100).toFixed(1) + "%",
+      sections: this.secTitles.map((t, n) => { const on = n === sec, s = secScore(n); return {
+        n: n + 1, title: t, score: s, pct: (s * 10) + "%", pick: () => this.setState({ sec: n, transcript: false }),
+        border: on ? "#f4c5ce" : "#e9ecf2", bg: on ? "#fff" : "#fafbfc", numBg: on ? "#c8102e" : "#f1f3f7", numFg: on ? "#fff" : "#4b5266" }; }),
+      active: { n: sec + 1, title: this.secTitles[sec] },
+      filters: ["All", "Incorrect", "Correct"].map(l => ({ label: l, pick: () => this.setState({ filter: l }), bg: l === f ? "#12172b" : "transparent", fg: l === f ? "#fff" : "#4b5266" })),
+      questions, noneShown: questions.length === 0,
+      noneText: f === "Incorrect" ? "Every answer in this section is correct." : "No correct answers in this section yet.",
+      transcriptText: this.state.transcript ? "The full conversation transcript for this section appears here, with the lines that hold each answer highlighted." : "Open the transcript to read the full conversation and see where each answer comes from.",
+      transcriptBtn: this.state.transcript ? "Hide transcript" : "Show transcript",
+      toggleTranscript: () => this.setState(s => ({ transcript: !s.transcript }))
+    };
+  }
+}
+</script>
+</body>
+</html>

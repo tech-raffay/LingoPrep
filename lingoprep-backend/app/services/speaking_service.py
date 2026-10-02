@@ -83,7 +83,9 @@ async def transcribe_audio_file(audio_bytes: bytes, original_filename: str) -> s
             os.remove(temp_file_path)
 
 
-async def evaluate_speaking(submission: SpeakingSubmissionSchema, user_id: str = None) -> SpeakingEvaluationSchema:
+async def evaluate_speaking(
+    submission: SpeakingSubmissionSchema, user_id: str = None, access_token: str = None
+) -> SpeakingEvaluationSchema:
     """
     Evaluate a spoken response transcript using Llama 3 via Groq and log session in Supabase.
     """
@@ -120,7 +122,7 @@ Word count: {len(submission.transcript.split())}
         evaluation = SpeakingEvaluationSchema(**evaluation_data)
 
         # Log session in Supabase
-        db = get_client()
+        db = get_client(access_token)
         try:
             # Map score to percentage
             # For IELTS, percentage is (band / 9) * 100
@@ -149,7 +151,8 @@ Word count: {len(submission.transcript.split())}
                     "feedback": evaluation.feedback,
                     "suggestions": evaluation.suggestions,
                 }
-            }).execute()
+            })  # this client sends the insert immediately; there is no .execute()
+            evaluation.saved = bool(user_id)
         except Exception as e:
             # Silent fail so user still gets feedback
             print(f"Failed to log speaking session: {str(e)}")

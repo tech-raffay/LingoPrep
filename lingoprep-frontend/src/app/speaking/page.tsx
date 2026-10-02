@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import api from "@/lib/api";
 import TestIntro from "@/components/test/TestIntro";
+import ScoreReport, { CriteriaReview } from "@/components/test/ScoreReport";
 import { useExam } from "@/components/theme/ExamThemeProvider";
 
 interface SpeakingPrompt {
@@ -78,6 +79,8 @@ export default function SpeakingPage() {
   const [useManualTranscript, setUseManualTranscript] = useState(false);
   // Intro screen first, as for every skill.
   const [started, setStarted] = useState(false);
+  // Backend-confirmed: this answer is now in the candidate's Results page.
+  const [saved, setSaved] = useState<boolean | undefined>(undefined);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -182,6 +185,8 @@ export default function SpeakingPage() {
         exam_type: selectedPrompt.exam_type || examType,
       });
       setEvaluation(res.data);
+      setSaved(typeof res.data?.saved === "boolean" ? res.data.saved : undefined);
+      window.scrollTo({ top: 0 });
     } catch (err: any) {
       setError(
         err.response?.data?.detail ||
@@ -195,6 +200,7 @@ export default function SpeakingPage() {
     setRecordingState("idle");
     setTranscript("");
     setEvaluation(null);
+    setSaved(undefined);
     setError(null);
     setRecordingTime(0);
     chunksRef.current = [];
@@ -210,6 +216,37 @@ export default function SpeakingPage() {
   const wordCount = transcript.trim() ? transcript.trim().split(/\s+/).length : 0;
   const maxScale = examType === "toefl" ? 30 : 9;
   const subScoreMax = examType === "toefl" ? 4 : 9;
+
+  // Score report ("Listening Score Report.dc.html" frame, criteria review)
+  if (evaluation) {
+    return (
+      <ScoreReport
+        skill="speaking"
+        score={evaluation.overall_band}
+        saved={saved}
+        facts={[
+          { label: "Topic", value: selectedPrompt.title.length > 28 ? `${selectedPrompt.title.slice(0, 27)}…` : selectedPrompt.title },
+          { label: "Words spoken", value: `${wordCount}` },
+        ]}
+        review={
+          <CriteriaReview
+            skill="speaking"
+            prompt={selectedPrompt.content}
+            response={transcript}
+            responseLabel="your transcript"
+            criteria={Object.entries(bandLabels).map(([key, label]) => ({
+              label,
+              value: Number((evaluation as unknown as Record<string, number>)[key]) || 0,
+              max: subScoreMax,
+            }))}
+            feedback={evaluation.feedback}
+            suggestions={evaluation.suggestions}
+          />
+        }
+        onRetake={() => { handleReset(); window.scrollTo({ top: 0 }); }}
+      />
+    );
+  }
 
   if (!started) {
     return (
@@ -494,75 +531,7 @@ export default function SpeakingPage() {
       )}
 
       {/* Evaluation Results */}
-      {evaluation && (
-        <div className="mt-8 space-y-6">
-          {/* Transcript review */}
-          <div className="bg-white border border-slate-200/70 rounded-3xl p-7 shadow-[0_8px_30px_rgb(0,0,0,0.03)]">
-            <h3 className="font-bold text-[15px] text-slate-900 border-b border-slate-100 pb-3 mb-4">Transcribed Response</h3>
-            <p className="text-[14.5px] text-slate-800 leading-relaxed">{transcript}</p>
-          </div>
-
-          {/* Results dashboard card */}
-          <div className="bg-white border border-slate-200/70 rounded-3xl p-7 shadow-[0_8px_30px_rgb(0,0,0,0.03)] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
-            <div>
-              <h3 className="text-[18px] font-extrabold text-slate-900">{theme.name} Speaking Band Score</h3>
-              <p className="text-[13px] text-slate-500 mt-1">Evaluated based on official criteria</p>
-            </div>
-            <div className="flex items-baseline gap-2 bg-slate-50 border border-slate-200/80 px-6 py-3.5 rounded-2xl shadow-sm">
-              <span className="text-[40px] font-extrabold leading-none" style={{ color: theme.color }}>{evaluation.overall_band}</span>
-              <span className="text-[14px] font-bold text-slate-500">/ {maxScale}</span>
-            </div>
-          </div>
-
-          {/* Subscores Grid */}
-          <div className="grid sm:grid-cols-2 gap-5">
-            {Object.entries(bandLabels).map(([key, label]) => {
-              const val = evaluation[key as keyof EvaluationResult] as number;
-              return (
-                <div key={key} className="bg-white border border-slate-200/70 rounded-3xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-[14px] font-bold text-slate-800">{label}</span>
-                    <span className="font-extrabold text-[16px] text-slate-900">{val}</span>
-                  </div>
-                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{ width: `${(val / subScoreMax) * 100}%`, backgroundColor: theme.color }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Feedback & Suggestions */}
-          <div className="bg-white border border-slate-200/70 rounded-3xl p-7 shadow-[0_8px_30px_rgb(0,0,0,0.03)]">
-            <h4 className="font-bold text-slate-900 text-[16px] mb-4 border-b border-slate-100 pb-3">Detailed Assessment Feedback</h4>
-            <p className="text-slate-800 leading-relaxed text-[14px] whitespace-pre-line">{evaluation.feedback}</p>
-          </div>
-
-          <div className="bg-white border border-slate-200/70 rounded-3xl p-7 shadow-[0_8px_30px_rgb(0,0,0,0.03)]">
-            <h4 className="font-bold text-slate-900 text-[16px] mb-4 border-b border-slate-100 pb-3">Suggestions for Improvement</h4>
-            <ul className="space-y-3">
-              {evaluation.suggestions.map((s, i) => (
-                <li key={i} className="flex items-start gap-3 text-slate-800 text-[14px]">
-                  <svg className="w-4 h-4 flex-shrink-0 mt-1" fill="none" viewBox="0 0 24 24" stroke={theme.color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  <span className="leading-relaxed">{s}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <button
-            onClick={handleReset}
-            className="px-6 py-3 border border-slate-200 bg-white text-slate-700 font-bold text-[13px] rounded-full hover:bg-slate-50 transition-colors shadow-sm"
-          >
-            Start New Practice Topic
-          </button>
-        </div>
-      )}
+      {/* Results now render as the full-page ScoreReport above. */}
     </div>
   );
 }

@@ -45,7 +45,7 @@ def _get_groq_client() -> Groq:
 
 
 async def evaluate_essay(
-    submission: EssaySubmissionSchema, user_id: str | None = None
+    submission: EssaySubmissionSchema, user_id: str | None = None, access_token: str | None = None
 ) -> EssayEvaluationSchema:
     """
     Evaluate an essay using Llama 3 via Groq.
@@ -151,7 +151,7 @@ Return ONLY the JSON object, no other text.
 
         # Log session in Supabase
         try:
-            db = get_client()
+            db = get_client(access_token)
             is_toefl = submission.exam_type.value == "toefl"
             max_score = 30.0 if is_toefl else 9.0
             percentage = round((evaluation.overall_band / max_score) * 100, 1)
@@ -179,7 +179,8 @@ Return ONLY the JSON object, no other text.
                     "feedback": evaluation.feedback,
                     "suggestions": evaluation.suggestions,
                 }
-            }).execute()
+            })  # this client sends the insert immediately; there is no .execute()
+            evaluation.saved = bool(user_id)
         except Exception as e:
             print(f"Failed to log writing session: {str(e)}")
 

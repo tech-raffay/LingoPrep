@@ -75,16 +75,20 @@ class SupabaseTableQuery:
 
 
 class SupabaseHttpClient:
-    def __init__(self):
+    def __init__(self, access_token: str | None = None):
         if not settings.SUPABASE_URL or not settings.SUPABASE_KEY:
             raise ValueError(
                 "Supabase credentials not configured in .env file."
             )
         self.url = settings.SUPABASE_URL
         self.key = settings.SUPABASE_KEY
+        # With a user's access token, requests run *as that user*, so the
+        # row-level-security policies ("users can insert/view own sessions")
+        # apply. The anon key alone can only touch rows with user_id IS NULL,
+        # which is why signed-in users' results were silently never saved.
         self.headers = {
             "apikey": self.key,
-            "Authorization": f"Bearer {self.key}",
+            "Authorization": f"Bearer {access_token or self.key}",
             "Content-Type": "application/json",
             "Prefer": "return=representation"
         }
@@ -97,8 +101,11 @@ class SupabaseHttpClient:
 _client: SupabaseHttpClient | None = None
 
 
-def get_client() -> SupabaseHttpClient:
-    """Get or create a singleton Supabase HTTP client."""
+def get_client(access_token: str | None = None) -> SupabaseHttpClient:
+    """The shared anon client, or — given a user's access token — a client
+    that acts as that user (needed for anything touching their own rows)."""
+    if access_token:
+        return SupabaseHttpClient(access_token)
     global _client
     if _client is None:
         _client = SupabaseHttpClient()
