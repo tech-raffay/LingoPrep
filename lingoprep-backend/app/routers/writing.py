@@ -159,7 +159,9 @@ async def submit_essay(
             exam_type=exam_type,
             task_type=prompt_data.get("task_type", "2"),
         )
-        evaluation = await writing_service.evaluate_essay(submission)
+        evaluation = await writing_service.evaluate_essay(
+            submission, user_id=(user.id if user else req.user_id)
+        )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except RuntimeError as e:

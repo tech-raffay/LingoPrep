@@ -103,3 +103,17 @@ const LOST: Record<ExamType, Illustration> = {
 export const skillArt = (exam: ExamType, skill: SkillKey) => SKILL_ART[exam][skill];
 export const hubHeroArt = (exam: ExamType) => HUB_HERO[exam];
 export const lostArt = (exam: ExamType) => LOST[exam];
+
+/* ── Results mood characters ─────────────────────────────────────────────
+ * From "IELTS Results.dc.html" (illustrations/mood/). The character follows
+ * the candidate's overall estimate. They are multi-colour character art, not
+ * accent-coded, so the same set serves both exams. Unlettered and drawn on a
+ * 1:1 canvas. */
+
+export const MOOD_ART = {
+  best: { src: "/illustrations/mood/w2.svg", alt: "Student jumping with joy", ...SQUARE },
+  good: { src: "/illustrations/mood/m1.svg", alt: "Student giving a thumbs up", ...SQUARE },
+  mid: { src: "/illustrations/mood/p2.svg", alt: "Student reviewing their results", ...SQUARE },
+  low: { src: "/illustrations/mood/m4.svg", alt: "Student looking a little disappointed", ...SQUARE },
+  none: { src: "/illustrations/mood/p2.svg", alt: "Student ready to start practising", ...SQUARE },
+} satisfies Record<string, Illustration>;

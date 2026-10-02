@@ -44,7 +44,9 @@ def _get_groq_client() -> Groq:
     return Groq(api_key=settings.GROQ_API_KEY)
 
 
-async def evaluate_essay(submission: EssaySubmissionSchema) -> EssayEvaluationSchema:
+async def evaluate_essay(
+    submission: EssaySubmissionSchema, user_id: str | None = None
+) -> EssayEvaluationSchema:
     """
     Evaluate an essay using Llama 3 via Groq.
     
@@ -154,13 +156,18 @@ Return ONLY the JSON object, no other text.
             max_score = 30.0 if is_toefl else 9.0
             percentage = round((evaluation.overall_band / max_score) * 100, 1)
 
+            # user_id and exam_type are what the results dashboard filters on;
+            # without them a writing attempt never shows up in anyone's results.
             db.table("session_logs").insert({
+                "user_id": user_id,
                 "module": "writing",
                 "score": evaluation.overall_band,
                 "max_score": max_score,
                 "percentage": percentage,
                 "band_score": evaluation.overall_band,
                 "details": {
+                    "exam_type": submission.exam_type.value,
+                    "task_type": submission.task_type,
                     "prompt": submission.prompt,
                     "essay_text": submission.essay_text,
                     "sub_scores": {

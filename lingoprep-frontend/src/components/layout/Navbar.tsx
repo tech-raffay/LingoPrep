@@ -27,6 +27,14 @@ import Logo from "@/components/brand/Logo";
 import Icon from "@/components/brand/Icon";
 import { Badge, ButtonLink } from "@/components/brand/ui";
 
+/** "Muhammad Raffay" → "MR"; falls back to the email's first letter. */
+function initialsOf(name?: string, email?: string | null): string {
+  const parts = (name ?? "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (email?.[0] ?? "?").toUpperCase();
+}
+
 export default function Navbar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -62,11 +70,22 @@ export default function Navbar() {
             </div>
 
             {/* Desktop actions */}
-            <div className="hidden md:flex items-center gap-6">
+            <div className="hidden md:flex items-center gap-5">
+              {/* Signed in with an exam chosen: a way back to the tests from
+                  anywhere (Results design). */}
+              {user && !unset && (
+                <Link
+                  href={withExam("/")}
+                  className="text-[14px] font-bold text-n-700 hover:text-accent transition-colors duration-[120ms] whitespace-nowrap"
+                >
+                  Practice tests
+                </Link>
+              )}
               <Link
                 href={resultsHref}
-                className={`text-[14px] font-bold transition-colors duration-[120ms] ${
-                  resultsActive ? "text-accent" : "text-ink hover:text-accent"
+                aria-current={resultsActive ? "page" : undefined}
+                className={`text-[14px] font-bold transition-colors duration-[120ms] whitespace-nowrap py-1.5 border-b-2 ${
+                  resultsActive ? "text-accent border-accent" : "text-ink border-transparent hover:text-accent"
                 }`}
               >
                 Your results
@@ -74,13 +93,30 @@ export default function Navbar() {
 
               {user ? (
                 <>
-                  <span className="flex items-center gap-1.5 text-[13px] text-n-600 font-medium max-w-[170px] truncate">
-                    <Icon name="account" size={16} className="text-n-500" />
-                    {user.user_metadata?.full_name || user.email}
+                  <span className="w-px h-[26px] bg-n-200" aria-hidden="true" />
+                  {/* Account pill: initials, name, and the exam being practised */}
+                  <span className="flex items-center gap-2.5 rounded-full border border-n-200 bg-n-0 py-1 pl-1 pr-3 max-w-[230px]">
+                    <span
+                      className="w-[34px] h-[34px] shrink-0 rounded-full text-white text-[13px] font-bold flex items-center justify-center"
+                      style={{ background: "linear-gradient(145deg, color-mix(in srgb, var(--accent) 88%, white), var(--accent-strong))" }}
+                      aria-hidden="true"
+                    >
+                      {initialsOf(user.user_metadata?.full_name, user.email)}
+                    </span>
+                    <span className="flex flex-col leading-[1.2] min-w-0">
+                      <span className="text-[13.5px] font-bold text-ink truncate">
+                        {user.user_metadata?.full_name || user.email}
+                      </span>
+                      {!unset && (
+                        <span className="text-[11.5px] font-bold text-n-500 truncate">
+                          {theme.name === "TOEFL" ? "TOEFL iBT" : "IELTS Academic"}
+                        </span>
+                      )}
+                    </span>
                   </span>
                   <button
                     onClick={() => signOut()}
-                    className="inline-flex items-center gap-1.5 text-[14px] font-bold text-ink hover:text-accent transition-colors duration-[120ms] cursor-pointer"
+                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-[14px] font-bold text-n-700 hover:bg-n-100 hover:text-ink transition-colors duration-[120ms] cursor-pointer whitespace-nowrap"
                   >
                     <Icon name="signOut" size={16} />
                     Sign out

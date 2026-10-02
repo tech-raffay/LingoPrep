@@ -42,3 +42,7 @@ coverage/
 
 # Design canvas editor artifact
 .thumbnail
+
+# Jupyter notebooks (coursework, not part of the app)
+*.ipynb
+.ipynb_checkpoints/

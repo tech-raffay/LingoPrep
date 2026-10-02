@@ -10,6 +10,52 @@ from app.dependencies.auth import get_current_user as verify_user, Authenticated
 
 router = APIRouter()
 
+MODULES = ("listening", "reading", "writing", "speaking")
+
+
+def _summarise_modules(sessions: list[dict]) -> dict:
+    """Per-skill breakdown for the results page: how many attempts, the
+    average, and the first and latest estimate (oldest → newest), plus the
+    criterion sub-scores of the latest attempt where the module records them
+    (writing and speaking)."""
+    out = {}
+    for module in MODULES:
+        rows = sorted(
+            (s for s in sessions if s.get("module") == module),
+            key=lambda s: s.get("created_at") or "",
+        )
+        scores = [float(s.get("band_score") or 0) for s in rows]
+        latest = rows[-1] if rows else None
+        out[module] = {
+            "count": len(rows),
+            # Two decimals: the frontend applies each exam's own rounding rule
+            # (IELTS rounds to the nearest half band, so 6.25 must stay 6.25).
+            "avg": round(sum(scores) / len(scores), 2) if scores else 0,
+            "first": scores[0] if scores else None,
+            "latest": scores[-1] if scores else None,
+            "latest_at": latest.get("created_at") if latest else None,
+            "latest_sub_scores": ((latest.get("details") or {}).get("sub_scores") if latest else None),
+        }
+    return out
+
+
+def _slim_session(s: dict) -> dict:
+    """A history row without the heavy details payload (essays, answers)."""
+    details = s.get("details") or {}
+    return {
+        "id": s.get("id"),
+        "module": s.get("module"),
+        "score": s.get("score"),
+        "max_score": s.get("max_score"),
+        "percentage": s.get("percentage"),
+        "band_score": s.get("band_score"),
+        "created_at": s.get("created_at"),
+        "exam_type": s.get("exam_type"),
+        "passage_title": s.get("passage_title"),
+        "task_type": details.get("task_type"),
+        "is_full_test": details.get("is_full_test", False),
+    }
+
 
 @router.get("/me")
 async def get_current_user_profile(user: AuthenticatedUser = Depends(verify_user)):
@@ -175,6 +221,10 @@ async def get_user_stats(user: AuthenticatedUser = Depends(verify_user)):
                 except Exception:
                     pass
 
+        by_date = lambda s: s.get("created_at", "")
+        recent_ielts = sorted(ielts_sessions, key=by_date, reverse=True)[:10]
+        recent_toefl = sorted(toefl_sessions, key=by_date, reverse=True)[:10]
+
         return {
             "success": True,
             "data": {
@@ -187,6 +237,8 @@ async def get_user_stats(user: AuthenticatedUser = Depends(verify_user)):
                 "writing_avg": round(flat_writing, 1),
                 "speaking_avg": round(flat_speaking, 1),
                 "ielts": {
+                    "modules": _summarise_modules(ielts_sessions),
+                    "recent_sessions": [_slim_session(s) for s in recent_ielts],
                     "total_sessions": ielts_total,
                     "average_percentage": round(ielts_avg_pct, 1),
                     "overall_band": ielts_overall,
@@ -196,6 +248,8 @@ async def get_user_stats(user: AuthenticatedUser = Depends(verify_user)):
                     "speaking_avg": round(ielts_speaking_avg, 1),
                 },
                 "toefl": {
+                    "modules": _summarise_modules(toefl_sessions),
+                    "recent_sessions": [_slim_session(s) for s in recent_toefl],
                     "total_sessions": toefl_total,
                     "average_percentage": round(toefl_avg_pct, 1),
                     "overall_band": toefl_overall,

@@ -30,36 +30,9 @@ import Art from "@/components/brand/Art";
 import Reveal from "@/components/brand/Reveal";
 import { hubHeroArt, skillArt, type SkillKey } from "@/lib/illustrations";
 import type { ExamType } from "@/lib/exam";
+import { HUES } from "@/lib/skillHues";
 
-/* ── Per-skill palette ──────────────────────────────────────────────────── */
-
-interface Hue {
-  accent: string;
-  deep: string;
-  tint: string;
-  dot: string;
-  glow: string;
-}
-
-const HUES: Record<SkillKey, Hue> = {
-  listening: {
-    accent: "var(--amber-500)", deep: "#D97706", tint: "#FFF4DE",
-    dot: "rgb(245 158 11 / .28)", glow: "rgb(245 158 11 / .35)",
-  },
-  reading: {
-    accent: "var(--accent)", deep: "var(--accent-strong)", tint: "var(--accent-tint)",
-    dot: "color-mix(in srgb, var(--accent) 20%, transparent)",
-    glow: "color-mix(in srgb, var(--accent) 30%, transparent)",
-  },
-  writing: {
-    accent: "#1F7A5C", deep: "#12503C", tint: "#EAF5EF",
-    dot: "rgb(18 80 60 / .2)", glow: "rgb(18 80 60 / .3)",
-  },
-  speaking: {
-    accent: "#2E3A5C", deep: "var(--ink)", tint: "#EEF0F6",
-    dot: "rgb(18 23 43 / .16)", glow: "rgb(18 23 43 / .3)",
-  },
-};
+/* ── Per-skill palette: src/lib/skillHues.ts ───────────────────────────── */
 
 /* ── Copy, per exam ─────────────────────────────────────────────────────── */
 

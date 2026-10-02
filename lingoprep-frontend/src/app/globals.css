@@ -355,6 +355,26 @@ html[data-theme-switching] *::after {
   0%, 100% { transform: translate3d(0, 0, 0) scale(1.1); }
   50%      { transform: translate3d(-70px, -30px, 0) scale(.9); }
 }
+/* Results-page mood characters ("IELTS Results.dc.html"). Marketing-grade
+   motion on a results screen, never inside a test; stilled by the global
+   prefers-reduced-motion rule. */
+@keyframes lp-jump {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  12%      { transform: translateY(4px) scale(1.04, .96); }
+  45%      { transform: translateY(-34px) scale(.98, 1.03); }
+  60%      { transform: translateY(-36px) scale(1, 1); }
+  88%      { transform: translateY(2px) scale(1.03, .97); }
+}
+@keyframes lp-jump-shadow {
+  0%, 12%, 88%, 100% { transform: scale(1); opacity: .22; }
+  50%                { transform: scale(.6); opacity: .1; }
+}
+@keyframes lp-sway    { 0%, 100% { transform: rotate(-2.2deg); } 50% { transform: rotate(2.2deg); } }
+@keyframes lp-breathe { 0%, 100% { transform: translateY(0) scaleY(1); } 50% { transform: translateY(-6px) scaleY(1.012); } }
+@keyframes lp-droop   { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(5px) rotate(-1.4deg); } }
+@keyframes lp-twinkle { 0%, 100% { transform: scale(.4) rotate(0); opacity: 0; } 50% { transform: scale(1) rotate(45deg); opacity: 1; } }
+@keyframes lp-pop     { 0% { transform: scale(.6); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes lp-rain    { 0% { transform: translateY(-10px); opacity: 0; } 30% { opacity: .8; } 100% { transform: translateY(60px); opacity: 0; } }
 @keyframes lp-bob {
   0%, 100% { translate: 0 0; }
   50%      { translate: 0 -9px; }

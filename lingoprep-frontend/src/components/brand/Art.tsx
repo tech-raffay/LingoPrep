@@ -31,7 +31,9 @@ export default function Art({
       priority={priority}
       sizes={sizes}
       draggable={false}
-      className={`block h-auto select-none ${float ? "lp-float" : ""} ${className ?? ""}`}
+      // h-auto keeps the aspect ratio by default; a caller that sets its own
+      // height (h-[…], h-full) must not have it overridden.
+      className={`block select-none ${/(^|\s)h-/.test(className ?? "") ? "" : "h-auto"} ${float ? "lp-float" : ""} ${className ?? ""}`}
     />
   );
 }
