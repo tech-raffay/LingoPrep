@@ -29,7 +29,9 @@ export type ReadingQuestionType =
   | "table_completion"
   | "flowchart_completion"
   | "diagram_label"
-  | "short_answer";
+  | "short_answer"
+  // TOEFL iBT (2026): fill in the missing letters of a word
+  | "complete_words";
 
 /** Returns true for types that use option radio buttons */
 export function isOptionBasedType(type: ReadingQuestionType): boolean {
@@ -70,7 +72,22 @@ export interface QuestionData {
   endings?: { label: string; text: string }[];
   // Sentence / Short Answer Completion
   max_words?: number;
+  /** Instruction shown above the group, in the exam's own wording. */
   instruction?: string;
+  hide_instruction?: boolean;
+  /** Titles for the list box, table, summary and flow chart. */
+  list_title?: string;
+  table_title?: string;
+  summary_title?: string;
+  flowchart_title?: string;
+  /** Which drawing to show for a diagram-label task. */
+  diagram?: string;
+  // TOEFL Complete the Words
+  template?: string;
+  prefix?: string;
+  missing?: number;
+  /** TOEFL task the question belongs to. */
+  task?: string;
   // Summary Completion
   summary_text?: string;
   has_word_list?: boolean;
@@ -81,7 +98,8 @@ export interface QuestionData {
   columns?: string[];
   rows?: string[][];
   // Flowchart Completion
-  nodes?: { text: string; is_blank: boolean }[];
+  /** A box is either all gap (is_blank) or text with __BLANK__ gaps in it. */
+  nodes?: { text: string; is_blank?: boolean }[];
   direction?: "vertical" | "horizontal";
   // Diagram Label Completion
   diagram_type?: string;

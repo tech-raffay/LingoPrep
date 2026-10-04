@@ -110,11 +110,18 @@ export default function ListeningPage() {
   const firstSectionRender = useRef(true);
   useEffect(() => {
     if (firstSectionRender.current) { firstSectionRender.current = false; return; }
-    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    const behavior: ScrollBehavior = reduce ? "auto" : "smooth";
-    window.scrollTo({ top: 0, behavior });
-    leftPaneRef.current?.scrollTo({ top: 0, behavior });
-    questionsPaneRef.current?.scrollTo({ top: 0, behavior });
+    // An instant jump ("instant" overrides the site-wide smooth scrolling,
+    // which a re-render could interrupt half way), repeated once the new
+    // section has been laid out.
+    const toTop = () => {
+      leftPaneRef.current?.scrollTo({ top: 0, behavior: "instant" });
+      questionsPaneRef.current?.scrollTo({ top: 0, behavior: "instant" });
+      window.scrollTo({ top: 0, behavior: "instant" });
+    };
+    toTop();
+    const frame = requestAnimationFrame(toTop);
+    const timer = setTimeout(toTop, 150);
+    return () => { cancelAnimationFrame(frame); clearTimeout(timer); };
   }, [activeSectionIdx]);
 
   // Clean up audio on unmount

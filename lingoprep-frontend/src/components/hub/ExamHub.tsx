@@ -57,9 +57,9 @@ const SKILLS: Skill[] = [
     key: "reading", title: "Reading", icon: "reading",
     desc: {
       ielts: "Three passages of rising complexity, 40 questions in 60 minutes.",
-      toefl: "Two academic passages, 20 questions in 35 minutes.",
+      toefl: "Complete the Words, everyday texts and short academic passages. 50 questions in 30 minutes.",
     },
-    chips: { ielts: ["60 min", "3 passages · 40 Qs"], toefl: ["35 min", "2 passages · 20 Qs"] },
+    chips: { ielts: ["60 min", "3 passages · 40 Qs"], toefl: ["30 min", "9 tasks · 50 Qs"] },
   },
   {
     key: "writing", title: "Writing", icon: "writing",

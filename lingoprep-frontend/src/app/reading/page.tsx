@@ -8,7 +8,22 @@ import { useExam } from "@/components/theme/ExamThemeProvider";
 import { isOptionBasedType } from "@/types";
 import type { ReadingQuestionType } from "@/types";
 import QuestionGroupRenderer, { groupQuestions } from "@/components/reading/QuestionRenderers";
-import { TelegraphFigure, BioluminescenceFigure, UrbanPlanningFigure } from "@/components/reading/PassageVisuals";
+import Stimulus, { parseStimulus, stimulusText } from "@/components/reading/Stimulus";
+
+/**
+ * What a section of the test is.
+ *   passage : a long text with questions beside it (every IELTS passage,
+ *             and TOEFL "Read an Academic Passage")
+ *   daily   : TOEFL "Read in Daily Life", a short everyday text
+ *   words   : TOEFL "Complete the Words", where the paragraph is the task
+ */
+type TaskKind = "passage" | "daily" | "words";
+
+const TOEFL_TASK: Record<TaskKind, string> = {
+  passage: "Read an Academic Passage",
+  daily: "Read in Daily Life",
+  words: "Complete the Words",
+};
 
 interface Option {
   id: string;
@@ -61,7 +76,7 @@ export default function ReadingPage() {
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  
+
   // Results from backend
   const [bandScore, setBandScore] = useState<number | null>(null);
   const [correctCount, setCorrectCount] = useState<number | null>(null);
@@ -70,11 +85,7 @@ export default function ReadingPage() {
   // Backend-confirmed: this attempt is now in the candidate's Results page.
   const [saved, setSaved] = useState<boolean | undefined>(undefined);
 
-  // Exam config: TOEFL = 35 min, IELTS = 60 min
-  const examConfig = examType === "toefl"
-    ? { timer: 2100, sections: "2 Passages", questions: "20 Questions", duration: "35 Minutes", scoreLabel: "TOEFL Score", maxScore: 30 }
-    : { timer: 3600, sections: "3 Passages", questions: "40 Questions", duration: "60 Minutes", scoreLabel: "IELTS Band", maxScore: 9 };
-  const [timeLeft, setTimeLeft] = useState(examConfig.timer);
+  const [timeLeft, setTimeLeft] = useState(3600);
   const [showPassage, setShowPassage] = useState(true); // mobile toggle
 
   // Refs for scrolling to specific questions
@@ -82,15 +93,44 @@ export default function ReadingPage() {
   // Scrollable panes, so a new passage always starts at the top.
   const passagePaneRef = useRef<HTMLDivElement | null>(null);
   const questionsPaneRef = useRef<HTMLDivElement | null>(null);
+  // On a phone the passage and the questions are two tabs sharing one page
+  // scroll; remember where each tab was so switching does not lose your place.
+  const tabScroll = useRef({ passage: 0, questions: 0 });
   const firstPassageRender = useRef(true);
+
+  // A new section always opens at its top: the start of the text and the
+  // first question. The jump is instant ("instant" overrides the site-wide
+  // smooth scrolling, which a re-render could interrupt half way), and it is
+  // repeated once the new section has been laid out.
   useEffect(() => {
     if (firstPassageRender.current) { firstPassageRender.current = false; return; }
-    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    const behavior: ScrollBehavior = reduce ? "auto" : "smooth";
-    window.scrollTo({ top: 0, behavior });
-    passagePaneRef.current?.scrollTo({ top: 0, behavior });
-    questionsPaneRef.current?.scrollTo({ top: 0, behavior });
+    tabScroll.current = { passage: 0, questions: 0 };
+    const toTop = () => {
+      passagePaneRef.current?.scrollTo({ top: 0, behavior: "instant" });
+      questionsPaneRef.current?.scrollTo({ top: 0, behavior: "instant" });
+      window.scrollTo({ top: 0, behavior: "instant" });
+    };
+    toTop();
+    const frame = requestAnimationFrame(toTop);
+    const timer = setTimeout(toTop, 150);
+    return () => { cancelAnimationFrame(frame); clearTimeout(timer); };
   }, [activeSectionIdx]);
+
+  // Phone: switching tab returns to where that tab was left.
+  useEffect(() => {
+    if (window.matchMedia("(min-width: 768px)").matches) return;
+    window.scrollTo({ top: tabScroll.current[showPassage ? "passage" : "questions"], behavior: "instant" });
+  }, [showPassage]);
+
+  const toggleTab = () => {
+    tabScroll.current[showPassage ? "passage" : "questions"] = window.scrollY;
+    setShowPassage((v) => !v);
+  };
+
+  const goToSection = (idx: number) => {
+    setActiveSectionIdx(idx);
+    setShowPassage(true);
+  };
 
   useEffect(() => {
     async function fetchPassages() {
@@ -147,6 +187,20 @@ export default function ReadingPage() {
     return [...acc, ...p.questions];
   }, []);
 
+  const kindOf = (p: Passage): TaskKind =>
+    p.questions[0]?.question_type === "complete_words" ? "words"
+      : parseStimulus(p.content).kind !== "passage" ? "daily"
+      : "passage";
+
+  // TOEFL in the format ETS introduced in January 2026 (three task types).
+  const isToefl = examType === "toefl";
+  const toefl2026 = isToefl && passages.some((p) => kindOf(p) !== "passage");
+  const minutes = !isToefl ? 60 : toefl2026 ? 30 : 35;
+  const sectionWord = toefl2026 ? "Task" : "Passage";
+
+  const isAnswered = (qId: string) => !!selectedAnswers[qId]?.trim();
+  const unansweredCount = allQuestions.filter((q) => !isAnswered(q.id)).length;
+
   // Handle option click (MCQ / TFNG / YNG)
   const handleSelect = (qId: string, oId: string) => {
     if (submitted) return;
@@ -164,7 +218,6 @@ export default function ReadingPage() {
     if (passages.length === 0 || submitted) return;
 
     if (!force) {
-      const unansweredCount = allQuestions.length - Object.keys(selectedAnswers).length;
       if (unansweredCount > 0) {
         setShowConfirmModal(true);
         return;
@@ -221,7 +274,6 @@ export default function ReadingPage() {
     setBandScore(null);
     setDbResults(null);
     setSaved(undefined);
-    setTimeLeft(examConfig.timer);
     setIsTestStarted(false);
     setActiveSectionIdx(0);
   };
@@ -232,14 +284,14 @@ export default function ReadingPage() {
     for (let pIdx = 0; pIdx < passages.length; pIdx++) {
       const pQuestions = passages[pIdx].questions;
       if (qIndex >= questionCount && qIndex < questionCount + pQuestions.length) {
+        if (showPassage) tabScroll.current.passage = window.scrollY;
         setActiveSectionIdx(pIdx);
+        setShowPassage(false);
         const qId = pQuestions[qIndex - questionCount].id;
+        // After the section-change jump to the top has settled.
         setTimeout(() => {
-          const el = questionRefs.current[qId];
-          if (el) {
-            el.scrollIntoView({ behavior: "smooth", block: "center" });
-          }
-        }, 100);
+          questionRefs.current[qId]?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 260);
         break;
       }
       questionCount += pQuestions.length;
@@ -292,19 +344,41 @@ export default function ReadingPage() {
 
   // 1. Welcome / Instructions Screen
   if (!isTestStarted && !submitted) {
+    const count = allQuestions.length;
+    const points = toefl2026
+      ? [
+          { label: "Format:", text: <>The format ETS introduced in January 2026: {passages.length} short tasks and {count} questions in {minutes} minutes, on ONE continuous timer.</> },
+          { label: "Complete the Words:", text: "A short academic paragraph in which ten words have lost their second half. Type the missing letters." },
+          { label: "Read in Daily Life:", text: "Everyday texts such as an email, a notice or a message thread, each with two or three questions." },
+          { label: "Read an Academic Passage:", text: "A passage of about 200 words with five questions on main ideas, details, vocabulary and inference." },
+          { label: "Scoring:", text: "One mark per correct answer, reported on the TOEFL iBT 0–30 section scale." },
+        ]
+      : isToefl
+        ? [
+            { label: "Total duration:", text: <>{minutes} minutes. ONE continuous timer. The clock does not reset between passages.</> },
+            { label: "Passages:", text: <>{passages.length} academic passages. Navigate freely between them at any time.</> },
+            { label: "Questions:", text: <>{count} multiple-choice questions.</> },
+            { label: "Scoring:", text: "Scored 0–30 (TOEFL iBT section scale)." },
+          ]
+        : [
+            { label: "Total duration:", text: <>{minutes} minutes. ONE continuous timer. The clock does not reset between passages.</> },
+            { label: "Passages:", text: <>{passages.length} passages of increasing difficulty, each about 750 to 850 words. Navigate freely between them at any time.</> },
+            { label: "Questions:", text: <>{count} questions in the task types the exam uses: matching headings, True/False/Not Given, multiple choice, matching features, Yes/No/Not Given, and completing a table, a summary, a flow chart and the labels on a diagram.</> },
+            { label: "Answers:", text: "Completion answers must use words from the passage, within the word limit given, and must be spelled correctly." },
+            { label: "Scoring:", text: "1 mark per correct answer, converted to an IELTS band from 0 to 9." },
+          ];
     return (
       <TestIntro
         skill="reading"
         title={`${theme.name} Reading Test`}
-        meta={`${examConfig.sections} · ${examConfig.questions} · ${examConfig.duration}`}
-        points={[
-          { label: "Total duration:", text: <>{examConfig.duration}. ONE continuous timer. The clock does not reset between passages.</> },
-          { label: "Passages:", text: <>{examConfig.sections} of increasing academic complexity. Navigate freely between passages at any time.</> },
-          { label: "Questions:", text: <>{examConfig.questions} across multiple question types: multiple choice, True/False/Not Given, matching, completion, tables, flow charts, and more.</> },
-          { label: "Scoring:", text: examType === "toefl" ? "Scored 0–30 (TOEFL iBT section scale)." : "1 mark per correct answer → converted to IELTS Band 0–9." },
-        ]}
-        instructions={<>Ensure you are in a quiet workspace. Once you click &ldquo;Start exam&rdquo;, the countdown begins and cannot be paused. Read the texts carefully and answer the questions. You can navigate between all the passages while the timer continues. Good luck!</>}
-        onStart={() => setIsTestStarted(true)}
+        meta={`${passages.length} ${sectionWord}s · ${count} Questions · ${minutes} Minutes`}
+        points={points}
+        instructions={
+          toefl2026
+            ? <>Once you click &ldquo;Start exam&rdquo;, the countdown begins and cannot be paused. You can move between tasks freely while the timer runs. In the real exam this section is adaptive: the second module is easier or harder depending on the first. This practice form gives everyone the same tasks.</>
+            : <>Ensure you are in a quiet workspace. Once you click &ldquo;Start exam&rdquo;, the countdown begins and cannot be paused. Read the texts carefully and answer the questions. You can move between all the passages while the timer continues. Good luck!</>
+        }
+        onStart={() => { setTimeLeft(minutes * 60); setIsTestStarted(true); }}
       />
     );
   }
@@ -317,11 +391,25 @@ export default function ReadingPage() {
     };
     const sections: ReviewSection[] = passages.map((p) => ({
       title: p.title,
-      material: { kind: "passage", text: p.content },
+      material: { kind: "passage", text: stimulusText(p.content) },
       items: p.questions.map((q) => {
         const r = dbResults?.find((x: any) => x.question_id === q.id);
         const optionBased = isOptionBasedType(q.question_type || "multiple_choice");
         const num = getOverallQuestionNumber(q.id);
+        if (q.question_type === "complete_words") {
+          // Show whole words: the printed half plus the letters typed.
+          const prefix = q.question_data?.prefix ?? "";
+          const typed = ((r?.answer_text as string) || selectedAnswers[q.id] || "").trim();
+          return {
+            id: q.id,
+            num,
+            question: `Complete the word: ${q.question_text}`,
+            your: typed ? prefix + typed : null,
+            answer: prefix + ((r?.correct_answer_text as string) || q.correct_answer_text || ""),
+            ok: !!r?.is_correct,
+            why: null,
+          };
+        }
         const your = optionBased
           ? optionText(q, selectedAnswers[q.id])
           : ((r?.answer_text as string) || selectedAnswers[q.id] || null);
@@ -358,197 +446,248 @@ export default function ReadingPage() {
   // 3. Active Test Screen
   const currentPassage = passages[activeSectionIdx];
   const totalPassages = passages.length;
+  const kind = kindOf(currentPassage);
   const qStart = getOverallQuestionNumber(currentPassage.questions[0].id);
   const qEnd   = getOverallQuestionNumber(currentPassage.questions[currentPassage.questions.length - 1].id);
+  const isLast = activeSectionIdx === totalPassages - 1;
+  // On a phone a long passage and its questions are two tabs. A short
+  // everyday text simply sits above its questions.
+  const tabbed = kind === "passage";
+
+  const sectionChip = (
+    <span className="px-3.5 py-1 bg-slate-100 border border-slate-200 text-slate-600 font-extrabold rounded-full text-[10.5px] uppercase tracking-wider">
+      {sectionWord} {activeSectionIdx + 1} of {totalPassages}
+      {toefl2026 && <> · {TOEFL_TASK[kind]}</>}
+    </span>
+  );
+
+  const questionGroups = currentQuestionGroups.map((group, gi) => {
+    const from = getOverallQuestionNumber(group.questions[0].id);
+    const to = getOverallQuestionNumber(group.questions[group.questions.length - 1].id);
+    // Labels are stored as "Questions 1–5: Matching headings". The numbers
+    // are worked out here, so only the task name is taken from the label.
+    const named = /^Questions?\s+\d+(?:\s*[–-]\s*\d+)?\s*[:.]?\s*(.*)$/.exec(group.label);
+    const taskName = toefl2026 ? "" : named ? named[1] : group.questions[0].question_group_label ? group.label : "";
+    return (
+      <section key={`${activeSectionIdx}-${gi}`} className="space-y-3.5">
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+          <span className="h-5 w-1 flex-shrink-0 rounded-full" style={{ backgroundColor: theme.color }} />
+          <h3 className="text-[15px] font-extrabold text-slate-900">
+            {from === to ? `Question ${from}` : `Questions ${from}–${to}`}
+          </h3>
+          {taskName && (
+            <span className="text-[11.5px] font-bold uppercase tracking-wider text-slate-500">{taskName}</span>
+          )}
+        </div>
+
+        <QuestionGroupRenderer
+          group={group}
+          selectedAnswers={selectedAnswers}
+          onSelectOption={handleSelect}
+          onTextAnswer={handleTextAnswer}
+          getOverallNumber={getOverallQuestionNumber}
+          theme={theme}
+          questionRefs={questionRefs}
+        />
+      </section>
+    );
+  });
+
+  const sectionNav = (
+    <div className="flex items-center justify-between gap-3 border-t border-slate-200 pt-6">
+      <button
+        disabled={activeSectionIdx === 0}
+        onClick={() => goToSection(activeSectionIdx - 1)}
+        className="flex items-center gap-1.5 px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-[13px] font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm cursor-pointer"
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
+        <span>Previous</span>
+      </button>
+
+      {isLast ? (
+        <button
+          onClick={() => handleSubmit(false)}
+          className="flex items-center gap-1.5 px-6 py-2.5 text-white font-bold text-[13px] rounded-xl transition-all shadow-sm hover:opacity-90 active:scale-95 cursor-pointer"
+          style={{ backgroundColor: theme.color }}
+        >
+          <span>Submit Exam</span>
+        </button>
+      ) : (
+        <button
+          onClick={() => goToSection(activeSectionIdx + 1)}
+          className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-[13px] font-bold text-white transition-all shadow-sm hover:opacity-90 active:scale-95 cursor-pointer"
+          style={{ backgroundColor: "#1e293b" }}
+        >
+          <span>Next {sectionWord}</span>
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
+        </button>
+      )}
+    </div>
+  );
+
+  const navigator = (
+    <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+      <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3">Question Navigator</p>
+      <div className="grid grid-cols-10 gap-1.5">
+        {allQuestions.map((q, qi) => {
+          const answered = isAnswered(q.id);
+          const inSection = currentPassage.questions.some((pq) => pq.id === q.id);
+          return (
+            <button
+              key={q.id}
+              onClick={() => handleNavClick(qi)}
+              className={`w-full aspect-square sm:aspect-auto sm:h-9 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                answered
+                  ? "text-white shadow-sm"
+                  : inSection
+                    ? "bg-slate-200 text-slate-700 hover:bg-slate-300"
+                    : "bg-slate-100 text-slate-400 hover:bg-slate-200"
+              }`}
+              style={answered ? { backgroundColor: theme.color } : undefined}
+              title={`Question ${qi + 1}`}
+            >
+              {qi + 1}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#f4f5f7] flex flex-col">
 
-      {/* TOP BAR */}
-      <header className="bg-white border-b border-slate-200 px-4 sm:px-8 py-3 flex items-center justify-between sticky top-0 z-30 shadow-sm gap-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-[15px] sm:text-[17px] font-extrabold tracking-tight flex-shrink-0" style={{ color: theme.color }}>LingoPrep</span>
-          <span className="text-slate-300 hidden sm:inline">|</span>
-          <span className="text-[12px] sm:text-[14px] font-semibold text-slate-600 hidden sm:inline truncate">{theme.name} Reading Test</span>
-        </div>
-
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Passage tabs — hidden on mobile */}
-          <div className="hidden md:flex items-center gap-1 bg-slate-100/90 border border-slate-200 p-1 rounded-xl">
-            {passages.map((_, idx) => (
-              <button key={idx} onClick={() => setActiveSectionIdx(idx)}
-                className={`px-3 py-1 rounded-lg text-[12px] font-bold transition-all ${
-                  activeSectionIdx === idx ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
-                }`}
-              >P{idx + 1}</button>
-            ))}
+      {/* TOP BAR: sits under the site header and stays in view */}
+      <div className="sticky top-14 z-30 shadow-sm">
+        <header className="bg-white border-b border-slate-200 px-4 sm:px-8 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-[15px] sm:text-[17px] font-extrabold tracking-tight flex-shrink-0" style={{ color: theme.color }}>LingoPrep</span>
+            <span className="text-slate-300 hidden sm:inline">|</span>
+            <span className="text-[12px] sm:text-[14px] font-semibold text-slate-600 hidden sm:inline truncate">{theme.name} Reading Test</span>
           </div>
 
-          {/* Mobile passage toggle */}
-          <button onClick={() => setShowPassage(p => !p)}
-            className="md:hidden px-3 py-1.5 bg-slate-100 border border-slate-200 rounded-lg text-[12px] font-bold text-slate-700"
-          >{showPassage ? "Questions" : "Passage"}</button>
-
-          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border font-mono font-bold text-[13px] transition-all ${
-            timeLeft < 300
-              ? "bg-[var(--error-tint)] text-[var(--error)] border-[var(--error)]"
-              : "bg-[var(--n-100)] text-[var(--ink)] border-[var(--n-300)]"
-          }`}>
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span>{formatTime(timeLeft)}</span>
-          </div>
-
-          <button onClick={() => handleSubmit(false)}
-            className="px-3 sm:px-5 py-2 text-white font-bold text-[12px] sm:text-[13px] rounded-lg transition-all hover:opacity-90 active:scale-95"
-            style={{ backgroundColor: theme.color }}
-          >Finish</button>
-        </div>
-      </header>
-
-      {/* MAIN WORKSPACE — responsive split screen */}
-      <div className="flex-1 overflow-hidden" style={{ display: "grid", gridTemplateColumns: "1fr" }}>
-        <div className="flex-1 grid md:grid-cols-12 gap-0 overflow-hidden flex-1">
-
-        {/* Left Side: Passage — hidden on mobile when showing questions */}
-        <div ref={passagePaneRef} className={`md:col-span-7 bg-white border-r border-slate-200 p-5 sm:p-8 overflow-y-auto max-h-[calc(100vh-115px)] ${
-          showPassage ? "block" : "hidden md:block"
-        }`}>
-          <div className="max-w-3xl mx-auto space-y-6">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <span className="px-3.5 py-1 bg-slate-100 border border-slate-200 text-slate-600 font-extrabold rounded-full text-[10.5px] uppercase tracking-wider">
-                Passage {activeSectionIdx + 1} of {totalPassages}
-              </span>
-              <span className="text-[12px] font-semibold text-slate-400">Questions {qStart}–{qEnd}</span>
-            </div>
-
-            <h2 className="text-[23px] font-extrabold text-slate-900 leading-tight">
-              {currentPassage.title}
-            </h2>
-
-            <div className="text-[15px] text-slate-800 leading-[1.85] space-y-5 font-normal">
-              {currentPassage.content.split("\n\n").map((p, i) => (
-                <div key={i} className="space-y-5">
-                  <p>
-                    {/* Add paragraph labels (A, B, C...) for matching-info type support */}
-                    {currentPassage.questions.some(q => q.question_type === "matching_info") && (
-                      <span className="inline-block font-bold text-slate-500 mr-2 text-[13px]">
-                        {String.fromCharCode(65 + i)}
-                      </span>
-                    )}
-                    {p}
-                  </p>
-
-                  {/* Authentic scientific/demographic figures integrated into passage */}
-                  {i === 1 && (
-                    <>
-                      {activeSectionIdx === 0 && <TelegraphFigure />}
-                      {activeSectionIdx === 1 && <BioluminescenceFigure />}
-                      {activeSectionIdx === 2 && <UrbanPlanningFigure />}
-                    </>
-                  )}
-                </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Section tabs: desktop only. A phone uses Previous / Next. */}
+            <div className="hidden md:flex items-center gap-1 bg-slate-100/90 border border-slate-200 p-1 rounded-xl">
+              {passages.map((_, idx) => (
+                <button key={idx} onClick={() => goToSection(idx)}
+                  aria-label={`${sectionWord} ${idx + 1}`}
+                  aria-current={activeSectionIdx === idx ? "true" : undefined}
+                  className={`min-w-8 px-2.5 py-1 rounded-lg text-[12px] font-bold transition-all cursor-pointer ${
+                    activeSectionIdx === idx ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >{toefl2026 ? idx + 1 : `P${idx + 1}`}</button>
               ))}
             </div>
+
+            <span className="md:hidden text-[12px] font-bold text-slate-500 tabular-nums">
+              {activeSectionIdx + 1}/{totalPassages}
+            </span>
+
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border font-bold tabular-nums text-[13px] transition-all ${
+              timeLeft < 300
+                ? "bg-[var(--error-tint)] text-[var(--error)] border-[var(--error)]"
+                : "bg-[var(--n-100)] text-[var(--ink)] border-[var(--n-300)]"
+            }`}>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>{formatTime(timeLeft)}</span>
+            </div>
+
+            <button onClick={() => handleSubmit(false)}
+              className="px-3 sm:px-5 py-2 text-white font-bold text-[12px] sm:text-[13px] rounded-lg transition-all hover:opacity-90 active:scale-95 cursor-pointer"
+              style={{ backgroundColor: theme.color }}
+            >Finish</button>
+          </div>
+        </header>
+
+        {/* Phone: the passage and its questions are two tabs */}
+        {tabbed && (
+          <div className="md:hidden grid grid-cols-2 bg-white border-b border-slate-200" role="tablist" aria-label="Passage or questions">
+            {([["Passage", true], [`Questions ${qStart}–${qEnd}`, false]] as const).map(([label, isPassageTab]) => {
+              const active = showPassage === isPassageTab;
+              return (
+                <button
+                  key={label}
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => { if (!active) toggleTab(); }}
+                  className={`h-10 border-b-2 text-[13px] font-bold transition-colors cursor-pointer ${
+                    active ? "border-[var(--accent)] text-slate-900" : "border-transparent text-slate-500"
+                  }`}
+                >{label}</button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {kind === "words" ? (
+        /* COMPLETE THE WORDS: the paragraph is the task, so one column */
+        <div className="flex-1">
+          <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-6 sm:px-8 sm:py-8">
+            <div className="space-y-4">
+              <div>{sectionChip}</div>
+              <h2 className="text-[21px] sm:text-[23px] font-extrabold text-slate-900 leading-tight">{currentPassage.title}</h2>
+            </div>
+            {questionGroups}
+            {sectionNav}
+            {navigator}
           </div>
         </div>
+      ) : (
+        /* SPLIT SCREEN: text on the left, questions on the right. Each side
+           scrolls by itself on a wide screen; a phone scrolls the page. */
+        <div className="flex-1 grid content-start md:content-stretch md:flex-none md:grid-cols-2 md:grid-rows-1 md:h-[calc(100vh-113px)] md:overflow-hidden">
 
-        {/* Right Side: Questions — hidden on mobile when showing passage */}
-        <div ref={questionsPaneRef} className={`md:col-span-5 bg-[#f8f9fb] p-4 sm:p-8 overflow-y-auto max-h-[calc(100vh-65px)] space-y-6 ${
-          showPassage ? "hidden md:block" : "block"
-        }`}>
-          {/* Question groups */}
-          {currentQuestionGroups.map((group, gi) => (
-            <div key={gi} className="space-y-4">
-              {/* Group label header */}
-              <div className="flex items-center gap-2">
-                <div
-                  className="w-1 h-5 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: theme.color }}
-                />
-                <h3 className="text-[13px] font-bold text-slate-600 uppercase tracking-wider">
-                  {group.label}
-                </h3>
+          {/* Left: what the candidate reads */}
+          <div ref={passagePaneRef} className={`bg-white md:border-r border-slate-200 p-5 sm:p-8 md:min-h-0 md:overflow-y-auto ${
+            tabbed && !showPassage ? "hidden md:block" : "block"
+          }`}>
+            <div className="max-w-3xl mx-auto space-y-5">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                {sectionChip}
+                {!toefl2026 && <span className="text-[12px] font-semibold text-slate-400">Questions {qStart}–{qEnd}</span>}
               </div>
 
-              {/* Render the question group with the appropriate visual component */}
-              <QuestionGroupRenderer
-                group={group}
-                selectedAnswers={selectedAnswers}
-                onSelectOption={handleSelect}
-                onTextAnswer={handleTextAnswer}
-                getOverallNumber={getOverallQuestionNumber}
-                theme={theme}
-                submitted={false}
-                dbResults={null}
-                questionRefs={questionRefs}
-              />
+              {!isToefl && (
+                <p className="text-[13.5px] leading-relaxed text-slate-600">
+                  You should spend about 20 minutes on <strong className="font-bold text-slate-900">Questions {qStart}–{qEnd}</strong>, which are based on Reading Passage {activeSectionIdx + 1} below.
+                </p>
+              )}
+
+              {kind === "passage" && (
+                <h2 className="text-[21px] sm:text-[23px] font-extrabold text-slate-900 leading-tight">
+                  {currentPassage.title}
+                </h2>
+              )}
+
+              <Stimulus content={currentPassage.content} />
+
+              {tabbed && (
+                <button
+                  onClick={toggleTab}
+                  className="md:hidden flex w-full items-center justify-center gap-1.5 h-11 rounded-xl text-[13.5px] font-bold text-white cursor-pointer active:scale-[.98] transition-transform"
+                  style={{ backgroundColor: "#1e293b" }}
+                >
+                  <span>Go to Questions {qStart}–{qEnd}</span>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
+                </button>
+              )}
             </div>
-          ))}
-
-          {/* Navigation Bar below questions */}
-          <div className="pt-6 border-t border-slate-200 flex items-center justify-between gap-3 mt-6">
-            <button
-              disabled={activeSectionIdx === 0}
-              onClick={() => { setActiveSectionIdx(p => p - 1); setShowPassage(true); }}
-              className="flex items-center gap-1.5 px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-[13px] font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
-              <span>Previous Section</span>
-            </button>
-
-            {activeSectionIdx < passages.length - 1 ? (
-              <button
-                onClick={() => { setActiveSectionIdx(p => p + 1); setShowPassage(true); }}
-                className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-[13px] font-bold text-white transition-all shadow-sm hover:opacity-90 active:scale-95"
-                style={{ backgroundColor: "#1e293b" }}
-              >
-                <span>Next Section</span>
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
-              </button>
-            ) : (
-              <button
-                onClick={() => handleSubmit(false)}
-                className="flex items-center gap-1.5 px-6 py-2.5 text-white font-bold text-[13px] rounded-xl transition-all shadow-sm hover:opacity-90 active:scale-95"
-                style={{ backgroundColor: theme.color }}
-              >
-                <span>Submit Exam</span>
-              </button>
-            )}
           </div>
 
-          {/* Question Navigator — mini grid of all 40 questions */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
-            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3">Question Navigator</p>
-            <div className="grid grid-cols-10 gap-1.5">
-              {allQuestions.map((q, qi) => {
-                const isAnswered = !!selectedAnswers[q.id];
-                const isCurrentSection = passages[activeSectionIdx].questions.some(pq => pq.id === q.id);
-
-                return (
-                  <button
-                    key={q.id}
-                    onClick={() => handleNavClick(qi)}
-                    className={`w-full aspect-square rounded-lg text-[11px] font-bold transition-all ${
-                      isAnswered
-                        ? "text-white shadow-sm"
-                        : isCurrentSection
-                          ? "bg-slate-200 text-slate-700 hover:bg-slate-300"
-                          : "bg-slate-100 text-slate-400 hover:bg-slate-200"
-                    }`}
-                    style={isAnswered ? { backgroundColor: theme.color } : undefined}
-                    title={`Question ${qi + 1}`}
-                  >
-                    {qi + 1}
-                  </button>
-                );
-              })}
-            </div>
+          {/* Right: the questions */}
+          <div ref={questionsPaneRef} className={`bg-[#f8f9fb] p-4 sm:p-8 md:min-h-0 md:overflow-y-auto space-y-7 ${
+            tabbed && showPassage ? "hidden md:block" : "block"
+          }`}>
+            {questionGroups}
+            {sectionNav}
+            {navigator}
           </div>
         </div>
-      </div>
-      </div>
+      )}
 
       {/* CONFIRMATION MODAL */}
       {showConfirmModal && (
@@ -561,7 +700,7 @@ export default function ReadingPage() {
             </div>
             <h3 className="text-[17px] font-bold text-slate-900 mb-2 text-center">Submit Exam?</h3>
             <p className="text-[13px] text-slate-500 mb-6 leading-relaxed text-center">
-              You have {allQuestions.length - Object.keys(selectedAnswers).length} unanswered questions.
+              You have {unansweredCount} unanswered {unansweredCount === 1 ? "question" : "questions"}.
             </p>
             <div className="flex gap-3">
               <button

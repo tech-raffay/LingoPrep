@@ -233,7 +233,7 @@ export function testLabel(r: SessionRow, exam: ExamType): string {
     return exam === "ielts" ? "Part 2 long turn" : "Independent response";
   }
   if (r.is_full_test) {
-    if (r.module === "reading") return exam === "ielts" ? "Full test · 3 passages" : "Full test · 2 passages";
+    if (r.module === "reading") return exam === "ielts" ? "Full test · 3 passages" : "Full test · 9 tasks";
     return exam === "ielts" ? "Full test · 4 sections" : "Full test · 3 recordings";
   }
   return `${SKILL_TITLE[r.module]} practice`;
