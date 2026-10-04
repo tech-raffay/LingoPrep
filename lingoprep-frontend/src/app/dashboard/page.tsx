@@ -101,8 +101,6 @@ const SPARKS: Array<[number, number, number, number]> = [
   [8, 22, 0, 22], [86, 30, 0.5, 18], [14, 66, 1.1, 14], [80, 70, 0.8, 20], [50, 6, 1.4, 16],
 ];
 
-const ACCENT_GRADIENT =
-  "linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, white), color-mix(in srgb, var(--accent) 88%, black))";
 
 /* ═══════════════════════════════════════════════════════════════════════ */
 
@@ -367,44 +365,32 @@ function Results({
         </div>
       </section>
 
-      {/* ═══ Body ═══════════════════════════════════════════════════════ */}
-      <div className="relative bg-n-50">
-        <div
-          className="absolute inset-0 pointer-events-none"
-          aria-hidden="true"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgb(18 23 43 / .04) 1px, transparent 1px), linear-gradient(90deg, rgb(18 23 43 / .04) 1px, transparent 1px)",
-            backgroundSize: "44px 44px",
-            maskImage: "linear-gradient(180deg, #000, transparent 60%)",
-            WebkitMaskImage: "linear-gradient(180deg, #000, transparent 60%)",
-          }}
-        />
-        <div className="relative mx-auto max-w-[1200px] px-5 sm:px-7 pb-20 sm:pb-[100px]">
+      {/* ═══ Body ("IELTS Results.dc.html", revised) ══════════════════════ */}
+      <div className="relative bg-n-0">
+        <div className="relative mx-auto max-w-[1200px] px-5 sm:px-7 pb-20 sm:pb-[110px]">
 
-          {/* ── Overall + focus card ─────────────────────────────────────── */}
-          <Reveal className="-mt-20 rounded-[28px] bg-n-0 border border-n-200 overflow-hidden grid lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]
-                             shadow-[0_30px_70px_-20px_rgb(18_23_43/0.18),0_4px_14px_rgb(18_23_43/0.04)]">
-            <div className="p-6 sm:px-10 sm:py-9 flex flex-col sm:flex-row sm:items-center gap-6 sm:gap-[30px]">
+          {/* ── Overall + focus: one inset card, two panels ───────────────── */}
+          <Reveal
+            className="relative -mt-20 rounded-[28px] bg-n-0 border border-[#F0EEF0] p-2.5 sm:p-3.5 grid lg:grid-cols-2 gap-3.5
+                       shadow-[0_24px_60px_-24px_rgb(18_23_43/0.16)]"
+          >
+            <div className="px-4 py-5 sm:px-7 sm:py-[26px] flex flex-col sm:flex-row sm:items-center gap-6 sm:gap-7">
               <div
-                className="relative w-[148px] h-[148px] sm:w-[168px] sm:h-[168px] shrink-0 rounded-full flex items-center justify-center self-center"
-                style={{
-                  background: `conic-gradient(var(--accent) 0 ${ringPct}, var(--accent-tint) ${ringPct} 100%)`,
-                  boxShadow: "0 18px 40px color-mix(in srgb, var(--accent) 18%, transparent)",
-                }}
+                className="relative w-[150px] h-[150px] shrink-0 rounded-full flex items-center justify-center self-center"
+                style={{ background: `conic-gradient(var(--accent) 0 ${ringPct}, #F6EEF0 ${ringPct} 100%)` }}
                 role="img"
                 aria-label={has ? `Overall ${fmt(overall.value as number, exam)} out of ${overall.max}` : "No overall estimate yet"}
               >
-                <div className="w-[118px] h-[118px] sm:w-[134px] sm:h-[134px] rounded-full bg-n-0 flex flex-col items-center justify-center gap-0.5">
-                  <span className="t-numeric text-[38px] sm:text-[44px] tracking-[-0.04em] text-ink leading-none">
+                <div className="w-[124px] h-[124px] rounded-full bg-n-0 flex flex-col items-center justify-center gap-1">
+                  <span className="t-numeric text-[42px] font-extrabold tracking-[-0.035em] text-ink leading-none">
                     {has ? fmt(overall.value as number, exam) : "—"}
                   </span>
-                  <span className="text-[12px] font-bold text-n-500">out of {overall.max}</span>
+                  <span className="text-[12.5px] font-bold text-n-500">out of {overall.max}</span>
                 </div>
               </div>
 
               <div className="flex-1 flex flex-col gap-2.5 items-start min-w-0">
-                <span className="t-label text-n-500 text-[12px] tracking-[.14em]">
+                <span className="text-[13px] font-bold text-n-500">
                   {exam === "ielts" ? "Overall band" : "Total score"} · practice estimate
                 </span>
                 <h2 className="text-[26px] sm:text-[28px] leading-[1.18]">{levelFor(overall, exam)}</h2>
@@ -413,35 +399,34 @@ function Results({
                 </p>
                 <Link
                   href={cta.href}
-                  className="group mt-1.5 inline-flex items-center gap-3 rounded-full py-1.5 pr-1.5 pl-5 text-[14.5px] font-bold text-accent-on hover:text-accent-on whitespace-nowrap
-                             transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5"
-                  style={{
-                    background: ACCENT_GRADIENT,
-                    boxShadow: "inset 0 1px 0 rgb(255 255 255 / .25), 0 10px 24px color-mix(in srgb, var(--accent) 30%, transparent)",
-                  }}
+                  className="mt-1.5 inline-flex items-center gap-2 rounded-full bg-accent px-[22px] py-3 text-[14.5px] font-bold text-accent-on hover:text-accent-on whitespace-nowrap
+                             transition-[background-color,transform] duration-200 hover:bg-accent-strong hover:-translate-y-0.5"
                 >
                   {cta.label}
-                  <span className="w-8 h-8 rounded-full bg-n-0 text-accent flex items-center justify-center transition-transform duration-200 group-hover:translate-x-0.5">
-                    <Icon name="next" size={16} />
-                  </span>
+                  <Icon name="next" size={16} />
                 </Link>
               </div>
             </div>
 
-            {/* Focus / how it works — the AI violet marks AI-derived guidance */}
-            <div className="relative bg-ai-tint/60 border-t lg:border-t-0 lg:border-l border-[#EDE7FB] px-6 py-7 sm:px-9 sm:py-[34px] flex flex-col justify-center gap-4">
+            {/* Focus next / how it works, on a warm panel */}
+            <div className="relative overflow-hidden rounded-[20px] bg-[#FFF7EA] px-5 py-6 sm:px-[30px] sm:py-7 flex flex-col justify-center gap-3.5">
+              <svg
+                viewBox="0 0 220 90" fill="none" aria-hidden="true"
+                className="absolute top-7 left-8 w-[90px] h-[49px] opacity-55"
+              >
+                <path d="M4 70C40 20 120 4 214 30" stroke="#F59E0B" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M30 86C70 44 140 30 216 52" stroke="#F59E0B" strokeWidth="1.2" strokeLinecap="round" />
+              </svg>
+
               {has && focus.skill ? (
                 <>
-                  <span className="t-label text-ai text-[12px] tracking-[.14em]">
-                    {focus.kind === "untried" ? "Try next" : "Focus next"}
+                  <span className="relative self-start rounded-full bg-amber-500 px-3 py-[5px] text-[11.5px] font-extrabold tracking-[.1em] text-white">
+                    {focus.kind === "untried" ? "TRY NEXT" : "FOCUS NEXT"}
                   </span>
-                  <div className="flex items-center gap-3.5">
+                  <div className="relative flex items-center gap-3.5">
                     <span
-                      className="w-12 h-12 rounded-[15px] flex items-center justify-center text-white shrink-0"
-                      style={{
-                        background: `linear-gradient(145deg, ${HUES[focus.skill].accent}, ${HUES[focus.skill].deep})`,
-                        boxShadow: `0 10px 22px ${HUES[focus.skill].glow}`,
-                      }}
+                      className="w-[50px] h-[50px] rounded-2xl bg-n-0 flex items-center justify-center shrink-0"
+                      style={{ color: HUES[focus.skill].accent }}
                     >
                       <Icon name={focus.skill} size={24} />
                     </span>
@@ -455,18 +440,20 @@ function Results({
                       </div>
                     </div>
                   </div>
-                  <p className="text-[14px] leading-[1.7] text-n-600">{focus.reason}</p>
+                  <p className="relative text-[14px] leading-[1.7] text-n-600">{focus.reason}</p>
                 </>
               ) : (
                 <>
-                  <span className="t-label text-ai text-[12px] tracking-[.14em]">How it works</span>
+                  <span className="relative self-start rounded-full bg-amber-500 px-3 py-[5px] text-[11.5px] font-extrabold tracking-[.1em] text-white">
+                    HOW IT WORKS
+                  </span>
                   {[
                     "Pick a skill and take a practice test",
                     `Get an instant ${exam === "ielts" ? "band" : "score"} estimate`,
                     "Track your progress here",
                   ].map((t, i) => (
-                    <div key={t} className="flex items-center gap-3">
-                      <span className="w-[30px] h-[30px] rounded-full bg-n-0 border border-[#E4DCF6] text-ai t-numeric text-[13px] flex items-center justify-center shrink-0">
+                    <div key={t} className="relative flex items-center gap-3">
+                      <span className="w-[30px] h-[30px] rounded-full bg-n-0 text-[#B4690D] t-numeric text-[13.5px] font-extrabold flex items-center justify-center shrink-0">
                         {i + 1}
                       </span>
                       <span className="text-[14.5px] font-bold text-n-700">{t}</span>
@@ -474,27 +461,26 @@ function Results({
                   ))}
                 </>
               )}
-              <div className="flex items-center gap-2.5 rounded-xl bg-ai-tint px-3.5 py-2.5 text-ai text-[12.5px] font-bold leading-[1.5]">
-                <Icon name="sparkle" size={16} className="shrink-0" />
-                This is an AI-generated practice estimate, not an official result.
-              </div>
+
+              <p className="relative flex items-center gap-2 text-[12.5px] font-bold text-[#8A6A2F] leading-[1.5]">
+                <Icon name="info" size={16} className="shrink-0" />
+                AI-generated practice estimate, not an official result.
+              </p>
             </div>
           </Reveal>
 
           {/* ── By skill ────────────────────────────────────────────────── */}
-          <Reveal className="flex flex-wrap items-end justify-between gap-x-5 gap-y-3 mt-16 sm:mt-[72px] mb-7">
-            <div>
-              <span className="t-label text-accent text-[12.5px] tracking-[.16em]">By skill</span>
-              <h2 className="text-[28px] sm:text-[32px] mt-2.5">Practise a skill</h2>
-            </div>
-            <p className="text-[15px] leading-[1.7] text-n-600 max-w-[24rem]">
+          <Reveal className="flex flex-col items-center text-center gap-2 mt-20 sm:mt-24 mb-9">
+            <span className="text-[14px] font-bold text-n-500">By skill</span>
+            <h2 className="text-[28px] sm:text-[36px] tracking-[-0.035em]">Practise a skill</h2>
+            <p className="text-[15px] leading-[1.7] text-n-600 max-w-[28rem]">
               {has
                 ? `Your average ${exam === "ielts" ? "band" : "section score"} for each skill, across every attempt.`
                 : "Pick any skill to start. Every module is unlocked."}
             </p>
           </Reveal>
 
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-[22px] sm:grid-cols-2 lg:grid-cols-4">
             {SKILLS.map((k, i) => {
               const m = modules[k];
               const tried = m.count > 0;
@@ -505,65 +491,47 @@ function Results({
                 <Reveal key={k} delay={(i % 4) * 90} className="flex">
                   <Link
                     href={withExam(`/${k}`)}
-                    className="group flex-1 flex flex-col rounded-3xl bg-n-0 border border-[#E9ECF2] overflow-hidden text-ink hover:text-ink
-                               shadow-[0_1px_2px_rgb(18_23_43/0.04),0_8px_24px_rgb(18_23_43/0.04)]
-                               transition-[transform,box-shadow] duration-[450ms] ease-[cubic-bezier(.2,.7,.2,1)]
-                               hover:-translate-y-1.5 hover:shadow-[0_30px_50px_-16px_rgb(18_23_43/0.22)]"
+                    className="group flex-1 flex flex-col rounded-[22px] bg-n-0 border border-[#EEF0F4] p-2.5 text-ink hover:text-ink
+                               shadow-[0_10px_30px_-18px_rgb(18_23_43/0.18)]
+                               transition-[transform,box-shadow] duration-[400ms] ease-[cubic-bezier(.2,.7,.2,1)]
+                               hover:-translate-y-1.5 hover:shadow-[0_26px_44px_-20px_rgb(18_23_43/0.26)]"
                   >
-                    <div className="relative h-[150px] flex items-center justify-center overflow-hidden" style={{ background: hue.tint }}>
-                      <div
-                        className="absolute inset-0"
-                        aria-hidden="true"
-                        style={{ backgroundImage: `radial-gradient(${hue.dot} 1.3px, transparent 1.3px)`, backgroundSize: "18px 18px" }}
-                      />
-                      <div
-                        className="absolute w-[150px] h-[150px] bg-white/85 transition-transform duration-700 group-hover:rotate-[18deg] group-hover:scale-110"
-                        aria-hidden="true"
-                        style={{ borderRadius: "44% 56% 50% 50% / 55% 45% 55% 45%" }}
-                      />
+                    <div className="relative h-[170px] rounded-2xl overflow-hidden flex items-end justify-center" style={{ background: hue.tint }}>
                       <Art
                         art={skillArt(exam, k)}
-                        sizes="140px"
-                        className="relative h-[136px] w-auto transition-transform duration-500 group-hover:scale-[1.06]"
+                        sizes="160px"
+                        className="relative h-[156px] w-auto transition-transform duration-500 group-hover:scale-[1.05] origin-bottom"
                       />
                       <span
-                        className="absolute top-3.5 left-3.5 w-10 h-10 rounded-[13px] flex items-center justify-center text-white"
-                        style={{
-                          background: `linear-gradient(145deg, ${hue.accent}, ${hue.deep})`,
-                          boxShadow: `inset 0 1px 0 rgb(255 255 255 / .3), 0 8px 18px ${hue.glow}`,
-                        }}
+                        className="absolute top-3 left-3 rounded-full px-[11px] py-[5px] text-[11px] font-extrabold uppercase tracking-[.1em] text-white"
+                        style={{ background: hue.deep }}
                       >
-                        <Icon name={k} size={20} />
+                        {SKILL_TITLE[k]}
                       </span>
                     </div>
 
-                    <div className="px-[22px] pt-5 pb-[22px] flex flex-col gap-3 flex-1">
-                      <div className="flex items-baseline justify-between gap-2.5">
-                        <h3 className="text-[20px]">{SKILL_TITLE[k]}</h3>
-                        <span className="t-numeric text-[24px]" style={{ color: tried ? hue.deep : "var(--n-400)" }}>
+                    <div className="px-3 pt-[18px] pb-2 flex flex-col gap-3 flex-1">
+                      <div className="flex items-center justify-between gap-2.5">
+                        <h3 className="text-[19px] leading-[1.2]">{examName} {SKILL_TITLE[k]}</h3>
+                        <span className="t-numeric text-[22px] font-extrabold" style={{ color: tried ? hue.deep : "var(--n-400)" }}>
                           {score !== null ? fmt(score, exam) : "—"}
                         </span>
                       </div>
                       <div
-                        className="h-[7px] rounded-full bg-[#F1F3F7] overflow-hidden"
+                        className="h-1.5 rounded-full bg-[#F2F3F6] overflow-hidden"
                         role="meter" aria-valuemin={0} aria-valuemax={max} aria-valuenow={score ?? 0}
                         aria-label={`${SKILL_TITLE[k]} average`}
                       >
                         <div
                           className="h-full rounded-full"
-                          style={{
-                            width: `${score !== null ? Math.min(100, (score / max) * 100) : 0}%`,
-                            background: `linear-gradient(90deg, ${hue.accent}, ${hue.deep})`,
-                          }}
+                          style={{ width: `${score !== null ? Math.min(100, (score / max) * 100) : 0}%`, background: hue.accent }}
                         />
                       </div>
-                      <div className="flex items-center justify-between gap-2.5 mt-0.5">
-                        <span className="text-[12.5px] font-bold text-n-500">
-                          {tried
-                            ? `${m.count} ${m.count === 1 ? "test" : "tests"} taken`
-                            : "Not started"}
+                      <div className="mt-auto flex items-center justify-between gap-2.5 pt-3 border-t border-[#F2F3F6]">
+                        <span className="text-[13px] font-bold text-n-500">
+                          {tried ? `${m.count} ${m.count === 1 ? "test" : "tests"} taken` : "Not started"}
                         </span>
-                        <span className="inline-flex items-center gap-1.5 text-[14px] font-bold text-accent whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1.5 text-[13.5px] font-bold text-accent whitespace-nowrap">
                           {tried ? "Retake" : "Start"}
                           <Icon name="next" size={16} className="transition-transform duration-200 group-hover:translate-x-0.5" />
                         </span>
@@ -575,111 +543,61 @@ function Results({
             })}
           </div>
 
-          {/* ── History ─────────────────────────────────────────────────── */}
-          <Reveal className="mt-14 rounded-3xl bg-n-0 border border-[#E9ECF2] overflow-hidden shadow-[0_1px_2px_rgb(18_23_43/0.04),0_8px_24px_rgb(18_23_43/0.04)]">
-            <div className="flex flex-wrap items-center justify-between gap-4 px-5 sm:px-7 py-[22px] border-b border-n-200">
-              <div className="flex items-center gap-3">
-                <span className="w-[38px] h-[38px] rounded-xl bg-accent-tint text-accent flex items-center justify-center">
-                  <Icon name="schedule" size={20} />
-                </span>
-                <h3 className="text-[19px]">Recent test history</h3>
-              </div>
-              {history.length > 0 && (
-                <span className="text-[13px] font-bold text-n-500">
-                  {total > history.length ? `Last ${history.length} of ${total} tests` : `${total} ${total === 1 ? "test" : "tests"}`}
-                </span>
-              )}
-            </div>
-
-            {history.length > 0 ? (
-              <>
-                {/* Phones: stacked rows */}
-                <ul className="sm:hidden divide-y divide-[#F1F3F7]">
-                  {history.map((r) => <HistoryItem key={r.id} r={r} exam={exam} href={withExam(`/${r.module}`)} />)}
-                </ul>
-                {/* Wider: table */}
-                <div className="hidden sm:block overflow-x-auto">
-                  <table className="w-full text-left min-w-[640px]">
-                    <thead>
-                      <tr className="bg-n-50">
-                        {["Date", "Test", "Estimate", "Action"].map((h, i) => (
-                          <th key={h} className={`px-7 py-3.5 t-label text-n-500 text-[11.5px] tracking-[.14em] ${i === 3 ? "text-right" : ""}`}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {history.map((r) => {
-                        const hue = HUES[r.module] ?? HUES.reading;
-                        return (
-                          <tr key={r.id} className="border-t border-[#F1F3F7] transition-colors duration-200 hover:bg-[color-mix(in_srgb,var(--accent-tint)_40%,white)]">
-                            <td className="px-7 py-4 text-[14px] font-bold text-n-600 whitespace-nowrap">{shortDate(r.created_at)}</td>
-                            <td className="px-7 py-4">
-                              <span className="flex items-center gap-3">
-                                <span className="w-[34px] h-[34px] rounded-[11px] flex items-center justify-center shrink-0" style={{ background: hue.tint, color: hue.accent }}>
-                                  <Icon name={r.module} size={16} />
-                                </span>
-                                <span className="flex flex-col min-w-0">
-                                  <span className="text-[14.5px] font-bold text-ink">{SKILL_TITLE[r.module]}</span>
-                                  <span className="text-[12.5px] text-n-500 truncate max-w-[22rem]">{testLabel(r, exam)}</span>
-                                </span>
-                              </span>
-                            </td>
-                            <td className="px-7 py-4"><Estimate r={r} exam={exam} /></td>
-                            <td className="px-7 py-4 text-right">
-                              <Link href={withExam(`/${r.module}`)} className="text-[14px] font-bold text-accent hover:text-accent-strong whitespace-nowrap">
-                                Practise again
-                              </Link>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            ) : (
-              <div className="grid sm:grid-cols-2 items-center gap-6 px-6 py-8 sm:px-10 sm:py-9">
-                <div className="relative flex items-center justify-center min-h-[200px]">
-                  <div
-                    className="absolute w-[200px] h-[200px] sm:w-[220px] sm:h-[220px] bg-accent-tint"
-                    aria-hidden="true"
-                    style={{ borderRadius: "46% 54% 52% 48% / 52% 44% 56% 48%" }}
-                  />
-                  <Art art={lostArt(exam)} sizes="280px" className="relative w-[min(100%,280px)]" />
-                </div>
-                <div className="flex flex-col gap-3 items-start">
-                  <h3 className="text-[22px]">No tests taken yet</h3>
-                  <p className="text-[15px] leading-[1.7] text-n-600 max-w-[26rem]">
-                    Start a practice test to see your results here.
-                  </p>
-                  <Link
-                    href={withExam("/#skills")}
-                    className="mt-1 inline-flex items-center gap-2 rounded-full bg-accent-tint px-5 py-[11px] text-[14px] font-bold text-accent hover:text-accent-strong transition-colors duration-200"
-                  >
-                    Browse practice tests
-                    <Icon name="next" size={16} />
-                  </Link>
-                </div>
-              </div>
+          {/* ── Recent test history ─────────────────────────────────────── */}
+          <Reveal className="flex flex-col items-center text-center gap-2 mt-20 sm:mt-24 mb-8">
+            {history.length > 0 && (
+              <span className="text-[14px] font-bold text-n-500">
+                {total > history.length ? `Last ${history.length} of ${total} tests` : `${total} ${total === 1 ? "test" : "tests"}`}
+              </span>
             )}
+            <h2 className="text-[28px] sm:text-[36px] tracking-[-0.035em]">Recent test history</h2>
           </Reveal>
 
-          {/* ── §14 scoring notice ──────────────────────────────────────── */}
-          <Reveal className="relative mt-14 rounded-3xl bg-ink overflow-hidden px-6 py-7 sm:px-9 sm:py-[30px] flex flex-wrap items-center gap-5 sm:gap-6">
-            <div className="absolute inset-0" aria-hidden="true"
-              style={{ backgroundImage: "radial-gradient(rgb(255 255 255 / .07) 1.2px, transparent 1.2px)", backgroundSize: "20px 20px" }} />
-            <div className="absolute -right-[60px] -top-20 w-[260px] h-[260px] rounded-full" aria-hidden="true"
-              style={{ background: "radial-gradient(circle, color-mix(in srgb, var(--accent) 45%, transparent), transparent 70%)" }} />
-            <div className="relative w-[46px] h-[46px] rounded-[14px] flex items-center justify-center shrink-0 text-ink"
-              style={{ background: "linear-gradient(145deg, #FFC35A, var(--amber-500))" }}>
-              <Icon name="info" size={24} />
+          {history.length > 0 ? (
+            <ul className="flex flex-col gap-3 max-w-[920px] mx-auto">
+              {history.map((r, i) => (
+                <Reveal as="li" key={r.id} delay={i * 60}>
+                  <HistoryRow r={r} exam={exam} href={withExam(`/${r.module}`)} />
+                </Reveal>
+              ))}
+            </ul>
+          ) : (
+            <Reveal className="max-w-[920px] mx-auto rounded-3xl border border-[#EEF0F4] grid sm:grid-cols-2 items-center gap-6 px-6 py-7 sm:px-9">
+              <Art art={lostArt(exam)} sizes="260px" className="w-[min(100%,260px)] mx-auto" />
+              <div className="flex flex-col gap-3 items-start">
+                <h3 className="text-[22px]">No tests taken yet</h3>
+                <p className="text-[15px] leading-[1.7] text-n-600">Start a practice test to see your results here.</p>
+                <Link
+                  href={withExam("/#skills")}
+                  className="mt-1 inline-flex items-center gap-2 rounded-full bg-accent px-5 py-[11px] text-[14px] font-bold text-accent-on hover:text-accent-on transition-colors duration-200 hover:bg-accent-strong"
+                >
+                  Browse practice tests
+                  <Icon name="next" size={16} />
+                </Link>
+              </div>
+            </Reveal>
+          )}
+
+          {/* ── §14 scoring notice, warm panel under two arcs ──────────────── */}
+          <Reveal className="relative mt-24 sm:mt-[100px]">
+            <svg
+              viewBox="0 0 1200 60" preserveAspectRatio="none" fill="none" aria-hidden="true"
+              className="absolute left-[10%] -top-[30px] w-[80%] h-[60px]"
+            >
+              <path d="M10 50C300 -6 900 -6 1190 50" stroke="#E6C79A" strokeWidth="1.3" />
+              <path d="M90 58C380 8 820 8 1110 58" stroke="#F0D6B0" strokeWidth="1" />
+            </svg>
+            <div className="relative rounded-[26px] bg-[#FFF7EA] px-6 py-6 sm:px-9 sm:py-[30px] flex flex-wrap items-center gap-5">
+              <span className="w-[46px] h-[46px] rounded-[14px] bg-n-0 flex items-center justify-center shrink-0 text-[#B4690D]">
+                <Icon name="info" size={24} />
+              </span>
+              <p className="flex-[1_1_420px] text-[14.5px] leading-[1.75] text-n-600">
+                Every score on LingoPrep is an AI-generated practice estimate on
+                the <strong className="text-ink">{scoreRange}</strong> scale. It
+                is not an official {legalName} result and cannot be used for
+                admissions or visa applications.
+              </p>
             </div>
-            <p className="relative flex-[1_1_420px] text-[14.5px] leading-[1.75] text-n-400">
-              Every score on LingoPrep is an AI-generated practice estimate on
-              the <strong className="text-white">{scoreRange}</strong> scale. It
-              is not an official {legalName} result and cannot be used for
-              admissions or visa applications.
-            </p>
           </Reveal>
         </div>
       </div>
@@ -687,37 +605,39 @@ function Results({
   );
 }
 
-/* ── History pieces ─────────────────────────────────────────────────────── */
+/* ── History row ────────────────────────────────────────────────────────── */
 
-function Estimate({ r, exam }: { r: SessionRow; exam: ExamType }) {
+function HistoryRow({ r, exam, href }: { r: SessionRow; exam: ExamType; href: string }) {
   const hue = HUES[r.module] ?? HUES.reading;
   const banded = Number(r.band_score) > 0;
+  const estimate = banded
+    ? `${exam === "ielts" ? "Band" : "Score"} ${fmt(Number(r.band_score), exam)}`
+    : `${Number(r.score)} / ${Number(r.max_score)}`;
   return (
-    <span
-      className="inline-block rounded-full px-3 py-[5px] t-numeric text-[14px] whitespace-nowrap"
-      style={{ background: hue.tint, color: hue.deep }}
+    <div
+      className="flex flex-wrap items-center gap-x-[18px] gap-y-3 rounded-[18px] bg-n-0 border border-[#EEF0F4] py-3.5 pl-3.5 pr-4 sm:pr-5
+                 transition-[border-color,box-shadow,transform] duration-200
+                 hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--accent)_25%,white)] hover:shadow-[0_14px_30px_-18px_color-mix(in_srgb,var(--accent)_30%,transparent)]"
     >
-      {banded
-        ? fmt(Number(r.band_score), exam)
-        : `${Number(r.score)} / ${Number(r.max_score)}`}
-    </span>
-  );
-}
-
-function HistoryItem({ r, exam, href }: { r: SessionRow; exam: ExamType; href: string }) {
-  const hue = HUES[r.module] ?? HUES.reading;
-  return (
-    <li className="flex items-center gap-3 px-5 py-4">
-      <span className="w-[38px] h-[38px] rounded-xl flex items-center justify-center shrink-0" style={{ background: hue.tint, color: hue.accent }}>
+      <span className="w-12 h-12 rounded-[14px] flex items-center justify-center shrink-0" style={{ background: hue.tint, color: hue.deep }}>
         <Icon name={r.module} size={20} />
       </span>
-      <span className="flex-1 min-w-0">
-        <span className="block text-[14.5px] font-bold text-ink">{SKILL_TITLE[r.module]}</span>
-        <span className="block text-[12.5px] text-n-500 truncate">{testLabel(r, exam)}</span>
-        <span className="block text-[12.5px] font-bold text-n-600">{shortDate(r.created_at)}</span>
-        <Link href={href} className="inline-block mt-1 text-[13px] font-bold text-accent hover:text-accent-strong">Practise again</Link>
+      <span className="flex-[1_1_180px] flex flex-col gap-0.5 min-w-0">
+        <span className="text-[15.5px] font-bold text-ink">{SKILL_TITLE[r.module]}</span>
+        <span className="text-[13px] text-n-500 truncate">{testLabel(r, exam)} · {shortDate(r.created_at)}</span>
       </span>
-      <Estimate r={r} exam={exam} />
-    </li>
+      <span className="flex items-center gap-4 ml-auto sm:ml-0">
+        <span
+          className="inline-flex items-center rounded-full px-3.5 py-1.5 text-[14px] font-extrabold whitespace-nowrap t-numeric"
+          style={{ background: hue.tint, color: hue.deep }}
+        >
+          {estimate}
+        </span>
+        <Link href={href} className="inline-flex items-center gap-1.5 text-[13.5px] font-bold text-accent hover:text-accent-strong whitespace-nowrap">
+          Practise again
+          <Icon name="next" size={16} />
+        </Link>
+      </span>
+    </div>
   );
 }
