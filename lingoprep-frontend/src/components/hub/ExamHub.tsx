@@ -213,13 +213,29 @@ export default function ExamHub() {
                 animation: "lp-spin 60s linear infinite",
               }}
             />
-            <Art
-              art={hubHeroArt(exam)}
-              priority
-              float
-              sizes="480px"
-              className="relative w-[min(100%,480px)]"
-            />
+            <div className="relative w-[min(100%,480px)] lp-float">
+              <Art art={hubHeroArt(exam)} priority sizes="480px" className="w-full" />
+              {/* The traced IELTS art renders "Tips?" faint and broken. Patch
+                  the bubble with its own red and set the word as real text,
+                  in the illustration's 1216×896 coordinates so it scales and
+                  floats with the art. (The TOEFL art has no lettering.) */}
+              {exam === "ielts" && (
+                <svg
+                  viewBox="0 0 1216 896"
+                  className="absolute inset-0 w-full h-full pointer-events-none"
+                  aria-hidden="true"
+                >
+                  <rect x="314" y="150" width="110" height="60" rx="14" fill="#FE4D5D" />
+                  <text
+                    x="369" y="194" textAnchor="middle"
+                    fill="#fff" fontSize="40" fontWeight="700"
+                    style={{ fontFamily: "var(--font-brand)", letterSpacing: "-0.01em" }}
+                  >
+                    Tips?
+                  </text>
+                </svg>
+              )}
+            </div>
 
             {/* Floating score chip — illustrative */}
             <div

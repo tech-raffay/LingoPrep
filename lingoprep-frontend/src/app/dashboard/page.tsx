@@ -410,19 +410,10 @@ function Results({
 
             {/* Focus next / how it works, on a warm panel */}
             <div className="relative overflow-hidden rounded-[20px] bg-[#FFF7EA] px-5 py-6 sm:px-[30px] sm:py-7 flex flex-col justify-center gap-3.5">
-              <svg
-                viewBox="0 0 220 90" fill="none" aria-hidden="true"
-                className="absolute top-7 left-8 w-[90px] h-[49px] opacity-55"
-              >
-                <path d="M4 70C40 20 120 4 214 30" stroke="#F59E0B" strokeWidth="1.5" strokeLinecap="round" />
-                <path d="M30 86C70 44 140 30 216 52" stroke="#F59E0B" strokeWidth="1.2" strokeLinecap="round" />
-              </svg>
 
               {has && focus.skill ? (
                 <>
-                  <span className="relative self-start rounded-full bg-amber-500 px-3 py-[5px] text-[11.5px] font-extrabold tracking-[.1em] text-white">
-                    {focus.kind === "untried" ? "TRY NEXT" : "FOCUS NEXT"}
-                  </span>
+                  <HangingBadge>{focus.kind === "untried" ? "TRY NEXT" : "FOCUS NEXT"}</HangingBadge>
                   <div className="relative flex items-center gap-3.5">
                     <span
                       className="w-[50px] h-[50px] rounded-2xl bg-n-0 flex items-center justify-center shrink-0"
@@ -444,9 +435,7 @@ function Results({
                 </>
               ) : (
                 <>
-                  <span className="relative self-start rounded-full bg-amber-500 px-3 py-[5px] text-[11.5px] font-extrabold tracking-[.1em] text-white">
-                    HOW IT WORKS
-                  </span>
+                  <HangingBadge>HOW IT WORKS</HangingBadge>
                   {[
                     "Pick a skill and take a practice test",
                     `Get an instant ${exam === "ielts" ? "band" : "score"} estimate`,
@@ -602,6 +591,31 @@ function Results({
         </div>
       </div>
     </>
+  );
+}
+
+/* ── Hanging badge ──────────────────────────────────────────────────────────
+   The panel badge hangs from a small pin by two strings, like a sign on a
+   clipboard. The strings run from the pin to the badge's top corners. */
+
+function HangingBadge({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="relative self-start mt-5 inline-flex">
+      <svg
+        viewBox="0 0 100 20" preserveAspectRatio="none" fill="none" aria-hidden="true"
+        className="absolute left-0 -top-[18px] w-full h-[20px]"
+      >
+        <path d="M50 2 L16 19 M50 2 L84 19" stroke="#E0A84A" strokeWidth="1.4" vectorEffect="non-scaling-stroke" strokeLinecap="round" />
+      </svg>
+      {/* the pin */}
+      <span
+        aria-hidden="true"
+        className="absolute left-1/2 -top-[22px] -translate-x-1/2 w-2 h-2 rounded-full bg-[#B4690D] ring-2 ring-[#FFF7EA] shadow-[0_1px_2px_rgb(120_60_0/.35)]"
+      />
+      <span className="rounded-full bg-amber-500 px-3 py-[5px] text-[11.5px] font-extrabold tracking-[.1em] text-white shadow-[0_4px_10px_-4px_rgb(180_105_13/.6)]">
+        {children}
+      </span>
+    </span>
   );
 }
 
