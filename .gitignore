@@ -47,6 +47,6 @@ coverage/
 *.ipynb
 .ipynb_checkpoints/
 
-# Generated Audio Cache
-static/audio/
-*.mp3
+# Listening recordings in static/audio/*.mp3 are committed on purpose, so the
+# deployed backend serves them without generating. Only temp files are ignored.
+*.mp3.part

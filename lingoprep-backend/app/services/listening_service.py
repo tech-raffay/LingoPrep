@@ -22,6 +22,32 @@ def get_audios(exam_type: str = None, difficulty: str = None) -> list[dict]:
     return attach_questions(audios)
 
 
+def get_audio_source(audio_id: str) -> dict | None:
+    """Just what speech synthesis needs (id, transcript, exam_type): one query."""
+    client = get_client()
+    res = (
+        client.table("passages")
+        .select("id,transcript,exam_type")
+        .eq("id", audio_id)
+        .eq("module", "listening")
+        .single()
+        .execute()
+    )
+    return res.data
+
+
+def list_audio_sources() -> list[dict]:
+    """id, transcript and exam_type of every listening recording."""
+    client = get_client()
+    res = (
+        client.table("passages")
+        .select("id,title,transcript,exam_type")
+        .eq("module", "listening")
+        .execute()
+    )
+    return res.data or []
+
+
 def get_audio_by_id(audio_id: str) -> dict | None:
     """Retrieve a single listening audio by ID with questions and options."""
     client = get_client()

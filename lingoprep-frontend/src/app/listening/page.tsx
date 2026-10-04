@@ -190,14 +190,28 @@ export default function ListeningPage() {
 
   /** Stop any playing audio and reset state. */
   const stopSpeech = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.removeAttribute("src");
-      audioRef.current.load();
+    const audio = audioRef.current;
+    if (audio) {
+      audio.onplaying = audio.onended = audio.onerror = null;
+      audio.pause();
+      audio.removeAttribute("src");
+      audio.load();
     }
     stopProgressTimer();
     clearAdvance();
     window.speechSynthesis.cancel();
+  };
+
+  const audioUrlFor = (id: string) => `${API_BASE}/api/listening/audio/${id}`;
+
+  const startProgressTimer = () => {
+    stopProgressTimer();
+    progressTimerRef.current = setInterval(() => {
+      const audio = audioRef.current;
+      if (audio && audio.duration && isFinite(audio.duration)) {
+        setSpeechProgress((audio.currentTime / audio.duration) * 100);
+      }
+    }, 250);
   };
 
   /** Go to a specific section. */
@@ -230,69 +244,6 @@ export default function ListeningPage() {
       }
     }, 3000);
   }, [exercises.length]);
-
-  /** Start playback using neural TTS backend audio. */
-  const startNeuralAudio = useCallback(async () => {
-    const exercise = exercises[activeSectionIdx];
-    if (!exercise) return;
-
-    const audioId = exercise.id;
-    const audioUrl = `${API_BASE}/api/listening/audio/${audioId}`;
-    audioSectionRef.current = activeSectionIdx;
-
-    setAudioLoading(true);
-    setIsPaused(false);
-    setSpeechProgress(0);
-    setPlayedSections((prev) => ({ ...prev, [activeSectionIdx]: true }));
-
-    try {
-      const audio = audioRef.current;
-      if (!audio) return;
-
-      audio.src = audioUrl;
-      audio.load();
-
-      // Wait for enough data to begin playback
-      await new Promise<void>((resolve, reject) => {
-        const onCanPlay = () => { audio.removeEventListener("canplay", onCanPlay); audio.removeEventListener("error", onError); resolve(); };
-        const onError = () => { audio.removeEventListener("canplay", onCanPlay); audio.removeEventListener("error", onError); reject(new Error("Audio load failed")); };
-        audio.addEventListener("canplay", onCanPlay);
-        audio.addEventListener("error", onError);
-      });
-
-      setAudioLoading(false);
-      setIsSpeaking(true);
-
-      // Progress tracking
-      stopProgressTimer();
-      progressTimerRef.current = setInterval(() => {
-        if (audio && audio.duration && isFinite(audio.duration)) {
-          setSpeechProgress((audio.currentTime / audio.duration) * 100);
-        }
-      }, 250);
-
-      // When audio ends
-      const sectionAtStart = activeSectionIdx;
-      audio.onended = () => {
-        stopProgressTimer();
-        finishRecording(sectionAtStart);
-      };
-
-      audio.onerror = () => {
-        console.error("Neural TTS audio playback error, falling back to browser TTS");
-        setAudioLoading(false);
-        setUseFallbackTTS(true);
-        startFallbackSpeech();
-      };
-
-      await audio.play();
-    } catch {
-      console.error("Neural TTS failed, falling back to browser speech synthesis");
-      setAudioLoading(false);
-      setUseFallbackTTS(true);
-      startFallbackSpeech();
-    }
-  }, [activeSectionIdx, exercises, finishRecording]);
 
   // ── Fallback: browser speechSynthesis (robotic, only if backend fails) ────
   const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
@@ -372,12 +323,89 @@ export default function ListeningPage() {
     speakChunk(0);
   };
 
+  // ── Neural audio: preload, play, resume ─────────────────────────────────
+  // Start buffering a section's recording as soon as the section is on
+  // screen, so pressing play starts it without a wait.
+  useEffect(() => {
+    const audio = audioRef.current;
+    const exercise = exercises[activeSectionIdx];
+    if (!audio || !exercise) return;
+    if (!isTestStarted || submitted || isReviewPeriod || useFallbackTTS) return;
+    if (playedSections[activeSectionIdx]) return; // playing or already played
+    const url = audioUrlFor(exercise.id);
+    if (audio.src === url) return;
+    audio.onplaying = audio.onended = audio.onerror = null;
+    audio.preload = "auto";
+    audio.src = url;
+    audio.load();
+  }, [activeSectionIdx, exercises, isTestStarted, submitted, isReviewPeriod, useFallbackTTS, playedSections]);
+
+  /** Where the recording was paused, in seconds. */
+  const pausedAtRef = useRef(0);
+  /** On resume, step back this far so the candidate re-hears the last words
+   *  before the pause instead of landing mid-sentence (or past it). */
+  const RESUME_REWIND_SECONDS = 2.5;
+
+  /** Start playback using the neural TTS recording from the backend. */
+  const startNeuralAudio = () => {
+    const exercise = exercises[activeSectionIdx];
+    const audio = audioRef.current;
+    if (!exercise || !audio) return;
+
+    const sectionAtStart = activeSectionIdx;
+    const url = audioUrlFor(exercise.id);
+    audioSectionRef.current = sectionAtStart;
+
+    setAudioLoading(true);
+    setIsPaused(false);
+    setSpeechProgress(0);
+    setPlayedSections((prev) => ({ ...prev, [sectionAtStart]: true }));
+
+    // Normally already buffering (preload effect above); (re)load only if not.
+    if (audio.src !== url || audio.error) {
+      audio.src = url;
+      audio.load();
+    }
+
+    const fallBack = () => {
+      audio.onplaying = audio.onended = audio.onerror = null;
+      stopProgressTimer();
+      setAudioLoading(false);
+      setUseFallbackTTS(true);
+      startFallbackSpeech();
+    };
+
+    audio.onplaying = () => {
+      setAudioLoading(false);
+      setIsSpeaking(true);
+      startProgressTimer();
+    };
+    audio.onended = () => {
+      stopProgressTimer();
+      finishRecording(sectionAtStart);
+    };
+    audio.onerror = () => {
+      console.error("Neural TTS audio playback error, falling back to browser TTS");
+      fallBack();
+    };
+
+    // play() is called directly in the click, not after an await: iOS only
+    // allows audio to start from within the tap itself. The browser begins
+    // playback as soon as enough has buffered.
+    audio.play().catch((err: { name?: string }) => {
+      if (err?.name === "AbortError") return; // superseded by a section change
+      console.error("Neural TTS failed, falling back to browser speech synthesis");
+      fallBack();
+    });
+  };
+
   const togglePlay = () => {
     if (audioLoading) return; // still loading, ignore clicks
 
     if (isSpeaking) {
       // Pause
       if (!useFallbackTTS && audioRef.current) {
+        pausedAtRef.current = audioRef.current.currentTime;
         audioRef.current.pause();
         stopProgressTimer();
       } else {
@@ -392,14 +420,15 @@ export default function ListeningPage() {
       setIsPaused(false);
       setIsSpeaking(true);
       if (!useFallbackTTS && audioRef.current && audioRef.current.src) {
-        // Restart progress tracker
-        progressTimerRef.current = setInterval(() => {
-          const audio = audioRef.current;
-          if (audio && audio.duration && isFinite(audio.duration)) {
-            setSpeechProgress((audio.currentTime / audio.duration) * 100);
-          }
-        }, 250);
-        audioRef.current.play();
+        const audio = audioRef.current;
+        // Resume slightly before the pause point, never after it.
+        try {
+          audio.currentTime = Math.max(0, pausedAtRef.current - RESUME_REWIND_SECONDS);
+        } catch {
+          /* not seekable yet: resume from where it stopped */
+        }
+        startProgressTimer();
+        audio.play().catch(() => {});
       } else {
         const pb = playbackRef.current;
         if (pb) speakChunk(pb.idx);
@@ -575,7 +604,7 @@ export default function ListeningPage() {
             ? { label: "🇺🇸 Authentic accent:", text: "Audio uses studio-quality North American English neural voices for an authentic TOEFL experience." }
             : { label: "🇬🇧 Authentic accent:", text: "Audio uses studio-quality British English (UK RP) neural voices for an authentic IELTS experience." },
         ]}
-        instructions={<>Ensure your speakers or headphones are connected and set to a comfortable volume. The first play may take a few seconds while the audio is generated. Once you press &ldquo;Start exam&rdquo;, the audio player interface will load.</>}
+        instructions={<>Ensure your speakers or headphones are connected and set to a comfortable volume. Once you press &ldquo;Start exam&rdquo;, the audio player interface will load.</>}
         onStart={() => {
           setIsTestStarted(true);
           window.speechSynthesis.getVoices();
@@ -687,12 +716,11 @@ export default function ListeningPage() {
   const photo = photos[activeSectionIdx] ?? photos[0];
   // The play button locks only after the recording has fully played.
   const locked = !!playedSections[activeSectionIdx] && !isSpeaking && !isPaused;
-  const accentLabel = examType === "toefl" ? "🇺🇸 North American English" : "🇬🇧 British English (UK RP)";
 
   return (
     <>
     {/* Hidden HTML5 audio element for neural TTS playback */}
-    <audio ref={audioRef} preload="none" style={{ display: "none" }} />
+    <audio ref={audioRef} preload="auto" style={{ display: "none" }} />
     <div className="min-h-screen bg-[#f4f5f7] flex flex-col">
 
       {/* TOP BAR */}
@@ -778,12 +806,6 @@ export default function ListeningPage() {
             </div>
           ) : (
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
-              {/* Accent badge */}
-              <div className="flex justify-center">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10.5px] font-bold uppercase tracking-wider border" style={{ backgroundColor: theme.colorLight, color: theme.colorDark, borderColor: theme.color + '33' }}>
-                  {accentLabel}
-                </span>
-              </div>
               {/* Waveform bars */}
               <div className="flex justify-center items-end gap-1 h-8">
                 {[5,12,8,18,10,22,16,26,14,20,9,16,7].map((h, i) => (
@@ -804,7 +826,7 @@ export default function ListeningPage() {
                 <button
                   onClick={togglePlay}
                   disabled={locked || audioLoading}
-                  aria-label={audioLoading ? "Generating audio..." : isSpeaking ? "Pause recording" : isPaused ? "Resume recording" : locked ? "Recording already played" : "Play recording"}
+                  aria-label={audioLoading ? "Loading audio..." : isSpeaking ? "Pause recording" : isPaused ? "Resume recording" : locked ? "Recording already played" : "Play recording"}
                   className="w-10 h-10 flex items-center justify-center rounded-full text-white flex-shrink-0 transition-all shadow enabled:cursor-pointer enabled:hover:scale-105 enabled:active:scale-95 disabled:cursor-not-allowed"
                   style={{ backgroundColor: locked ? "#94a3b8" : theme.color }}
                 >
@@ -824,7 +846,7 @@ export default function ListeningPage() {
                 <div className="flex-1 space-y-1">
                   <div className="flex justify-between text-[11px] font-semibold">
                     <span className="text-slate-600">
-                      {audioLoading ? "Generating audio..." : isSpeaking ? "Listening..." : isPaused ? "Paused" : speechProgress === 100 ? "Completed" : locked ? "Played once" : "Ready to play"}
+                      {audioLoading ? "Loading audio..." : isSpeaking ? "Listening..." : isPaused ? "Paused" : speechProgress === 100 ? "Completed" : locked ? "Played once" : "Ready to play"}
                     </span>
                     <span className="text-slate-400 font-mono">{Math.round(speechProgress)}%</span>
                   </div>
