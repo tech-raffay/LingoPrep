@@ -5,6 +5,26 @@ import api from "@/lib/api";
 import TestIntro from "@/components/test/TestIntro";
 import ScoreReport, { type ReviewSection } from "@/components/test/ScoreReport";
 import { useExam } from "@/components/theme/ExamThemeProvider";
+import Image from "next/image";
+
+/**
+ * One photo per recording, matched to its topic. Free Unsplash photos
+ * (Unsplash License), stored in /public/media/listening so the test never
+ * depends on a third-party host. Sources: public/media/listening/CREDITS.md.
+ */
+const SECTION_PHOTOS: Record<"ielts" | "toefl", { src: string; alt: string }[]> = {
+  ielts: [
+    { src: "/media/listening/ielts-1-library.jpg", alt: "Rows of library bookshelves" },
+    { src: "/media/listening/ielts-2-museum.jpg", alt: "Museum gallery wall of framed paintings" },
+    { src: "/media/listening/ielts-3-research.jpg", alt: "Students discussing a project at their laptops" },
+    { src: "/media/listening/ielts-4-ocean.jpg", alt: "Aerial view of ocean waves meeting the shore" },
+  ],
+  toefl: [
+    { src: "/media/listening/toefl-1-library.jpg", alt: "Library shelves of books" },
+    { src: "/media/listening/toefl-2-tectonics.jpg", alt: "Mountain range formed by tectonic uplift" },
+    { src: "/media/listening/toefl-3-decisions.jpg", alt: "Chess pieces, a pawn stepping forward" },
+  ],
+};
 
 interface Option {
   id: string;
@@ -61,6 +81,9 @@ export default function ListeningPage() {
 
   // Speech synthesis states
   const [isSpeaking, setIsSpeaking] = useState(false);
+  // Paused mid-recording. Kept separate from "already played": a paused
+  // recording must stay resumable, only a finished one is locked.
+  const [isPaused, setIsPaused] = useState(false);
   const [speechProgress, setSpeechProgress] = useState(0);
   const [playedSections, setPlayedSections] = useState<Record<number, boolean>>({});
 
@@ -132,6 +155,7 @@ export default function ListeningPage() {
 
     // Reset synthesis queue
     window.speechSynthesis.cancel();
+    setIsPaused(false);
 
     const utterance = new SpeechSynthesisUtterance(transcript);
     currentUtteranceRef.current = utterance;
@@ -159,6 +183,7 @@ export default function ListeningPage() {
 
     utterance.onend = () => {
       setIsSpeaking(false);
+      setIsPaused(false);
       setSpeechProgress(100);
       
       // Auto-advance to the next section or review period
@@ -184,10 +209,12 @@ export default function ListeningPage() {
     if (isSpeaking) {
       window.speechSynthesis.pause();
       setIsSpeaking(false);
+      setIsPaused(true);
     } else {
-      if (window.speechSynthesis.paused) {
+      if (isPaused || window.speechSynthesis.paused) {
         window.speechSynthesis.resume();
         setIsSpeaking(true);
+        setIsPaused(false);
       } else {
         // Can only play the recording once!
         if (playedSections[activeSectionIdx]) {
@@ -273,6 +300,7 @@ export default function ListeningPage() {
     setReviewTimeLeft(120);
     setPlayedSections({});
     setSpeechProgress(0);
+    setIsPaused(false);
     setIsTestStarted(false);
     setActiveSectionIdx(0);
     window.speechSynthesis.cancel();
@@ -459,6 +487,10 @@ export default function ListeningPage() {
   const card = examType === "toefl"
     ? (toeflSectionCards[activeSectionIdx] ?? toeflSectionCards[0])
     : (sectionCards[activeSectionIdx] ?? sectionCards[0]);
+  const photos = SECTION_PHOTOS[examType === "toefl" ? "toefl" : "ielts"];
+  const photo = photos[activeSectionIdx] ?? photos[0];
+  // The play button locks only after the recording has fully played.
+  const locked = !!playedSections[activeSectionIdx] && !isSpeaking && !isPaused;
 
   return (
     <div className="min-h-screen bg-[#f4f5f7] flex flex-col">
@@ -490,14 +522,27 @@ export default function ListeningPage() {
         {/* LEFT PANEL */}
         <div className="md:w-72 bg-white border-b md:border-b-0 md:border-r border-slate-200 flex flex-col gap-4 p-4 md:p-5 overflow-y-auto md:flex-shrink-0">
 
-          {/* Section visual card */}
+          {/* Section photo card */}
           <div className="rounded-2xl overflow-hidden border border-slate-200">
-            <div
-              className="h-32 flex flex-col items-center justify-center gap-2"
-              style={{ backgroundColor: card.bg }}
-            >
-              {card.svg}
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{card.label}</span>
+            <div className="relative h-36 bg-slate-100">
+              <Image
+                key={photo.src}
+                src={photo.src}
+                alt={photo.alt}
+                fill
+                sizes="(min-width: 768px) 288px, 100vw"
+                priority
+                className="object-cover"
+              />
+              <div
+                className="absolute inset-0"
+                aria-hidden="true"
+                style={{ background: "linear-gradient(180deg, transparent 45%, rgb(18 23 43 / .55))" }}
+              />
+              <span className="absolute left-3 bottom-2.5 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-wider text-slate-700 shadow-sm">
+                {card.svg && <span className="[&>svg]:w-3.5 [&>svg]:h-3.5 flex">{card.svg}</span>}
+                {card.label}
+              </span>
             </div>
             <div className="px-4 py-2.5 bg-white border-t border-slate-100 text-center">
               <p className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
@@ -551,11 +596,10 @@ export default function ListeningPage() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={togglePlay}
-                  className="w-10 h-10 flex items-center justify-center rounded-full text-white flex-shrink-0 transition-all hover:scale-105 active:scale-95 shadow"
-                  style={{
-                    backgroundColor: playedSections[activeSectionIdx] && !isSpeaking ? "#94a3b8" : theme.color,
-                    cursor: playedSections[activeSectionIdx] && !isSpeaking ? "not-allowed" : "pointer"
-                  }}
+                  disabled={locked}
+                  aria-label={isSpeaking ? "Pause recording" : isPaused ? "Resume recording" : locked ? "Recording already played" : "Play recording"}
+                  className="w-10 h-10 flex items-center justify-center rounded-full text-white flex-shrink-0 transition-all shadow enabled:cursor-pointer enabled:hover:scale-105 enabled:active:scale-95 disabled:cursor-not-allowed"
+                  style={{ backgroundColor: locked ? "#94a3b8" : theme.color }}
                 >
                   {isSpeaking ? (
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -570,7 +614,9 @@ export default function ListeningPage() {
                 </button>
                 <div className="flex-1 space-y-1">
                   <div className="flex justify-between text-[11px] font-semibold">
-                    <span className="text-slate-600">{isSpeaking ? "Listening..." : speechProgress === 100 ? "Completed" : "Ready to play"}</span>
+                    <span className="text-slate-600">
+                      {isSpeaking ? "Listening..." : isPaused ? "Paused" : speechProgress === 100 ? "Completed" : locked ? "Played once" : "Ready to play"}
+                    </span>
                     <span className="text-slate-400 font-mono">{Math.round(speechProgress)}%</span>
                   </div>
                   <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
