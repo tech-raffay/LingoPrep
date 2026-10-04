@@ -8,6 +8,7 @@ import { useExam } from "@/components/theme/ExamThemeProvider";
 import { isOptionBasedType } from "@/types";
 import type { ReadingQuestionType } from "@/types";
 import QuestionGroupRenderer, { groupQuestions } from "@/components/reading/QuestionRenderers";
+import { jumpToTop } from "@/lib/scroll";
 import Stimulus, { parseStimulus, stimulusText } from "@/components/reading/Stimulus";
 
 /**
@@ -105,15 +106,7 @@ export default function ReadingPage() {
   useEffect(() => {
     if (firstPassageRender.current) { firstPassageRender.current = false; return; }
     tabScroll.current = { passage: 0, questions: 0 };
-    const toTop = () => {
-      passagePaneRef.current?.scrollTo({ top: 0, behavior: "instant" });
-      questionsPaneRef.current?.scrollTo({ top: 0, behavior: "instant" });
-      window.scrollTo({ top: 0, behavior: "instant" });
-    };
-    toTop();
-    const frame = requestAnimationFrame(toTop);
-    const timer = setTimeout(toTop, 150);
-    return () => { cancelAnimationFrame(frame); clearTimeout(timer); };
+    return jumpToTop(passagePaneRef.current, questionsPaneRef.current);
   }, [activeSectionIdx]);
 
   // Phone: switching tab returns to where that tab was left.
@@ -639,10 +632,10 @@ export default function ReadingPage() {
       ) : (
         /* SPLIT SCREEN: text on the left, questions on the right. Each side
            scrolls by itself on a wide screen; a phone scrolls the page. */
-        <div className="flex-1 grid content-start md:content-stretch md:flex-none md:grid-cols-2 md:grid-rows-1 md:h-[calc(100vh-113px)] md:overflow-hidden">
+        <div className="flex-1 grid grid-cols-1 content-start md:content-stretch md:flex-none md:grid-cols-2 md:grid-rows-1 md:h-[calc(100vh-113px)] md:overflow-hidden">
 
           {/* Left: what the candidate reads */}
-          <div ref={passagePaneRef} className={`bg-white md:border-r border-slate-200 p-5 sm:p-8 md:min-h-0 md:overflow-y-auto ${
+          <div ref={passagePaneRef} className={`min-w-0 bg-white md:border-r border-slate-200 p-5 sm:p-8 md:min-h-0 md:overflow-y-auto ${
             tabbed && !showPassage ? "hidden md:block" : "block"
           }`}>
             <div className="max-w-3xl mx-auto space-y-5">
@@ -679,7 +672,7 @@ export default function ReadingPage() {
           </div>
 
           {/* Right: the questions */}
-          <div ref={questionsPaneRef} className={`bg-[#f8f9fb] p-4 sm:p-8 md:min-h-0 md:overflow-y-auto space-y-7 ${
+          <div ref={questionsPaneRef} className={`min-w-0 bg-[#f8f9fb] p-4 sm:p-8 md:min-h-0 md:overflow-y-auto space-y-7 ${
             tabbed && showPassage ? "hidden md:block" : "block"
           }`}>
             {questionGroups}

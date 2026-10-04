@@ -422,30 +422,38 @@ function TableRenderer(props: RendererProps) {
       {data.table_title && (
         <p className="border-b border-slate-300 px-4 py-2.5 text-center text-[14px] font-bold text-slate-900">{data.table_title}</p>
       )}
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[440px] border-collapse text-[13.5px]">
-          <thead>
-            <tr>
-              {columns.map((c, i) => (
-                <th key={i} className={`bg-slate-100 px-3.5 py-2.5 text-left font-bold text-slate-900 ${i ? "border-l border-slate-300" : ""}`}>
-                  {c}
-                </th>
+      {/* A phone is too narrow for the columns side by side, so there each
+          row becomes a small card that names its columns. */}
+      <table className="w-full border-collapse text-[13.5px] max-sm:block">
+        <thead className="max-sm:hidden">
+          <tr>
+            {columns.map((c, i) => (
+              <th key={i} className={`bg-slate-100 px-3.5 py-2.5 text-left font-bold text-slate-900 ${i ? "border-l border-slate-300" : ""}`}>
+                {c}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="max-sm:block">
+          {rows.map((row, ri) => (
+            <tr key={ri} className="border-t border-slate-300 max-sm:block max-sm:px-4 max-sm:py-3">
+              {row.map((cell, ci) => (
+                <td
+                  key={ci}
+                  className={`align-top text-slate-900 sm:px-3.5 sm:py-2 sm:leading-[2.2] max-sm:block max-sm:leading-[2.1] ${
+                    ci ? "sm:border-l sm:border-slate-300" : "font-semibold max-sm:text-[14px]"
+                  }`}
+                >
+                  {ci > 0 && columns[ci] && (
+                    <span className="mr-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 sm:hidden">{columns[ci]}:</span>
+                  )}
+                  {fill(cell, `r${ri}-${ci}`)}
+                </td>
               ))}
             </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, ri) => (
-              <tr key={ri} className="border-t border-slate-300">
-                {row.map((cell, ci) => (
-                  <td key={ci} className={`px-3.5 py-2 align-top leading-[2.2] text-slate-900 ${ci ? "border-l border-slate-300" : "font-semibold"}`}>
-                    {fill(cell, `r${ri}-${ci}`)}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

@@ -20,6 +20,7 @@ import { useExam } from "@/components/theme/ExamThemeProvider";
 import Icon from "@/components/brand/Icon";
 import Art from "@/components/brand/Art";
 import { skillArt, type SkillKey } from "@/lib/illustrations";
+import { jumpToTop } from "@/lib/scroll";
 
 export interface IntroPoint {
   label: string;
@@ -46,6 +47,11 @@ export default function TestIntro({
   onStart: () => void;
 }) {
   const { exam, withExam } = useExam();
+  // The test opens at its top, however far down the intro was scrolled.
+  const start = () => {
+    onStart();
+    jumpToTop();
+  };
   const art = skillArt(exam, skill);
 
   return (
@@ -103,7 +109,7 @@ export default function TestIntro({
             </Link>
             <button
               type="button"
-              onClick={onStart}
+              onClick={start}
               className="inline-flex items-center justify-center gap-2 h-12 px-[30px] rounded-full bg-accent text-[14.5px] font-bold text-accent-on shadow-accent hover:bg-accent-strong transition-colors duration-[120ms] cursor-pointer"
             >
               {startLabel}

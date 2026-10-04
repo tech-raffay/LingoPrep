@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import api from "@/lib/api";
+import { jumpToTop } from "@/lib/scroll";
 import TestIntro from "@/components/test/TestIntro";
 import ScoreReport, { type ReviewSection } from "@/components/test/ScoreReport";
 import { useExam } from "@/components/theme/ExamThemeProvider";
@@ -113,15 +114,7 @@ export default function ListeningPage() {
     // An instant jump ("instant" overrides the site-wide smooth scrolling,
     // which a re-render could interrupt half way), repeated once the new
     // section has been laid out.
-    const toTop = () => {
-      leftPaneRef.current?.scrollTo({ top: 0, behavior: "instant" });
-      questionsPaneRef.current?.scrollTo({ top: 0, behavior: "instant" });
-      window.scrollTo({ top: 0, behavior: "instant" });
-    };
-    toTop();
-    const frame = requestAnimationFrame(toTop);
-    const timer = setTimeout(toTop, 150);
-    return () => { cancelAnimationFrame(frame); clearTimeout(timer); };
+    return jumpToTop(leftPaneRef.current, questionsPaneRef.current);
   }, [activeSectionIdx]);
 
   // Clean up audio on unmount
