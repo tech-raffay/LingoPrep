@@ -251,7 +251,7 @@ function MatchingRenderer({
                   className="w-full max-w-xs px-4 py-2.5 border border-slate-300 rounded-xl text-[13.5px] text-slate-800 bg-white focus:outline-none focus:ring-2 focus:border-transparent transition-all cursor-pointer"
                   style={{ focusRingColor: theme.color } as any}
                 >
-                  <option value="">— Select —</option>
+                  <option value="">Select an answer</option>
                   {matchOptions.map((opt) => (
                     <option key={opt.label} value={opt.label}>
                       {opt.label}{type !== "matching_info" ? `. ${opt.text}` : ""}

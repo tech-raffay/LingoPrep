@@ -13,7 +13,7 @@
    impossible — there is exactly one accent, set in exactly one place.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@500;700&family=JetBrains+Mono:wght@500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@500;700;800&display=swap');
 @import "tailwindcss";
 
 :root {
@@ -82,7 +82,10 @@
   /* Proxima Nova is licensed; Figtree is the substitute the brand book
      itself names. Two weights only — 500 body, 700 headings. */
   --font-brand: 'proxima-nova', 'Proxima Nova', 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-numeric: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
+  /* Scores and timers use the brand face with tabular figures, so columns
+     still align. A monospace face (JetBrains Mono) put every glyph in an
+     equal cell, which looked mechanical on the score cards. */
+  --font-numeric: var(--font-brand);
 
   /* ── Radius (§10) — one scale ────────────────────────────────────────── */
   --r-input:   8px;   /* the one place radius is not a pill */
@@ -228,7 +231,7 @@ html[data-theme-switching] *::after {
      body-lg   brand 500            16 / 30       0          passages, essays
      body      brand 500            14 / 24       0          interface text
      label     brand 700            11 / 16       +0.12em    eyebrows, badges
-     numeric   JetBrains Mono 700   14 / 20       +0.02em    timers, bands
+     numeric   brand 700, tabular  14 / 20       −0.01em    timers, bands
      ──────────────────────────────────────────────────────────────────────── */
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-brand);
@@ -244,7 +247,7 @@ html[data-theme-switching] *::after {
   .t-body-lg { font-size: 16px; line-height: 30px; font-weight: 500; }
   .t-body    { font-size: 14px; line-height: 24px; font-weight: 500; }
   .t-label   { font-size: 11px; line-height: 16px; letter-spacing: .12em; text-transform: uppercase; font-weight: 700; }
-  .t-numeric { font-family: var(--font-numeric); font-weight: 700; letter-spacing: .02em; font-variant-numeric: tabular-nums; }
+  .t-numeric { font-family: var(--font-numeric); font-weight: 700; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
 
   /* §08: "Use tabular figures for any column of numbers." */
   table td, table th { font-variant-numeric: tabular-nums; }

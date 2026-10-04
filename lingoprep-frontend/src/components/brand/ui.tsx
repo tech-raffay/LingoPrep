@@ -239,7 +239,7 @@ export function CriterionBar({
     <div>
       <div className="flex items-baseline justify-between mb-2">
         <span className="text-[14px] font-medium text-n-700">{label}</span>
-        {/* §10: always label the numeric value; §08: figures are JetBrains Mono */}
+        {/* §10: always label the numeric value; §08: figures use tabular brand numerals */}
         <span className="t-numeric text-[14px] text-ink">{value.toFixed(decimals)}</span>
       </div>
       <div className="h-2 rounded-full bg-accent-tint overflow-hidden">

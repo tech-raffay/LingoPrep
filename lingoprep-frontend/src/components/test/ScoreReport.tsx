@@ -478,6 +478,10 @@ function QuestionCard({ q }: { q: ReviewItem }) {
 
 /* ── Criteria review (Writing / Speaking) ───────────────────────────────── */
 
+/** The AI's feedback leans on em-dashes; show them as plain commas so the
+ *  report reads like an examiner, not a chatbot. */
+const plain = (t: string) => t.replace(/\s*—\s*/g, ", ");
+
 export interface Criterion {
   label: string;
   value: number;
@@ -587,7 +591,7 @@ export function CriteriaReview({
                 <Icon name="ai" size={20} className="text-ai" />
                 <h3 className="text-[16px]">Examiner-style feedback</h3>
               </div>
-              <p className="text-[14.5px] leading-[1.75] text-n-700 whitespace-pre-line">{feedback}</p>
+              <p className="text-[14.5px] leading-[1.75] text-n-700 whitespace-pre-line">{plain(feedback)}</p>
             </div>
           )}
 
@@ -601,7 +605,7 @@ export function CriteriaReview({
                 {suggestions.map((s, i) => (
                   <li key={i} className="flex items-start gap-2.5 text-[14.5px] leading-[1.65] text-n-700">
                     <Icon name="check" size={16} className="text-success shrink-0 mt-[3px]" />
-                    <span>{s}</span>
+                    <span>{plain(s)}</span>
                   </li>
                 ))}
               </ul>

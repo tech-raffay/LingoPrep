@@ -27,7 +27,7 @@ const COPY: Record<ErrorKind, { title: string; tag: string; body: string }> = {
   "500": {
     title: "Something went wrong",
     tag: "OOPS",
-    body: "Something broke on our side. Try again in a moment — if it keeps happening, head back to the homepage and start again.",
+    body: "Something broke on our side. Try again in a moment. If it keeps happening, head back to the homepage and start again.",
   },
   "403": {
     title: "Access denied",

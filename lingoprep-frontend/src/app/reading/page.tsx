@@ -286,9 +286,9 @@ export default function ReadingPage() {
         title={`${theme.name} Reading Test`}
         meta={`${examConfig.sections} · ${examConfig.questions} · ${examConfig.duration}`}
         points={[
-          { label: "Total duration:", text: <>{examConfig.duration}. ONE continuous timer — the clock does not reset between passages.</> },
+          { label: "Total duration:", text: <>{examConfig.duration}. ONE continuous timer. The clock does not reset between passages.</> },
           { label: "Passages:", text: <>{examConfig.sections} of increasing academic complexity. Navigate freely between passages at any time.</> },
-          { label: "Questions:", text: <>{examConfig.questions} across multiple question types — multiple choice, True/False/Not Given, matching, completion, tables, flow charts, and more.</> },
+          { label: "Questions:", text: <>{examConfig.questions} across multiple question types: multiple choice, True/False/Not Given, matching, completion, tables, flow charts, and more.</> },
           { label: "Scoring:", text: examType === "toefl" ? "Scored 0–30 (TOEFL iBT section scale)." : "1 mark per correct answer → converted to IELTS Band 0–9." },
         ]}
         instructions={<>Ensure you are in a quiet workspace. Once you click &ldquo;Start exam&rdquo;, the countdown begins and cannot be paused. Read the texts carefully and answer the questions. You can navigate between all the passages while the timer continues. Good luck!</>}

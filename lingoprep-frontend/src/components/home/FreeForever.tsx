@@ -18,7 +18,7 @@ import Reveal from "@/components/brand/Reveal";
 import { LANDING } from "@/lib/illustrations";
 
 const BULLETS = [
-  "All four skills, full length, with no account required to start.",
+  "All four skills, full length, free to start.",
   "Every band comes with the criteria, an explanation and a next action.",
   "Transcripts, model answers and worked explanations after each test.",
   "No countdown offers, no fake scarcity, no upsell screens.",

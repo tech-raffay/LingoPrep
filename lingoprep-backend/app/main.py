@@ -12,7 +12,7 @@ from app.routers import reading, listening, writing, users, speaking
 
 app = FastAPI(
     title=settings.APP_NAME,
-    description="AI-powered IELTS & TOEFL preparation backend — evaluates reading, listening, writing, and speaking skills using Llama 3 and Whisper via Groq.",
+    description="AI-powered IELTS & TOEFL preparation backend. Evaluates reading, listening, writing, and speaking skills using Llama 3 and Whisper via Groq.",
     version=settings.APP_VERSION,
     docs_url="/docs",
     redoc_url="/redoc",

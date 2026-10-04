@@ -51,7 +51,7 @@ export default function Hero() {
             <p className="text-[16px] sm:text-[17px] leading-[1.72] text-n-600 max-w-[30rem]">
               Exam-accurate practice tests for IELTS and TOEFL, with an
               AI-generated estimate and criterion-by-criterion feedback the
-              moment you finish. All four skills. No account needed.
+              moment you finish. All four skills.
             </p>
 
             <div className="flex flex-wrap gap-3 pt-1">
