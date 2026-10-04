@@ -4,12 +4,14 @@ import { useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
+type SignupResult = "confirmation" | "existing" | null;
+
 export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [signupResult, setSignupResult] = useState<SignupResult>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -17,7 +19,7 @@ export default function SignupPage() {
     setError(null);
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -26,7 +28,9 @@ export default function SignupPage() {
         },
       });
       if (error) throw error;
-      setSuccess(true);
+
+      const accountAlreadyExists = data.user?.identities?.length === 0;
+      setSignupResult(accountAlreadyExists ? "existing" : "confirmation");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Signup failed.");
     } finally {
@@ -43,19 +47,18 @@ export default function SignupPage() {
     if (error) setError(error.message);
   };
 
-  if (success) {
+  if (signupResult === "existing") {
     return (
       <div className="flex items-center justify-center min-h-[70vh] px-4">
         <div className="w-full max-w-sm bg-white border border-[#e0e0e0] rounded-lg p-8 text-center">
-          <svg className="mx-auto mb-4" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2e7d32" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+          <svg className="mx-auto mb-4" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#c62828" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 8v4" />
+            <path d="M12 16h.01" />
           </svg>
-          <h2 className="text-[18px] font-bold text-[#1a1a1a] mb-2">Continue to your account</h2>
-          <p className="text-[13px] text-[#666] mb-2">
-            If <strong>{email}</strong> is new, we sent a confirmation link to verify the account.
-          </p>
+          <h2 className="text-[18px] font-bold text-[#1a1a1a] mb-2">Account already exists</h2>
           <p className="text-[13px] text-[#666] mb-5">
-            Already registered? No new confirmation email is sent. Sign in with the method you used before.
+            <strong>{email}</strong> is already registered. Sign in with the method you used when creating the account.
           </p>
           <div className="space-y-3">
             <button
@@ -79,7 +82,38 @@ export default function SignupPage() {
             </Link>
             <button
               type="button"
-              onClick={() => setSuccess(false)}
+              onClick={() => setSignupResult(null)}
+              className="text-[13px] text-accent font-semibold hover:underline"
+            >
+              Use another email
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (signupResult === "confirmation") {
+    return (
+      <div className="flex items-center justify-center min-h-[70vh] px-4">
+        <div className="w-full max-w-sm bg-white border border-[#e0e0e0] rounded-lg p-8 text-center">
+          <svg className="mx-auto mb-4" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2e7d32" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          <h2 className="text-[18px] font-bold text-[#1a1a1a] mb-2">Check your email</h2>
+          <p className="text-[13px] text-[#666] mb-5">
+            We sent a confirmation link to <strong>{email}</strong>. Click the link to verify your account.
+          </p>
+          <div className="space-y-3">
+            <Link
+              href="/auth/login"
+              className="block w-full py-2.5 bg-accent text-white font-semibold text-[13px] rounded-full hover:bg-accent-strong transition-colors"
+            >
+              Back to Sign In
+            </Link>
+            <button
+              type="button"
+              onClick={() => setSignupResult(null)}
               className="text-[13px] text-accent font-semibold hover:underline"
             >
               Use another email
