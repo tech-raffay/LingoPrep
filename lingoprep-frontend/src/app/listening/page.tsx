@@ -95,8 +95,20 @@ export default function ListeningPage() {
   // Backend-confirmed: this attempt is now in the candidate's Results page.
   const [saved, setSaved] = useState<boolean | undefined>(undefined);
 
-  
+
   const questionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  // Scrollable panes, so a new section always starts at the top.
+  const leftPaneRef = useRef<HTMLDivElement | null>(null);
+  const questionsPaneRef = useRef<HTMLDivElement | null>(null);
+  const firstSectionRender = useRef(true);
+  useEffect(() => {
+    if (firstSectionRender.current) { firstSectionRender.current = false; return; }
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const behavior: ScrollBehavior = reduce ? "auto" : "smooth";
+    window.scrollTo({ top: 0, behavior });
+    leftPaneRef.current?.scrollTo({ top: 0, behavior });
+    questionsPaneRef.current?.scrollTo({ top: 0, behavior });
+  }, [activeSectionIdx]);
 
   // Clean up speech synthesis on unmount
   useEffect(() => {
@@ -148,18 +160,48 @@ export default function ListeningPage() {
 
   // Speech Progress boundary handler
   const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  // Pending "move to the next section" after a recording ends.
+  const advanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearAdvance = () => {
+    if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
+    advanceTimerRef.current = null;
+  };
+
+  /** Stop the current recording without letting its "end" event advance the
+   *  test: browsers fire end (or an interrupted error) on cancel(). */
+  const stopSpeech = () => {
+    currentUtteranceRef.current = null;
+    clearAdvance();
+    window.speechSynthesis.cancel();
+  };
+
+  /** Go to a specific section (never "current + 1" from a stale timer). */
+  const goToSection = (idx: number) => {
+    stopSpeech();
+    setIsSpeaking(false);
+    setIsPaused(false);
+    setActiveSectionIdx(idx);
+  };
+
+  useEffect(() => () => clearAdvance(), []);
 
   const startSpeaking = () => {
     const transcript = exercises[activeSectionIdx]?.transcript;
     if (!transcript) return;
 
     // Reset synthesis queue
-    window.speechSynthesis.cancel();
+    stopSpeech();
     setIsPaused(false);
 
+    // The section this recording belongs to. Advancing is always "this
+    // section + 1", and only if the candidate is still on this section, so a
+    // duplicate end event or a manual Next can never skip a section.
+    const sectionIdx = activeSectionIdx;
     const utterance = new SpeechSynthesisUtterance(transcript);
     currentUtteranceRef.current = utterance;
-    
+    let finished = false;
+
     // Choose a standard voice if possible
     const voices = window.speechSynthesis.getVoices();
     const naturalVoice = voices.find(
@@ -171,7 +213,7 @@ export default function ListeningPage() {
 
     utterance.onstart = () => {
       setIsSpeaking(true);
-      setPlayedSections((prev) => ({ ...prev, [activeSectionIdx]: true }));
+      setPlayedSections((prev) => ({ ...prev, [sectionIdx]: true }));
     };
 
     utterance.onboundary = (event) => {
@@ -182,14 +224,21 @@ export default function ListeningPage() {
     };
 
     utterance.onend = () => {
+      // Ignore cancelled recordings and repeated end events (iOS Safari can
+      // fire end twice).
+      if (finished || currentUtteranceRef.current !== utterance) return;
+      finished = true;
+      currentUtteranceRef.current = null;
       setIsSpeaking(false);
       setIsPaused(false);
       setSpeechProgress(100);
-      
-      // Auto-advance to the next section or review period
-      setTimeout(() => {
-        if (activeSectionIdx < exercises.length - 1) {
-          setActiveSectionIdx((prev) => prev + 1);
+
+      // Auto-advance to the next section, or to the review period.
+      clearAdvance();
+      advanceTimerRef.current = setTimeout(() => {
+        advanceTimerRef.current = null;
+        if (sectionIdx < exercises.length - 1) {
+          setActiveSectionIdx((cur) => (cur === sectionIdx ? sectionIdx + 1 : cur));
           setSpeechProgress(0);
         } else {
           setIsReviewPeriod(true);
@@ -198,6 +247,7 @@ export default function ListeningPage() {
     };
 
     utterance.onerror = (err) => {
+      if (currentUtteranceRef.current !== utterance) return; // cancelled on purpose
       console.error("Speech synthesis error:", err);
       setIsSpeaking(false);
     };
@@ -247,7 +297,7 @@ export default function ListeningPage() {
     }
 
     // Stop speaking
-    window.speechSynthesis.cancel();
+    stopSpeech();
     setIsSpeaking(false);
 
     try {
@@ -301,9 +351,11 @@ export default function ListeningPage() {
     setPlayedSections({});
     setSpeechProgress(0);
     setIsPaused(false);
+    clearAdvance();
+    currentUtteranceRef.current = null;
     setIsTestStarted(false);
     setActiveSectionIdx(0);
-    window.speechSynthesis.cancel();
+    stopSpeech();
   };
 
   const handleNavClick = (qIndex: number) => {
@@ -520,7 +572,7 @@ export default function ListeningPage() {
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
 
         {/* LEFT PANEL */}
-        <div className="md:w-72 bg-white border-b md:border-b-0 md:border-r border-slate-200 flex flex-col gap-4 p-4 md:p-5 overflow-y-auto md:flex-shrink-0">
+        <div ref={leftPaneRef} className="md:w-72 bg-white border-b md:border-b-0 md:border-r border-slate-200 flex flex-col gap-4 p-4 md:p-5 overflow-y-auto md:flex-shrink-0">
 
           {/* Section photo card */}
           <div className="rounded-2xl overflow-hidden border border-slate-200">
@@ -651,7 +703,7 @@ export default function ListeningPage() {
               <button
                 key={idx}
                 disabled={!isReviewPeriod && idx !== activeSectionIdx}
-                onClick={() => setActiveSectionIdx(idx)}
+                onClick={() => goToSection(idx)}
                 className={`px-3 py-1.5 rounded-lg text-[12px] font-bold border transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
                   activeSectionIdx === idx
                     ? "text-white border-transparent"
@@ -666,7 +718,7 @@ export default function ListeningPage() {
         </div>
 
         {/* RIGHT PANEL - Questions */}
-        <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 space-y-4">
+        <div ref={questionsPaneRef} className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 space-y-4">
           <div className="mb-4">
             <h2 className="text-[18px] font-bold text-slate-900">{currentExercise.title}</h2>
             <p className="text-[13px] text-slate-500 mt-1">
@@ -732,7 +784,7 @@ export default function ListeningPage() {
           <div className="pt-6 border-t border-slate-200 flex items-center justify-between gap-3 mt-6">
             <button
               disabled={activeSectionIdx === 0}
-              onClick={() => setActiveSectionIdx((p) => p - 1)}
+              onClick={() => goToSection(activeSectionIdx - 1)}
               className="flex items-center gap-1.5 px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-[13px] font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
@@ -743,10 +795,7 @@ export default function ListeningPage() {
 
             {activeSectionIdx < totalSections - 1 ? (
               <button
-                onClick={() => {
-                  if (!isReviewPeriod) window.speechSynthesis.cancel();
-                  setActiveSectionIdx((p) => p + 1);
-                }}
+                onClick={() => goToSection(activeSectionIdx + 1)}
                 className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-[13px] font-bold text-white transition-all shadow-sm hover:opacity-90 active:scale-95"
                 style={{ backgroundColor: "#1e293b" }}
               >

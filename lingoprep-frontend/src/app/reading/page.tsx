@@ -79,6 +79,18 @@ export default function ReadingPage() {
 
   // Refs for scrolling to specific questions
   const questionRefs = useRef<Record<string, HTMLElement | null>>({});
+  // Scrollable panes, so a new passage always starts at the top.
+  const passagePaneRef = useRef<HTMLDivElement | null>(null);
+  const questionsPaneRef = useRef<HTMLDivElement | null>(null);
+  const firstPassageRender = useRef(true);
+  useEffect(() => {
+    if (firstPassageRender.current) { firstPassageRender.current = false; return; }
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const behavior: ScrollBehavior = reduce ? "auto" : "smooth";
+    window.scrollTo({ top: 0, behavior });
+    passagePaneRef.current?.scrollTo({ top: 0, behavior });
+    questionsPaneRef.current?.scrollTo({ top: 0, behavior });
+  }, [activeSectionIdx]);
 
   useEffect(() => {
     async function fetchPassages() {
@@ -400,7 +412,7 @@ export default function ReadingPage() {
         <div className="flex-1 grid md:grid-cols-12 gap-0 overflow-hidden flex-1">
 
         {/* Left Side: Passage — hidden on mobile when showing questions */}
-        <div className={`md:col-span-7 bg-white border-r border-slate-200 p-5 sm:p-8 overflow-y-auto max-h-[calc(100vh-115px)] ${
+        <div ref={passagePaneRef} className={`md:col-span-7 bg-white border-r border-slate-200 p-5 sm:p-8 overflow-y-auto max-h-[calc(100vh-115px)] ${
           showPassage ? "block" : "hidden md:block"
         }`}>
           <div className="max-w-3xl mx-auto space-y-6">
@@ -443,7 +455,7 @@ export default function ReadingPage() {
         </div>
 
         {/* Right Side: Questions — hidden on mobile when showing passage */}
-        <div className={`md:col-span-5 bg-[#f8f9fb] p-4 sm:p-8 overflow-y-auto max-h-[calc(100vh-65px)] space-y-6 ${
+        <div ref={questionsPaneRef} className={`md:col-span-5 bg-[#f8f9fb] p-4 sm:p-8 overflow-y-auto max-h-[calc(100vh-65px)] space-y-6 ${
           showPassage ? "hidden md:block" : "block"
         }`}>
           {/* Question groups */}
