@@ -13,7 +13,7 @@ router = APIRouter()
 
 
 @router.get("/audios")
-async def list_audios(
+def list_audios(
     exam_type: Optional[str] = Query(None, description="Filter by exam type: ielts or toefl"),
     difficulty: Optional[str] = Query(None, description="Filter by difficulty: easy, medium, hard"),
 ):
@@ -23,7 +23,7 @@ async def list_audios(
 
 
 @router.get("/audios/{audio_id}")
-async def get_audio(audio_id: str):
+def get_audio(audio_id: str):
     """Get a single listening audio by ID."""
     audio = listening_service.get_audio_by_id(audio_id)
     if not audio:
@@ -35,7 +35,7 @@ from app.dependencies.auth import get_optional_user, AuthenticatedUser
 from fastapi import Depends
 
 @router.post("/submit", response_model=MCQResult)
-async def submit_answers(
+def submit_answers(
     submission: MCQSubmission,
     user: AuthenticatedUser | None = Depends(get_optional_user)
 ):
@@ -52,7 +52,7 @@ async def submit_answers(
 
 
 @router.post("/submit-full", response_model=FullTestResult)
-async def submit_full_test(
+def submit_full_test(
     submission: FullTestSubmission,
     user: AuthenticatedUser | None = Depends(get_optional_user)
 ):

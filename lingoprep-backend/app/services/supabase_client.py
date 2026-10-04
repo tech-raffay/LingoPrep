@@ -6,6 +6,15 @@ Direct HTTP client using httpx to bypass Windows AppLocker/WDAC DLL execution bl
 import httpx
 from app.config import settings
 
+# One pooled client for the whole process. Opening a new client per query
+# (as before) built a fresh TLS context and connection every time: slow, and
+# on Render's 512 MB instance enough concurrent page loads ran it out of
+# memory. httpx.Client is safe to share across threads.
+_http = httpx.Client(
+    timeout=httpx.Timeout(15.0, connect=10.0),
+    limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
+)
+
 
 class SupabaseResponse:
     def __init__(self, data):
@@ -46,29 +55,27 @@ class SupabaseTableQuery:
 
     def execute(self):
         try:
-            with httpx.Client(timeout=10.0) as client:
-                response = client.get(self.url, headers=self.headers, params=self.params)
-                if response.status_code in (404, 406):
-                    return SupabaseResponse(data=None)
-                if response.status_code >= 400:
-                    raise ValueError(f"Supabase REST error: {response.text}")
-                
-                data = response.json()
-                if self._single:
-                    if isinstance(data, list):
-                        data = data[0] if len(data) > 0 else None
-                return SupabaseResponse(data=data)
+            response = _http.get(self.url, headers=self.headers, params=self.params)
+            if response.status_code in (404, 406):
+                return SupabaseResponse(data=None)
+            if response.status_code >= 400:
+                raise ValueError(f"Supabase REST error: {response.text}")
+
+            data = response.json()
+            if self._single:
+                if isinstance(data, list):
+                    data = data[0] if len(data) > 0 else None
+            return SupabaseResponse(data=data)
         except Exception as e:
             print(f"Supabase GET execution error: {e}")
             raise
 
     def insert(self, data: dict | list):
         try:
-            with httpx.Client(timeout=10.0) as client:
-                response = client.post(self.url, headers=self.headers, json=data)
-                if response.status_code >= 400:
-                    raise ValueError(f"Supabase insert error: {response.text}")
-                return SupabaseResponse(data=response.json())
+            response = _http.post(self.url, headers=self.headers, json=data)
+            if response.status_code >= 400:
+                raise ValueError(f"Supabase insert error: {response.text}")
+            return SupabaseResponse(data=response.json())
         except Exception as e:
             print(f"Supabase POST execution error: {e}")
             raise

@@ -13,7 +13,7 @@ router = APIRouter()
 
 
 @router.get("/passages")
-async def list_passages(
+def list_passages(
     exam_type: Optional[str] = Query(None, description="Filter by exam type: ielts or toefl"),
     difficulty: Optional[str] = Query(None, description="Filter by difficulty: easy, medium, hard"),
 ):
@@ -23,7 +23,7 @@ async def list_passages(
 
 
 @router.get("/passages/{passage_id}")
-async def get_passage(passage_id: str):
+def get_passage(passage_id: str):
     """Get a single reading passage by ID."""
     passage = reading_service.get_passage_by_id(passage_id)
     if not passage:
@@ -35,7 +35,7 @@ from app.dependencies.auth import get_optional_user, AuthenticatedUser
 from fastapi import Depends
 
 @router.post("/submit", response_model=MCQResult)
-async def submit_answers(
+def submit_answers(
     submission: MCQSubmission,
     user: AuthenticatedUser | None = Depends(get_optional_user)
 ):
@@ -52,7 +52,7 @@ async def submit_answers(
 
 
 @router.post("/submit-full", response_model=FullTestResult)
-async def submit_full_test(
+def submit_full_test(
     submission: FullTestSubmission,
     user: AuthenticatedUser | None = Depends(get_optional_user)
 ):

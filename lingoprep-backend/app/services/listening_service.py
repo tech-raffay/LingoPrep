@@ -4,6 +4,7 @@ Fetches listening audio exercises from Supabase and scores MCQ submissions.
 """
 
 from app.services.supabase_client import get_client
+from app.services.content_loader import attach_questions
 from app.schemas.models import MCQSubmission, MCQResult, FullTestSubmission, FullTestResult
 
 
@@ -17,42 +18,8 @@ def get_audios(exam_type: str = None, difficulty: str = None) -> list[dict]:
     if difficulty:
         query = query.eq("difficulty", difficulty)
 
-    audios_res = query.execute()
-    audios = audios_res.data or []
-
-    for audio in audios:
-        questions_res = (
-            client.table("questions")
-            .select("*")
-            .eq("passage_id", audio["id"])
-            .order("sort_order")
-            .execute()
-        )
-        questions = questions_res.data or []
-
-        for q in questions:
-            options_res = (
-                client.table("options")
-                .select("*")
-                .eq("question_id", q["id"])
-                .order("sort_order")
-                .execute()
-            )
-            q["options"] = [
-                {
-                    "id": str(o["id"]),
-                    "text": o["option_text"],
-                    "label": o["option_label"],
-                    "is_correct": o["is_correct"],
-                }
-                for o in (options_res.data or [])
-            ]
-            correct = next((o for o in (options_res.data or []) if o["is_correct"]), None)
-            q["correct_option_id"] = str(correct["id"]) if correct else ""
-
-        audio["questions"] = questions
-
-    return audios
+    audios = query.execute().data or []
+    return attach_questions(audios)
 
 
 def get_audio_by_id(audio_id: str) -> dict | None:
@@ -70,38 +37,7 @@ def get_audio_by_id(audio_id: str) -> dict | None:
     audio = audio_res.data
     if not audio:
         return None
-
-    questions_res = (
-        client.table("questions")
-        .select("*")
-        .eq("passage_id", audio_id)
-        .order("sort_order")
-        .execute()
-    )
-    questions = questions_res.data or []
-
-    for q in questions:
-        options_res = (
-            client.table("options")
-            .select("*")
-            .eq("question_id", q["id"])
-            .order("sort_order")
-            .execute()
-        )
-        q["options"] = [
-            {
-                "id": str(o["id"]),
-                "text": o["option_text"],
-                "label": o["option_label"],
-                "is_correct": o["is_correct"],
-            }
-            for o in (options_res.data or [])
-        ]
-        correct = next((o for o in (options_res.data or []) if o["is_correct"]), None)
-        q["correct_option_id"] = str(correct["id"]) if correct else ""
-
-    audio["questions"] = questions
-    return audio
+    return attach_questions([audio])[0]
 
 
 def score_submission(submission: MCQSubmission, user_id: str = None, access_token: str = None) -> MCQResult:

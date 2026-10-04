@@ -58,7 +58,7 @@ def _slim_session(s: dict) -> dict:
 
 
 @router.get("/me")
-async def get_current_user_profile(user: AuthenticatedUser = Depends(verify_user)):
+def get_current_user_profile(user: AuthenticatedUser = Depends(verify_user)):
     """
     Get the authenticated user's profile from the profiles table.
     """
@@ -82,7 +82,7 @@ async def get_current_user_profile(user: AuthenticatedUser = Depends(verify_user
 
 
 @router.get("/sessions")
-async def get_all_sessions(user: AuthenticatedUser = Depends(verify_user)):
+def get_all_sessions(user: AuthenticatedUser = Depends(verify_user)):
     """Get session logs for the currently authenticated user."""
     try:
         client = get_client(user.token)
@@ -116,7 +116,7 @@ async def get_all_sessions(user: AuthenticatedUser = Depends(verify_user)):
 
 
 @router.get("/stats")
-async def get_user_stats(user: AuthenticatedUser = Depends(verify_user)):
+def get_user_stats(user: AuthenticatedUser = Depends(verify_user)):
     """Get aggregated stats for the dashboard of the authenticated user."""
     try:
         client = get_client(user.token)
@@ -126,11 +126,11 @@ async def get_user_stats(user: AuthenticatedUser = Depends(verify_user)):
         # Separate into ielts and toefl sessions
         ielts_sessions = []
         toefl_sessions = []
-        
+
         for s in sessions:
             details = s.get("details") or {}
             exam_type = details.get("exam_type")
-            
+
             # If not in details, try to fetch from passage:
             if not exam_type and s.get("passage_id"):
                 try:
@@ -139,10 +139,10 @@ async def get_user_stats(user: AuthenticatedUser = Depends(verify_user)):
                         exam_type = passage_res.data.get("exam_type", "ielts")
                 except Exception:
                     pass
-            
+
             if not exam_type:
                 exam_type = "ielts"  # fallback
-                
+
             s["exam_type"] = exam_type
             if exam_type == "toefl":
                 toefl_sessions.append(s)
@@ -156,12 +156,12 @@ async def get_user_stats(user: AuthenticatedUser = Depends(verify_user)):
         ielts_listening = [s for s in ielts_sessions if s.get("module") == "listening"]
         ielts_writing = [s for s in ielts_sessions if s.get("module") == "writing"]
         ielts_speaking = [s for s in ielts_sessions if s.get("module") == "speaking"]
-        
+
         ielts_reading_avg = sum(s.get("band_score", 0) for s in ielts_reading) / len(ielts_reading) if ielts_reading else 0
         ielts_listening_avg = sum(s.get("band_score", 0) for s in ielts_listening) / len(ielts_listening) if ielts_listening else 0
         ielts_writing_avg = sum(s.get("band_score", 0) for s in ielts_writing) / len(ielts_writing) if ielts_writing else 0
         ielts_speaking_avg = sum(s.get("band_score", 0) for s in ielts_speaking) / len(ielts_speaking) if ielts_speaking else 0
-        
+
         ielts_active_modules = [b for b in [ielts_reading_avg, ielts_listening_avg, ielts_writing_avg, ielts_speaking_avg] if b > 0]
         ielts_overall = round(sum(ielts_active_modules) / len(ielts_active_modules), 1) if ielts_active_modules else 0
 
@@ -172,12 +172,12 @@ async def get_user_stats(user: AuthenticatedUser = Depends(verify_user)):
         toefl_listening = [s for s in toefl_sessions if s.get("module") == "listening"]
         toefl_writing = [s for s in toefl_sessions if s.get("module") == "writing"]
         toefl_speaking = [s for s in toefl_sessions if s.get("module") == "speaking"]
-        
+
         toefl_reading_avg = sum(s.get("band_score", 0) for s in toefl_reading) / len(toefl_reading) if toefl_reading else 0
         toefl_listening_avg = sum(s.get("band_score", 0) for s in toefl_listening) / len(toefl_listening) if toefl_listening else 0
         toefl_writing_avg = sum(s.get("band_score", 0) for s in toefl_writing) / len(toefl_writing) if toefl_writing else 0
         toefl_speaking_avg = sum(s.get("band_score", 0) for s in toefl_speaking) / len(toefl_speaking) if toefl_speaking else 0
-        
+
         toefl_overall = round(toefl_reading_avg + toefl_listening_avg + toefl_writing_avg + toefl_speaking_avg, 1)
 
         # Active Track determination

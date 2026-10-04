@@ -7,6 +7,7 @@ completion, diagram, table, flowchart, notes, summary, short-answer).
 
 import re
 from app.services.supabase_client import get_client
+from app.services.content_loader import attach_questions
 from app.schemas.models import MCQSubmission, MCQResult, FullTestSubmission, FullTestResult
 
 # Question types that use the options table (radio button selection)
@@ -24,50 +25,8 @@ def get_passages(exam_type: str = None, difficulty: str = None) -> list[dict]:
     if difficulty:
         query = query.eq("difficulty", difficulty)
 
-    passages_res = query.execute()
-    passages = passages_res.data or []
-
-    # For each passage, fetch questions + options
-    for passage in passages:
-        questions_res = (
-            client.table("questions")
-            .select("*")
-            .eq("passage_id", passage["id"])
-            .order("sort_order")
-            .execute()
-        )
-        questions = questions_res.data or []
-
-        for q in questions:
-            # Ensure new columns have defaults even if migration hasn't run
-            q.setdefault("question_type", "multiple_choice")
-            q.setdefault("question_group_label", "")
-            q.setdefault("correct_answer_text", "")
-            q.setdefault("question_data", {})
-
-            options_res = (
-                client.table("options")
-                .select("*")
-                .eq("question_id", q["id"])
-                .order("sort_order")
-                .execute()
-            )
-            q["options"] = [
-                {
-                    "id": str(o["id"]),
-                    "text": o["option_text"],
-                    "label": o["option_label"],
-                    "is_correct": o["is_correct"],
-                }
-                for o in (options_res.data or [])
-            ]
-            # Build correct_option_id for frontend compatibility
-            correct = next((o for o in (options_res.data or []) if o["is_correct"]), None)
-            q["correct_option_id"] = str(correct["id"]) if correct else ""
-
-        passage["questions"] = questions
-
-    return passages
+    passages = query.execute().data or []
+    return attach_questions(passages, reading_defaults=True)
 
 
 def get_passage_by_id(passage_id: str) -> dict | None:
@@ -137,7 +96,7 @@ def _normalize_answer(text: str) -> str:
 
 def _check_text_answer(user_answer: str, correct_answer: str) -> bool:
     """Check a text-based answer against the correct answer.
-    
+
     Supports:
     - Exact match (case-insensitive, whitespace-normalized)
     - Multiple acceptable answers separated by '|' in correct_answer_text
@@ -312,7 +271,7 @@ def _toefl_reading_raw_to_scaled(correct: int, total: int) -> float:
 
 def score_full_test(submission: FullTestSubmission, user_id: str = None, access_token: str = None) -> FullTestResult:
     """Score a full Reading test, supporting ALL question types.
-    
+
     For option-based types (MCQ, TFNG, YNG): checks selected_option_id
     For text-based types (all others): checks answer_text vs correct_answer_text
     """
