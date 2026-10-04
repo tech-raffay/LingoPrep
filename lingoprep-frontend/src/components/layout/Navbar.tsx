@@ -20,7 +20,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useExam } from "@/components/theme/ExamThemeProvider";
 import Logo from "@/components/brand/Logo";
@@ -46,6 +46,40 @@ export default function Navbar() {
   const resultsActive = pathname === "/dashboard";
 
   const closeMobile = () => setMobileOpen(false);
+
+  // Close the drawer on any navigation (including browser back/forward).
+  // Adjusting state during render is React's recommended pattern for this.
+  const [lastPath, setLastPath] = useState(pathname);
+  if (pathname !== lastPath) {
+    setLastPath(pathname);
+    setMobileOpen(false);
+  }
+
+  // While open: Escape closes it, the page behind does not scroll, and
+  // widening past the mobile breakpoint closes it.
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMobileOpen(false); };
+    const mq = window.matchMedia("(min-width: 768px)");
+    const onWide = () => { if (mq.matches) setMobileOpen(false); };
+    const prev = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    mq.addEventListener("change", onWide);
+    return () => {
+      document.documentElement.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+      mq.removeEventListener("change", onWide);
+    };
+  }, [mobileOpen]);
+
+  /** Drawer rows glide in one after another on open, and leave together. */
+  const row = (i: number) => ({
+    className: `transition-[opacity,transform] duration-500 ease-[cubic-bezier(.22,1,.36,1)] ${
+      mobileOpen ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2"
+    }`,
+    style: { transitionDelay: mobileOpen ? `${120 + i * 70}ms` : "0ms" },
+  });
 
   return (
     <header className="sticky top-0 z-50">
@@ -139,67 +173,140 @@ export default function Navbar() {
               )}
             </div>
 
-            {/* Mobile toggle */}
+            {/* Mobile toggle: the two icons cross-fade with a quarter turn */}
             <button
-              onClick={() => setMobileOpen(!mobileOpen)}
-              className="md:hidden p-2 -mr-2 text-ink cursor-pointer"
+              onClick={() => setMobileOpen((o) => !o)}
+              className="md:hidden relative w-10 h-10 -mr-2 inline-flex items-center justify-center rounded-full text-ink cursor-pointer transition-colors duration-200 hover:bg-n-100"
               aria-label={mobileOpen ? "Close menu" : "Open menu"}
               aria-expanded={mobileOpen}
+              aria-controls="mobile-menu"
             >
-              <Icon name={mobileOpen ? "close" : "menu"} size={24} />
+              <span
+                className={`absolute transition-[opacity,transform] duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${
+                  mobileOpen ? "opacity-0 rotate-90 scale-75" : "opacity-100 rotate-0 scale-100"
+                }`}
+              >
+                <Icon name="menu" size={24} />
+              </span>
+              <span
+                className={`absolute transition-[opacity,transform] duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${
+                  mobileOpen ? "opacity-100 rotate-0 scale-100" : "opacity-0 -rotate-90 scale-75"
+                }`}
+              >
+                <Icon name="close" size={24} />
+              </span>
             </button>
           </div>
+        </div>
 
-          {/* Mobile panel */}
-          {mobileOpen && (
-            <div className="md:hidden border-t border-n-200 py-3 space-y-1">
-              {!unset && (
-                <div className="px-1 pb-2">
-                  <Badge>{theme.name}</Badge>
+        {/* ── Mobile drawer ─────────────────────────────────────────────────
+            Always mounted so it can animate both ways. The grid-rows trick
+            (0fr → 1fr) animates to the content's real height; inert keeps
+            the closed drawer out of the tab order and screen readers. */}
+        <div
+          id="mobile-menu"
+          inert={!mobileOpen}
+          className={`md:hidden grid transition-[grid-template-rows] duration-[600ms] ease-[cubic-bezier(.32,.72,0,1)] ${
+            mobileOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+          }`}
+        >
+          <div className="overflow-hidden">
+            <div className="mx-auto max-w-6xl px-4 sm:px-6 border-t border-n-200 pt-3 pb-4 flex flex-col gap-1">
+              {user && (
+                <div {...row(0)}>
+                  <div className="flex items-center gap-3 rounded-2xl bg-n-50 border border-n-200 p-2.5 mb-1.5">
+                    <span
+                      className="w-10 h-10 shrink-0 rounded-full text-white text-[14px] font-bold flex items-center justify-center"
+                      style={{ background: "linear-gradient(145deg, color-mix(in srgb, var(--accent) 88%, white), var(--accent-strong))" }}
+                      aria-hidden="true"
+                    >
+                      {initialsOf(user.user_metadata?.full_name, user.email)}
+                    </span>
+                    <span className="flex flex-col leading-[1.25] min-w-0">
+                      <span className="text-[14.5px] font-bold text-ink truncate">
+                        {user.user_metadata?.full_name || user.email}
+                      </span>
+                      {!unset && (
+                        <span className="text-[12px] font-bold text-n-500">
+                          {theme.name === "TOEFL" ? "TOEFL iBT" : "IELTS Academic"}
+                        </span>
+                      )}
+                    </span>
+                  </div>
                 </div>
               )}
 
-              <Link
-                href={resultsHref}
-                onClick={closeMobile}
-                className={`flex items-center gap-2.5 rounded-input px-3 py-2.5 text-[14px] font-bold transition-colors duration-[120ms] ${
-                  resultsActive
-                    ? "bg-accent-tint text-accent-on-tint"
-                    : "text-ink hover:bg-n-50"
-                }`}
-              >
-                <Icon name="report" size={20} />
-                Your results
-              </Link>
+              {!user && !unset && (
+                <div {...row(0)}>
+                  <div className="px-1 pb-2"><Badge>{theme.name}</Badge></div>
+                </div>
+              )}
 
-              <div className="flex gap-2 pt-2">
-                {user ? (
-                  <button
-                    onClick={() => { signOut(); closeMobile(); }}
-                    className="flex-1 h-11 inline-flex items-center justify-center gap-2 rounded-full border border-n-300 text-[14px] font-bold text-ink hover:bg-n-50 transition-colors duration-[120ms] cursor-pointer"
+              {!unset && (
+                <div {...row(1)}>
+                  <Link
+                    href={withExam("/")}
+                    onClick={closeMobile}
+                    className="flex items-center gap-2.5 rounded-xl px-3 py-3 text-[15px] font-bold text-ink hover:bg-n-50 transition-colors duration-200"
                   >
-                    <Icon name="signOut" size={16} />
-                    Sign out
-                  </button>
-                ) : (
-                  <>
-                    <Link
-                      href="/auth/login"
-                      onClick={closeMobile}
-                      className="flex-1 h-11 inline-flex items-center justify-center rounded-full border border-n-300 text-[14px] font-bold text-ink hover:bg-n-50 transition-colors duration-[120ms]"
+                    <Icon name="library" size={20} className="text-n-500" />
+                    Practice tests
+                  </Link>
+                </div>
+              )}
+
+              <div {...row(2)}>
+                <Link
+                  href={resultsHref}
+                  onClick={closeMobile}
+                  aria-current={resultsActive ? "page" : undefined}
+                  className={`flex items-center gap-2.5 rounded-xl px-3 py-3 text-[15px] font-bold transition-colors duration-200 ${
+                    resultsActive ? "bg-accent-tint text-accent-on-tint" : "text-ink hover:bg-n-50"
+                  }`}
+                >
+                  <Icon name="report" size={20} className={resultsActive ? "" : "text-n-500"} />
+                  Your results
+                </Link>
+              </div>
+
+              <div {...row(3)}>
+                <div className="flex gap-2 pt-2.5">
+                  {user ? (
+                    <button
+                      onClick={() => { signOut(); closeMobile(); }}
+                      className="flex-1 h-11 inline-flex items-center justify-center gap-2 rounded-full border border-n-300 text-[14px] font-bold text-ink hover:bg-n-50 transition-colors duration-200 cursor-pointer"
                     >
-                      Sign in
-                    </Link>
-                    <ButtonLink href="/auth/signup" fullWidth className="flex-1">
-                      Start free
-                    </ButtonLink>
-                  </>
-                )}
+                      <Icon name="signOut" size={16} />
+                      Sign out
+                    </button>
+                  ) : (
+                    <>
+                      <Link
+                        href="/auth/login"
+                        onClick={closeMobile}
+                        className="flex-1 h-11 inline-flex items-center justify-center rounded-full border border-n-300 text-[14px] font-bold text-ink hover:bg-n-50 transition-colors duration-200"
+                      >
+                        Sign in
+                      </Link>
+                      <ButtonLink href="/auth/signup" fullWidth className="flex-1">
+                        Start free
+                      </ButtonLink>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
-          )}
+          </div>
         </div>
       </nav>
+
+      <div
+        aria-hidden="true"
+        onClick={closeMobile}
+        className={`md:hidden fixed inset-x-0 top-14 bottom-0 -z-10 bg-ink/30 backdrop-blur-[2px] transition-opacity duration-[600ms] ease-[cubic-bezier(.32,.72,0,1)] ${
+          mobileOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+      />
     </header>
   );
 }
