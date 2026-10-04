@@ -55,36 +55,41 @@ export default function Navbar() {
     setMobileOpen(false);
   }
 
-  // While open: Escape closes it, the page behind does not scroll, and
-  // widening past the mobile breakpoint closes it.
+  // While open: Escape closes it, and widening past the mobile breakpoint
+  // closes it. Scrolling behind is blocked by the backdrop's touch-action
+  // rather than by changing overflow on <html>, which on iOS Safari makes the
+  // page jump and the toolbars resize in the middle of the animation.
   useEffect(() => {
     if (!mobileOpen) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMobileOpen(false); };
     const mq = window.matchMedia("(min-width: 768px)");
     const onWide = () => { if (mq.matches) setMobileOpen(false); };
-    const prev = document.documentElement.style.overflow;
-    document.documentElement.style.overflow = "hidden";
     window.addEventListener("keydown", onKey);
     mq.addEventListener("change", onWide);
     return () => {
-      document.documentElement.style.overflow = prev;
       window.removeEventListener("keydown", onKey);
       mq.removeEventListener("change", onWide);
     };
   }, [mobileOpen]);
 
+  /** Apple's sheet curve; every drawer animation uses it. */
+  const SHEET = "ease-[cubic-bezier(.32,.72,0,1)]";
+
   /** Drawer rows glide in one after another on open, and leave together. */
   const row = (i: number) => ({
-    className: `transition-[opacity,transform] duration-500 ease-[cubic-bezier(.22,1,.36,1)] ${
-      mobileOpen ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2"
+    className: `transition-[opacity,transform] duration-[400ms] ${SHEET} ${
+      mobileOpen ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1.5"
     }`,
-    style: { transitionDelay: mobileOpen ? `${120 + i * 70}ms` : "0ms" },
+    style: { transitionDelay: mobileOpen ? `${80 + i * 45}ms` : "0ms" },
   });
 
   return (
     <header className="sticky top-0 z-50">
       {/* ── 56px bar, white, 1px bottom border, no shadow (§10) ──────────── */}
-      <nav className="bg-n-0 border-b border-n-300">
+      <nav className="relative">
+        {/* The bar sits above the drawer, so the drawer can slide out from
+            behind it. */}
+        <div className="relative z-20 bg-n-0 border-b border-n-300">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-14 items-center justify-between gap-4">
             {/* Logo + exam badge */}
@@ -198,20 +203,28 @@ export default function Navbar() {
             </button>
           </div>
         </div>
+        </div>
 
         {/* ── Mobile drawer ─────────────────────────────────────────────────
-            Always mounted so it can animate both ways. The grid-rows trick
-            (0fr → 1fr) animates to the content's real height; inert keeps
-            the closed drawer out of the tab order and screen readers. */}
+            Always mounted so it animates both ways. It slides down from
+            behind the bar using transform only, which the GPU composites;
+            animating its height instead forced a full layout on every frame
+            and stuttered on iOS. inert keeps the closed drawer out of the
+            tab order and screen readers. */}
         <div
           id="mobile-menu"
           inert={!mobileOpen}
-          className={`md:hidden grid transition-[grid-template-rows] duration-[600ms] ease-[cubic-bezier(.32,.72,0,1)] ${
-            mobileOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+          className={`md:hidden absolute inset-x-0 top-full z-10 overflow-hidden ${
+            mobileOpen ? "" : "pointer-events-none"
           }`}
         >
-          <div className="overflow-hidden">
-            <div className="mx-auto max-w-6xl px-4 sm:px-6 border-t border-n-200 pt-3 pb-4 flex flex-col gap-1">
+          <div
+            className={`bg-n-0 border-b border-n-300 shadow-[0_18px_40px_-12px_rgb(18_23_43/0.25)]
+                       transition-transform will-change-transform ${SHEET} ${
+              mobileOpen ? "translate-y-0 duration-[450ms]" : "-translate-y-full duration-[320ms]"
+            }`}
+          >
+            <div className="mx-auto max-w-6xl px-4 sm:px-6 pt-3 pb-4 flex flex-col gap-1">
               {user && (
                 <div {...row(0)}>
                   <div className="flex items-center gap-3 rounded-2xl bg-n-50 border border-n-200 p-2.5 mb-1.5">
@@ -303,8 +316,8 @@ export default function Navbar() {
       <div
         aria-hidden="true"
         onClick={closeMobile}
-        className={`md:hidden fixed inset-x-0 top-14 bottom-0 -z-10 bg-ink/30 backdrop-blur-[2px] transition-opacity duration-[600ms] ease-[cubic-bezier(.32,.72,0,1)] ${
-          mobileOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        className={`md:hidden fixed inset-x-0 top-14 bottom-0 z-0 bg-ink/35 touch-none transition-opacity ${SHEET} ${
+          mobileOpen ? "opacity-100 duration-[450ms]" : "opacity-0 pointer-events-none duration-[320ms]"
         }`}
       />
     </header>
