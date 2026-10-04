@@ -340,6 +340,7 @@ html[data-theme-switching] *::after {
    The float/drift/bar keyframes below are for the marketing home page only —
    never inside an active test. All of them are disabled by the
    prefers-reduced-motion block above. */
+@keyframes pulse   { 0%, 100% { transform: scaleY(.4); } 50% { transform: scaleY(1); } }
 @keyframes lp-rise  { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 @keyframes lp-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
 @keyframes lp-spin  { to { transform: rotate(360deg); } }

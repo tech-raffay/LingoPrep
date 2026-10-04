@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import TestIntro from "@/components/test/TestIntro";
 import ScoreReport, { type ReviewSection } from "@/components/test/ScoreReport";
 import { useExam } from "@/components/theme/ExamThemeProvider";
 import Image from "next/image";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
 
 /**
  * One photo per recording, matched to its topic. Free Unsplash photos
@@ -79,13 +81,18 @@ export default function ListeningPage() {
   const [isReviewPeriod, setIsReviewPeriod] = useState(false);
   const [reviewTimeLeft, setReviewTimeLeft] = useState(120); // 2 minutes in seconds
 
-  // Speech synthesis states
+  // Audio playback states (neural TTS via backend)
   const [isSpeaking, setIsSpeaking] = useState(false);
   // Paused mid-recording. Kept separate from "already played": a paused
   // recording must stay resumable, only a finished one is locked.
   const [isPaused, setIsPaused] = useState(false);
   const [speechProgress, setSpeechProgress] = useState(0);
   const [playedSections, setPlayedSections] = useState<Record<number, boolean>>({});
+  // Neural TTS audio element + loading state
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [audioLoading, setAudioLoading] = useState(false);
+  // Whether backend TTS is available (falls back to browser speechSynthesis)
+  const [useFallbackTTS, setUseFallbackTTS] = useState(false);
 
   // Results from backend
   const [bandScore, setBandScore] = useState<number | null>(null);
@@ -110,9 +117,13 @@ export default function ListeningPage() {
     questionsPaneRef.current?.scrollTo({ top: 0, behavior });
   }, [activeSectionIdx]);
 
-  // Clean up speech synthesis on unmount
+  // Clean up audio on unmount
   useEffect(() => {
     return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = "";
+      }
       window.speechSynthesis.cancel();
     };
   }, []);
@@ -158,33 +169,14 @@ export default function ListeningPage() {
     return () => clearInterval(interval);
   }, [isReviewPeriod, submitted, reviewTimeLeft]);
 
-  // ── Speech player ─────────────────────────────────────────────────────────
-  // Mobile browsers (iOS Safari, Android Chrome) rarely fire word-boundary
-  // events, and their speechSynthesis pause()/resume() is unreliable: iOS
-  // often never resumes, Android drops the speech. So the recording is spoken
-  // one sentence at a time:
-  //   - pause cancels the voice and remembers the sentence;
-  //   - resume speaks that sentence again from its start, so nothing is lost;
-  //   - progress is driven by a timer estimated from the speaking rate, and
-  //     refined by boundary events on browsers that send them.
-  const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
-  // Pending "move to the next section" after a recording ends.
+  // ── Neural TTS Audio Player ────────────────────────────────────────────────
+  // Uses Edge-TTS backend for authentic British (IELTS) or American (TOEFL)
+  // accented audio. Falls back to browser speechSynthesis only if backend
+  // audio streaming fails.
   const advanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const boundaryPosRef = useRef(0);
-  const playbackRef = useRef<{
-    section: number;
-    chunks: string[];
-    /** Character offset of each chunk within the whole transcript. */
-    starts: number[];
-    total: number;
-    /** Chunk currently playing (or to resume from). */
-    idx: number;
-  } | null>(null);
-
-  const SPEECH_RATE = 0.95; // slightly slower, clear exam-like speech
-  // About 14 characters a second at rate 1 (≈165 words a minute).
-  const CHARS_PER_SEC = 14 * SPEECH_RATE;
+  // Track which section the audio belongs to (for auto-advance after finish).
+  const audioSectionRef = useRef<number>(0);
 
   const clearAdvance = () => {
     if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
@@ -196,40 +188,126 @@ export default function ListeningPage() {
     progressTimerRef.current = null;
   };
 
-  /** Silence the voice without letting its end/error events act. */
-  const haltVoice = () => {
-    currentUtteranceRef.current = null;
+  /** Stop any playing audio and reset state. */
+  const stopSpeech = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.removeAttribute("src");
+      audioRef.current.load();
+    }
     stopProgressTimer();
+    clearAdvance();
     window.speechSynthesis.cancel();
   };
 
-  /** Stop the recording entirely and forget where it was. */
-  const stopSpeech = () => {
-    haltVoice();
-    clearAdvance();
-    playbackRef.current = null;
-  };
-
-  /** Go to a specific section (never "current + 1" from a stale timer). */
+  /** Go to a specific section. */
   const goToSection = (idx: number) => {
     stopSpeech();
     setIsSpeaking(false);
     setIsPaused(false);
     setSpeechProgress(0);
+    setAudioLoading(false);
     setActiveSectionIdx(idx);
   };
 
   useEffect(() => () => { clearAdvance(); stopProgressTimer(); }, []);
 
-  /** Split a transcript into sentence-sized pieces (speaker lines kept apart,
-   *  very short pieces merged, very long ones split at commas). */
+  /** Recording finished: show 100%, then move on after a short pause. */
+  const finishRecording = useCallback((sectionIdx: number) => {
+    stopProgressTimer();
+    setIsSpeaking(false);
+    setIsPaused(false);
+    setSpeechProgress(100);
+
+    clearAdvance();
+    advanceTimerRef.current = setTimeout(() => {
+      advanceTimerRef.current = null;
+      if (sectionIdx < exercises.length - 1) {
+        setActiveSectionIdx((cur) => (cur === sectionIdx ? sectionIdx + 1 : cur));
+        setSpeechProgress(0);
+      } else {
+        setIsReviewPeriod(true);
+      }
+    }, 3000);
+  }, [exercises.length]);
+
+  /** Start playback using neural TTS backend audio. */
+  const startNeuralAudio = useCallback(async () => {
+    const exercise = exercises[activeSectionIdx];
+    if (!exercise) return;
+
+    const audioId = exercise.id;
+    const audioUrl = `${API_BASE}/api/listening/audio/${audioId}`;
+    audioSectionRef.current = activeSectionIdx;
+
+    setAudioLoading(true);
+    setIsPaused(false);
+    setSpeechProgress(0);
+    setPlayedSections((prev) => ({ ...prev, [activeSectionIdx]: true }));
+
+    try {
+      const audio = audioRef.current;
+      if (!audio) return;
+
+      audio.src = audioUrl;
+      audio.load();
+
+      // Wait for enough data to begin playback
+      await new Promise<void>((resolve, reject) => {
+        const onCanPlay = () => { audio.removeEventListener("canplay", onCanPlay); audio.removeEventListener("error", onError); resolve(); };
+        const onError = () => { audio.removeEventListener("canplay", onCanPlay); audio.removeEventListener("error", onError); reject(new Error("Audio load failed")); };
+        audio.addEventListener("canplay", onCanPlay);
+        audio.addEventListener("error", onError);
+      });
+
+      setAudioLoading(false);
+      setIsSpeaking(true);
+
+      // Progress tracking
+      stopProgressTimer();
+      progressTimerRef.current = setInterval(() => {
+        if (audio && audio.duration && isFinite(audio.duration)) {
+          setSpeechProgress((audio.currentTime / audio.duration) * 100);
+        }
+      }, 250);
+
+      // When audio ends
+      const sectionAtStart = activeSectionIdx;
+      audio.onended = () => {
+        stopProgressTimer();
+        finishRecording(sectionAtStart);
+      };
+
+      audio.onerror = () => {
+        console.error("Neural TTS audio playback error, falling back to browser TTS");
+        setAudioLoading(false);
+        setUseFallbackTTS(true);
+        startFallbackSpeech();
+      };
+
+      await audio.play();
+    } catch {
+      console.error("Neural TTS failed, falling back to browser speech synthesis");
+      setAudioLoading(false);
+      setUseFallbackTTS(true);
+      startFallbackSpeech();
+    }
+  }, [activeSectionIdx, exercises, finishRecording]);
+
+  // ── Fallback: browser speechSynthesis (robotic, only if backend fails) ────
+  const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const playbackRef = useRef<{
+    section: number; chunks: string[]; starts: number[]; total: number; idx: number;
+  } | null>(null);
+  const boundaryPosRef = useRef(0);
+
+  const SPEECH_RATE = 0.95;
+  const CHARS_PER_SEC = 14 * SPEECH_RATE;
+
   const toChunks = (text: string): string[] => {
-    // Match-based (no regex lookbehind, which older iOS Safari cannot parse).
-    const pieces = text
-      .split(/\n+/)
+    const pieces = text.split(/\n+/)
       .flatMap((line) => line.match(/[^.!?]+[.!?]+["')\]]*|[^.!?]+$/g) ?? [])
-      .map((p) => p.trim())
-      .filter(Boolean)
+      .map((p) => p.trim()).filter(Boolean)
       .flatMap((p) => (p.length > 220 ? (p.match(/[^,]+,?/g) ?? [p]).map((x) => x.trim()) : [p]))
       .filter(Boolean);
     const out: string[] = [];
@@ -240,30 +318,6 @@ export default function ListeningPage() {
     return out;
   };
 
-  /** Recording finished: show 100%, then move on after a short pause. */
-  const finishRecording = (sectionIdx: number) => {
-    stopProgressTimer();
-    currentUtteranceRef.current = null;
-    playbackRef.current = null;
-    setIsSpeaking(false);
-    setIsPaused(false);
-    setSpeechProgress(100);
-
-    clearAdvance();
-    advanceTimerRef.current = setTimeout(() => {
-      advanceTimerRef.current = null;
-      if (sectionIdx < exercises.length - 1) {
-        // Only if the candidate is still on this section, so a manual Next
-        // or a duplicate end event can never skip a section.
-        setActiveSectionIdx((cur) => (cur === sectionIdx ? sectionIdx + 1 : cur));
-        setSpeechProgress(0);
-      } else {
-        setIsReviewPeriod(true);
-      }
-    }, 3000);
-  };
-
-  /** Speak chunk `i`, then chain to the next one. */
   const speakChunk = (i: number) => {
     const pb = playbackRef.current;
     if (!pb) return;
@@ -272,18 +326,12 @@ export default function ListeningPage() {
     const utterance = new SpeechSynthesisUtterance(text);
     currentUtteranceRef.current = utterance;
     let done = false;
-
     const voices = window.speechSynthesis.getVoices();
-    const naturalVoice = voices.find(
-      (v) => v.name.includes("Google US English") || v.name.includes("Natural") || v.lang.startsWith("en")
-    );
+    const naturalVoice = voices.find((v) => v.lang.startsWith("en"));
     if (naturalVoice) utterance.voice = naturalVoice;
     utterance.rate = SPEECH_RATE;
-
-    // Progress: estimated from elapsed time, never behind a real boundary
-    // event, and never past the end of this chunk.
     boundaryPosRef.current = pb.starts[i];
-    let elapsed = 0; // seconds since this sentence started
+    let elapsed = 0;
     stopProgressTimer();
     progressTimerRef.current = setInterval(() => {
       if (currentUtteranceRef.current !== utterance) return;
@@ -292,66 +340,78 @@ export default function ListeningPage() {
       const pos = Math.max(est, boundaryPosRef.current);
       setSpeechProgress(Math.min(99.5, (pos / pb.total) * 100));
     }, 200);
-
     utterance.onboundary = (event) => {
       if (currentUtteranceRef.current !== utterance) return;
       boundaryPosRef.current = Math.max(boundaryPosRef.current, pb.starts[i] + event.charIndex);
     };
-
     const next = () => {
       if (done || currentUtteranceRef.current !== utterance) return;
-      done = true;
-      stopProgressTimer();
+      done = true; stopProgressTimer();
       if (i + 1 < pb.chunks.length) speakChunk(i + 1);
       else finishRecording(pb.section);
     };
     utterance.onend = next;
     utterance.onerror = (err) => {
-      if (currentUtteranceRef.current !== utterance) return; // cancelled on purpose
+      if (currentUtteranceRef.current !== utterance) return;
       if (err.error === "interrupted" || err.error === "canceled") return;
-      console.error("Speech synthesis error:", err.error);
-      next(); // skip a failed sentence rather than stalling the test
+      next();
     };
-
     window.speechSynthesis.speak(utterance);
   };
 
-  const startSpeaking = () => {
+  const startFallbackSpeech = () => {
     const transcript = exercises[activeSectionIdx]?.transcript;
     if (!transcript) return;
-
-    stopSpeech();
+    window.speechSynthesis.cancel();
     const chunks = toChunks(transcript);
-    const starts: number[] = [];
-    let acc = 0;
+    const starts: number[] = []; let acc = 0;
     for (const c of chunks) { starts.push(acc); acc += c.length + 1; }
     playbackRef.current = { section: activeSectionIdx, chunks, starts, total: acc, idx: 0 };
-
-    setIsPaused(false);
-    setIsSpeaking(true);
-    setSpeechProgress(0);
+    setIsPaused(false); setIsSpeaking(true); setSpeechProgress(0);
     setPlayedSections((prev) => ({ ...prev, [activeSectionIdx]: true }));
-    // Called synchronously from the click, which iOS requires for audio.
     speakChunk(0);
   };
 
   const togglePlay = () => {
-    const pb = playbackRef.current;
+    if (audioLoading) return; // still loading, ignore clicks
+
     if (isSpeaking) {
-      // Pause: stop the voice, keep the sentence to resume from.
-      haltVoice();
+      // Pause
+      if (!useFallbackTTS && audioRef.current) {
+        audioRef.current.pause();
+        stopProgressTimer();
+      } else {
+        currentUtteranceRef.current = null;
+        stopProgressTimer();
+        window.speechSynthesis.cancel();
+      }
       setIsSpeaking(false);
       setIsPaused(true);
-      if (pb) setSpeechProgress((pb.starts[pb.idx] / pb.total) * 100);
-    } else if (isPaused && pb) {
-      // Resume: speak the interrupted sentence again from its start.
+    } else if (isPaused) {
+      // Resume
       setIsPaused(false);
       setIsSpeaking(true);
-      speakChunk(pb.idx);
+      if (!useFallbackTTS && audioRef.current && audioRef.current.src) {
+        // Restart progress tracker
+        progressTimerRef.current = setInterval(() => {
+          const audio = audioRef.current;
+          if (audio && audio.duration && isFinite(audio.duration)) {
+            setSpeechProgress((audio.currentTime / audio.duration) * 100);
+          }
+        }, 250);
+        audioRef.current.play();
+      } else {
+        const pb = playbackRef.current;
+        if (pb) speakChunk(pb.idx);
+      }
     } else {
-      // Can only play the recording once!
+      // First play — recording can only play once!
       if (playedSections[activeSectionIdx]) return;
-      startSpeaking();
+      if (!useFallbackTTS) {
+        startNeuralAudio();
+      } else {
+        startFallbackSpeech();
+      }
     }
   };
 
@@ -376,9 +436,10 @@ export default function ListeningPage() {
       }
     }
 
-    // Stop speaking
+    // Stop audio
     stopSpeech();
     setIsSpeaking(false);
+    setAudioLoading(false);
 
     try {
       setLoading(true);
@@ -431,6 +492,8 @@ export default function ListeningPage() {
     setPlayedSections({});
     setSpeechProgress(0);
     setIsPaused(false);
+    setAudioLoading(false);
+    setUseFallbackTTS(false);
     clearAdvance();
     currentUtteranceRef.current = null;
     setIsTestStarted(false);
@@ -508,12 +571,13 @@ export default function ListeningPage() {
             ? { label: "Recordings:", text: "One campus conversation and two academic lectures (17 questions total)." }
             : { label: "Sections:", text: "4 distinct conversational and academic listening modules (40 questions total)." },
           { label: "Review period:", text: "A 2-minute review countdown begins automatically after all audios complete." },
-          { label: "Native voice output:", text: "Audio uses the browser's Speech Synthesis engine. Make sure audio output is unmuted." },
+          examType === "toefl"
+            ? { label: "🇺🇸 Authentic accent:", text: "Audio uses studio-quality North American English neural voices for an authentic TOEFL experience." }
+            : { label: "🇬🇧 Authentic accent:", text: "Audio uses studio-quality British English (UK RP) neural voices for an authentic IELTS experience." },
         ]}
-        instructions={<>Ensure your speakers or headphones are connected and set to a comfortable volume. Once you press &ldquo;Start exam&rdquo;, the audio player interface will load.</>}
+        instructions={<>Ensure your speakers or headphones are connected and set to a comfortable volume. The first play may take a few seconds while the audio is generated. Once you press &ldquo;Start exam&rdquo;, the audio player interface will load.</>}
         onStart={() => {
           setIsTestStarted(true);
-          // Trigger voices pre-loading for browser speech synthesis
           window.speechSynthesis.getVoices();
         }}
       />
@@ -623,8 +687,12 @@ export default function ListeningPage() {
   const photo = photos[activeSectionIdx] ?? photos[0];
   // The play button locks only after the recording has fully played.
   const locked = !!playedSections[activeSectionIdx] && !isSpeaking && !isPaused;
+  const accentLabel = examType === "toefl" ? "🇺🇸 North American English" : "🇬🇧 British English (UK RP)";
 
   return (
+    <>
+    {/* Hidden HTML5 audio element for neural TTS playback */}
+    <audio ref={audioRef} preload="none" style={{ display: "none" }} />
     <div className="min-h-screen bg-[#f4f5f7] flex flex-col">
 
       {/* TOP BAR */}
@@ -710,6 +778,12 @@ export default function ListeningPage() {
             </div>
           ) : (
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+              {/* Accent badge */}
+              <div className="flex justify-center">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10.5px] font-bold uppercase tracking-wider border" style={{ backgroundColor: theme.colorLight, color: theme.colorDark, borderColor: theme.color + '33' }}>
+                  {accentLabel}
+                </span>
+              </div>
               {/* Waveform bars */}
               <div className="flex justify-center items-end gap-1 h-8">
                 {[5,12,8,18,10,22,16,26,14,20,9,16,7].map((h, i) => (
@@ -717,9 +791,10 @@ export default function ListeningPage() {
                     key={i}
                     className="w-1.5 rounded-full"
                     style={{
-                      height: isSpeaking ? `${h}px` : "3px",
-                      backgroundColor: isSpeaking ? theme.color : "#CBD5E1",
+                      height: isSpeaking ? `${h}px` : audioLoading ? "6px" : "3px",
+                      backgroundColor: isSpeaking ? theme.color : audioLoading ? theme.color + '80' : "#CBD5E1",
                       transition: "height 0.2s ease",
+                      animation: isSpeaking ? `pulse 0.5s ease-in-out ${i * 0.08}s infinite alternate` : audioLoading ? `pulse 0.8s ease-in-out ${i * 0.1}s infinite alternate` : "none",
                     }}
                   />
                 ))}
@@ -728,12 +803,14 @@ export default function ListeningPage() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={togglePlay}
-                  disabled={locked}
-                  aria-label={isSpeaking ? "Pause recording" : isPaused ? "Resume recording" : locked ? "Recording already played" : "Play recording"}
+                  disabled={locked || audioLoading}
+                  aria-label={audioLoading ? "Generating audio..." : isSpeaking ? "Pause recording" : isPaused ? "Resume recording" : locked ? "Recording already played" : "Play recording"}
                   className="w-10 h-10 flex items-center justify-center rounded-full text-white flex-shrink-0 transition-all shadow enabled:cursor-pointer enabled:hover:scale-105 enabled:active:scale-95 disabled:cursor-not-allowed"
                   style={{ backgroundColor: locked ? "#94a3b8" : theme.color }}
                 >
-                  {isSpeaking ? (
+                  {audioLoading ? (
+                    <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  ) : isSpeaking ? (
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                       <rect x="5" y="4" width="4" height="16" rx="1"/>
                       <rect x="15" y="4" width="4" height="16" rx="1"/>
@@ -747,7 +824,7 @@ export default function ListeningPage() {
                 <div className="flex-1 space-y-1">
                   <div className="flex justify-between text-[11px] font-semibold">
                     <span className="text-slate-600">
-                      {isSpeaking ? "Listening..." : isPaused ? "Paused" : speechProgress === 100 ? "Completed" : locked ? "Played once" : "Ready to play"}
+                      {audioLoading ? "Generating audio..." : isSpeaking ? "Listening..." : isPaused ? "Paused" : speechProgress === 100 ? "Completed" : locked ? "Played once" : "Ready to play"}
                     </span>
                     <span className="text-slate-400 font-mono">{Math.round(speechProgress)}%</span>
                   </div>
@@ -929,5 +1006,6 @@ export default function ListeningPage() {
         </div>
       )}
     </div>
+    </>
   );
 }

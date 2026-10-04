@@ -46,3 +46,7 @@ coverage/
 # Jupyter notebooks (coursework, not part of the app)
 *.ipynb
 .ipynb_checkpoints/
+
+# Generated Audio Cache
+static/audio/
+*.mp3
