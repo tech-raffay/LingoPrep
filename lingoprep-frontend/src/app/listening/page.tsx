@@ -158,22 +158,56 @@ export default function ListeningPage() {
     return () => clearInterval(interval);
   }, [isReviewPeriod, submitted, reviewTimeLeft]);
 
-  // Speech Progress boundary handler
+  // ── Speech player ─────────────────────────────────────────────────────────
+  // Mobile browsers (iOS Safari, Android Chrome) rarely fire word-boundary
+  // events, and their speechSynthesis pause()/resume() is unreliable: iOS
+  // often never resumes, Android drops the speech. So the recording is spoken
+  // one sentence at a time:
+  //   - pause cancels the voice and remembers the sentence;
+  //   - resume speaks that sentence again from its start, so nothing is lost;
+  //   - progress is driven by a timer estimated from the speaking rate, and
+  //     refined by boundary events on browsers that send them.
   const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   // Pending "move to the next section" after a recording ends.
   const advanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const boundaryPosRef = useRef(0);
+  const playbackRef = useRef<{
+    section: number;
+    chunks: string[];
+    /** Character offset of each chunk within the whole transcript. */
+    starts: number[];
+    total: number;
+    /** Chunk currently playing (or to resume from). */
+    idx: number;
+  } | null>(null);
+
+  const SPEECH_RATE = 0.95; // slightly slower, clear exam-like speech
+  // About 14 characters a second at rate 1 (≈165 words a minute).
+  const CHARS_PER_SEC = 14 * SPEECH_RATE;
 
   const clearAdvance = () => {
     if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
     advanceTimerRef.current = null;
   };
 
-  /** Stop the current recording without letting its "end" event advance the
-   *  test: browsers fire end (or an interrupted error) on cancel(). */
-  const stopSpeech = () => {
+  const stopProgressTimer = () => {
+    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    progressTimerRef.current = null;
+  };
+
+  /** Silence the voice without letting its end/error events act. */
+  const haltVoice = () => {
     currentUtteranceRef.current = null;
-    clearAdvance();
+    stopProgressTimer();
     window.speechSynthesis.cancel();
+  };
+
+  /** Stop the recording entirely and forget where it was. */
+  const stopSpeech = () => {
+    haltVoice();
+    clearAdvance();
+    playbackRef.current = null;
   };
 
   /** Go to a specific section (never "current + 1" from a stale timer). */
@@ -181,97 +215,143 @@ export default function ListeningPage() {
     stopSpeech();
     setIsSpeaking(false);
     setIsPaused(false);
+    setSpeechProgress(0);
     setActiveSectionIdx(idx);
   };
 
-  useEffect(() => () => clearAdvance(), []);
+  useEffect(() => () => { clearAdvance(); stopProgressTimer(); }, []);
 
-  const startSpeaking = () => {
-    const transcript = exercises[activeSectionIdx]?.transcript;
-    if (!transcript) return;
+  /** Split a transcript into sentence-sized pieces (speaker lines kept apart,
+   *  very short pieces merged, very long ones split at commas). */
+  const toChunks = (text: string): string[] => {
+    // Match-based (no regex lookbehind, which older iOS Safari cannot parse).
+    const pieces = text
+      .split(/\n+/)
+      .flatMap((line) => line.match(/[^.!?]+[.!?]+["')\]]*|[^.!?]+$/g) ?? [])
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .flatMap((p) => (p.length > 220 ? (p.match(/[^,]+,?/g) ?? [p]).map((x) => x.trim()) : [p]))
+      .filter(Boolean);
+    const out: string[] = [];
+    for (const p of pieces) {
+      if (out.length && out[out.length - 1].length < 40) out[out.length - 1] += " " + p;
+      else out.push(p);
+    }
+    return out;
+  };
 
-    // Reset synthesis queue
-    stopSpeech();
+  /** Recording finished: show 100%, then move on after a short pause. */
+  const finishRecording = (sectionIdx: number) => {
+    stopProgressTimer();
+    currentUtteranceRef.current = null;
+    playbackRef.current = null;
+    setIsSpeaking(false);
     setIsPaused(false);
+    setSpeechProgress(100);
 
-    // The section this recording belongs to. Advancing is always "this
-    // section + 1", and only if the candidate is still on this section, so a
-    // duplicate end event or a manual Next can never skip a section.
-    const sectionIdx = activeSectionIdx;
-    const utterance = new SpeechSynthesisUtterance(transcript);
+    clearAdvance();
+    advanceTimerRef.current = setTimeout(() => {
+      advanceTimerRef.current = null;
+      if (sectionIdx < exercises.length - 1) {
+        // Only if the candidate is still on this section, so a manual Next
+        // or a duplicate end event can never skip a section.
+        setActiveSectionIdx((cur) => (cur === sectionIdx ? sectionIdx + 1 : cur));
+        setSpeechProgress(0);
+      } else {
+        setIsReviewPeriod(true);
+      }
+    }, 3000);
+  };
+
+  /** Speak chunk `i`, then chain to the next one. */
+  const speakChunk = (i: number) => {
+    const pb = playbackRef.current;
+    if (!pb) return;
+    pb.idx = i;
+    const text = pb.chunks[i];
+    const utterance = new SpeechSynthesisUtterance(text);
     currentUtteranceRef.current = utterance;
-    let finished = false;
+    let done = false;
 
-    // Choose a standard voice if possible
     const voices = window.speechSynthesis.getVoices();
     const naturalVoice = voices.find(
       (v) => v.name.includes("Google US English") || v.name.includes("Natural") || v.lang.startsWith("en")
     );
     if (naturalVoice) utterance.voice = naturalVoice;
+    utterance.rate = SPEECH_RATE;
 
-    utterance.rate = 0.95; // Slightly slower, clear exam-like speech
-
-    utterance.onstart = () => {
-      setIsSpeaking(true);
-      setPlayedSections((prev) => ({ ...prev, [sectionIdx]: true }));
-    };
+    // Progress: estimated from elapsed time, never behind a real boundary
+    // event, and never past the end of this chunk.
+    boundaryPosRef.current = pb.starts[i];
+    let elapsed = 0; // seconds since this sentence started
+    stopProgressTimer();
+    progressTimerRef.current = setInterval(() => {
+      if (currentUtteranceRef.current !== utterance) return;
+      elapsed += 0.2;
+      const est = pb.starts[i] + Math.min(text.length, elapsed * CHARS_PER_SEC);
+      const pos = Math.max(est, boundaryPosRef.current);
+      setSpeechProgress(Math.min(99.5, (pos / pb.total) * 100));
+    }, 200);
 
     utterance.onboundary = (event) => {
-      if (event.name === "word") {
-        const progress = Math.min((event.charIndex / transcript.length) * 100, 100);
-        setSpeechProgress(progress);
-      }
+      if (currentUtteranceRef.current !== utterance) return;
+      boundaryPosRef.current = Math.max(boundaryPosRef.current, pb.starts[i] + event.charIndex);
     };
 
-    utterance.onend = () => {
-      // Ignore cancelled recordings and repeated end events (iOS Safari can
-      // fire end twice).
-      if (finished || currentUtteranceRef.current !== utterance) return;
-      finished = true;
-      currentUtteranceRef.current = null;
-      setIsSpeaking(false);
-      setIsPaused(false);
-      setSpeechProgress(100);
-
-      // Auto-advance to the next section, or to the review period.
-      clearAdvance();
-      advanceTimerRef.current = setTimeout(() => {
-        advanceTimerRef.current = null;
-        if (sectionIdx < exercises.length - 1) {
-          setActiveSectionIdx((cur) => (cur === sectionIdx ? sectionIdx + 1 : cur));
-          setSpeechProgress(0);
-        } else {
-          setIsReviewPeriod(true);
-        }
-      }, 3000);
+    const next = () => {
+      if (done || currentUtteranceRef.current !== utterance) return;
+      done = true;
+      stopProgressTimer();
+      if (i + 1 < pb.chunks.length) speakChunk(i + 1);
+      else finishRecording(pb.section);
     };
-
+    utterance.onend = next;
     utterance.onerror = (err) => {
       if (currentUtteranceRef.current !== utterance) return; // cancelled on purpose
-      console.error("Speech synthesis error:", err);
-      setIsSpeaking(false);
+      if (err.error === "interrupted" || err.error === "canceled") return;
+      console.error("Speech synthesis error:", err.error);
+      next(); // skip a failed sentence rather than stalling the test
     };
 
     window.speechSynthesis.speak(utterance);
   };
 
+  const startSpeaking = () => {
+    const transcript = exercises[activeSectionIdx]?.transcript;
+    if (!transcript) return;
+
+    stopSpeech();
+    const chunks = toChunks(transcript);
+    const starts: number[] = [];
+    let acc = 0;
+    for (const c of chunks) { starts.push(acc); acc += c.length + 1; }
+    playbackRef.current = { section: activeSectionIdx, chunks, starts, total: acc, idx: 0 };
+
+    setIsPaused(false);
+    setIsSpeaking(true);
+    setSpeechProgress(0);
+    setPlayedSections((prev) => ({ ...prev, [activeSectionIdx]: true }));
+    // Called synchronously from the click, which iOS requires for audio.
+    speakChunk(0);
+  };
+
   const togglePlay = () => {
+    const pb = playbackRef.current;
     if (isSpeaking) {
-      window.speechSynthesis.pause();
+      // Pause: stop the voice, keep the sentence to resume from.
+      haltVoice();
       setIsSpeaking(false);
       setIsPaused(true);
+      if (pb) setSpeechProgress((pb.starts[pb.idx] / pb.total) * 100);
+    } else if (isPaused && pb) {
+      // Resume: speak the interrupted sentence again from its start.
+      setIsPaused(false);
+      setIsSpeaking(true);
+      speakChunk(pb.idx);
     } else {
-      if (isPaused || window.speechSynthesis.paused) {
-        window.speechSynthesis.resume();
-        setIsSpeaking(true);
-        setIsPaused(false);
-      } else {
-        // Can only play the recording once!
-        if (playedSections[activeSectionIdx]) {
-          return;
-        }
-        startSpeaking();
-      }
+      // Can only play the recording once!
+      if (playedSections[activeSectionIdx]) return;
+      startSpeaking();
     }
   };
 
