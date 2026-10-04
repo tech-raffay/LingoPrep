@@ -255,19 +255,6 @@ export default function Navbar() {
                 </div>
               )}
 
-              {!unset && (
-                <div {...row(1)}>
-                  <Link
-                    href={withExam("/")}
-                    onClick={closeMobile}
-                    className="flex items-center gap-2.5 rounded-xl px-3 py-3 text-[15px] font-bold text-ink hover:bg-n-50 transition-colors duration-200"
-                  >
-                    <Icon name="library" size={20} className="text-n-500" />
-                    Practice tests
-                  </Link>
-                </div>
-              )}
-
               <div {...row(2)}>
                 <Link
                   href={resultsHref}
