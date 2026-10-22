@@ -83,6 +83,24 @@ function noStoredExam(): null {
   return null;
 }
 
+/**
+ * The exam named in the address bar, read straight from the browser.
+ *
+ * `useSearchParams` is the primary source, but on a statically prerendered
+ * page it reports nothing until the client has taken over, and on iOS Safari
+ * that window was long enough for the landing page to decide "no exam
+ * chosen" and show the IELTS-coloured picker although the URL said
+ * `?exam=toefl`. The address bar cannot be stale, so once hydrated it wins.
+ */
+function readLocationExam(): ExamType | null {
+  const m = /[?&]exam=(ielts|toefl)\b/.exec(window.location.search);
+  return m ? (m[1] as ExamType) : null;
+}
+
+function readLocationPicking(): boolean {
+  return new RegExp(`[?&]${PICK_PARAM}=1\\b`).test(window.location.search);
+}
+
 function writeStoredExam(exam: ExamType | null) {
   try {
     if (exam) localStorage.setItem(EXAM_STORAGE_KEY, exam);
@@ -152,17 +170,21 @@ const ExamContext = createContext<ExamContextValue | null>(null);
 export function ExamThemeProvider({ children }: { children: React.ReactNode }) {
   const searchParams = useSearchParams();
 
+  const storedExam = useSyncExternalStore(subscribe, readStoredExam, noStoredExam);
+  const hydrated = useSyncExternalStore(subscribe, () => true, () => false);
+  const locationExam = useSyncExternalStore(subscribe, readLocationExam, noStoredExam);
+  const locationPicking = useSyncExternalStore(subscribe, readLocationPicking, () => false);
+
   // The URL is readable during SSR, so a themed link renders correctly on the
-  // server and needs no client round-trip.
+  // server and needs no client round-trip. After hydration the address bar
+  // itself is the reference (see readLocationExam).
   const rawUrlExam = searchParams.get("exam");
-  const urlExam = isExamType(rawUrlExam) ? rawUrlExam : null;
+  const paramExam = isExamType(rawUrlExam) ? rawUrlExam : null;
+  const urlExam = hydrated ? locationExam : paramExam;
 
   // ?pick=1 overrides everything: it means "show me the picker", and it
   // survives navigation because it lives in the URL.
-  const picking = searchParams.get(PICK_PARAM) === "1";
-
-  const storedExam = useSyncExternalStore(subscribe, readStoredExam, noStoredExam);
-  const hydrated = useSyncExternalStore(subscribe, () => true, () => false);
+  const picking = hydrated ? locationPicking : searchParams.get(PICK_PARAM) === "1";
 
   // The URL wins over storage: a shared link must open the exam it names.
   const resolved = picking ? null : urlExam ?? storedExam;
