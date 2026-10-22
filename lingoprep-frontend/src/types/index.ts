@@ -82,6 +82,8 @@ export interface QuestionData {
   flowchart_title?: string;
   /** Which drawing to show for a diagram-label task. */
   diagram?: string;
+  /** Plan or map labelling: the letters printed on the drawing to choose from. */
+  choices?: string[];
   // TOEFL Complete the Words
   template?: string;
   prefix?: string;
@@ -121,8 +123,12 @@ export interface ReadingPassage {
 export interface ListeningAudio {
   id: string;
   title: string;
+  /** Header lines: Kind, Setting, Speakers, Photo (see tools/listening-seed). */
+  content?: string;
   audio_url: string;
   transcript?: string;
+  /** The transcript without pause markers or voice tags, for the review. */
+  transcript_display?: string;
   duration_seconds: number;
   difficulty: "easy" | "medium" | "hard";
   exam_type: "ielts" | "toefl";

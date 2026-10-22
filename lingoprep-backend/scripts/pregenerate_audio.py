@@ -2,26 +2,45 @@
 Pre-generate the listening recordings so no candidate ever waits for one.
 
     cd lingoprep-backend
-    python scripts/pregenerate_audio.py
+    python scripts/pregenerate_audio.py                # from the database
+    python scripts/pregenerate_audio.py --json DIR     # from the JSON written by
+                                                       # tools/listening-seed/build.mjs
 
-Reads every listening transcript from the database and writes
-static/audio/<audio_id>-<fingerprint>.mp3 for any that is missing. Commit the
-new files: the deployed backend then serves them straight from disk. Run it
-again whenever a transcript changes; files for old transcripts are removed.
+Writes static/audio/<audio_id>-<fingerprint>.mp3 for every recording that is
+missing and removes files for transcripts that no longer exist. Commit the
+files: the deployed backend then serves them straight from disk.
 """
 
 import asyncio
+import json
 import sys
 import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app.services import listening_service, tts_service  # noqa: E402
+from app.services import tts_service  # noqa: E402
+
+
+def from_json(folder: Path) -> list[dict]:
+    sources = []
+    for f in sorted(folder.glob("listening_audios_exam_type_*.json")):
+        for a in json.loads(f.read_text(encoding="utf-8"))["data"]:
+            sources.append({"id": a["id"], "title": a["title"], "transcript": a["transcript"], "exam_type": a["exam_type"]})
+    return sources
+
+
+def from_db() -> list[dict]:
+    from app.services import listening_service
+    return listening_service.list_audio_sources()
 
 
 async def main() -> None:
-    sources = sorted(listening_service.list_audio_sources(), key=lambda a: a["id"])
+    if "--json" in sys.argv:
+        sources = from_json(Path(sys.argv[sys.argv.index("--json") + 1]))
+    else:
+        sources = from_db()
+    sources.sort(key=lambda a: a["id"])
     wanted: set[str] = set()
 
     for a in sources:

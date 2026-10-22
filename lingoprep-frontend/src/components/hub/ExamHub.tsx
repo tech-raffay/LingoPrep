@@ -51,7 +51,7 @@ const SKILLS: Skill[] = [
       ielts: "Four sections, 40 questions, with transcripts after scoring.",
       toefl: "One conversation and two academic lectures, 17 questions.",
     },
-    chips: { ielts: ["Single-play audio", "4 sections · 40 Qs"], toefl: ["Single-play audio", "3 recordings · 17 Qs"] },
+    chips: { ielts: ["Single-play audio", "4 parts · 40 Qs"], toefl: ["Single-play audio", "4 task types · 47 Qs"] },
   },
   {
     key: "reading", title: "Reading", icon: "reading",

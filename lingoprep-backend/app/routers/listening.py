@@ -32,6 +32,8 @@ def list_audios(
 ):
     """Get all listening audios, optionally filtered."""
     audios = listening_service.get_audios(exam_type=exam_type, difficulty=difficulty)
+    for a in audios:
+        a["transcript_display"] = tts_service.display_transcript(a.get("transcript") or "")
 
     # The candidate is about to listen to these. Remember each recording's
     # cache key, and start generating any that are missing now, so the audio
@@ -64,6 +66,11 @@ async def stream_audio_file(audio_id: str):
     cached_path = tts_service.known_cached_path(audio_id)
     if cached_path:
         return _audio_response(cached_path)
+
+    # 1b. A recording committed with the code (static/audio) needs no database.
+    on_disk = tts_service.committed_path(audio_id)
+    if on_disk:
+        return _audio_response(on_disk)
 
     # 2. Otherwise look up the transcript (one light query, off the event loop).
     audio_record = await run_in_threadpool(listening_service.get_audio_source, audio_id)

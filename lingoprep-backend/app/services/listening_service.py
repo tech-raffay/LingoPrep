@@ -5,6 +5,7 @@ Fetches listening audio exercises from Supabase and scores MCQ submissions.
 
 from app.services.supabase_client import get_client
 from app.services.content_loader import attach_questions
+from app.services.reading_service import OPTION_BASED_TYPES, _check_text_answer
 from app.schemas.models import MCQSubmission, MCQResult, FullTestSubmission, FullTestResult
 
 
@@ -19,7 +20,7 @@ def get_audios(exam_type: str = None, difficulty: str = None) -> list[dict]:
         query = query.eq("difficulty", difficulty)
 
     audios = query.execute().data or []
-    return attach_questions(audios)
+    return attach_questions(audios, reading_defaults=True)
 
 
 def get_audio_source(audio_id: str) -> dict | None:
@@ -244,12 +245,12 @@ def score_full_test(submission: FullTestSubmission, user_id: str = None, access_
     except Exception as e:
         print(f"Error fetching correct options batch: {e}")
 
-    # Batch fetch all questions explanations
+    # Batch fetch all questions (type and typed answer, for completion tasks)
     question_map = {}
     try:
         questions_res = (
             client.table("questions")
-            .select("id, explanation")
+            .select("id, explanation, question_type, correct_answer_text")
             .in_("id", question_ids)
             .execute()
         )
@@ -275,19 +276,37 @@ def score_full_test(submission: FullTestSubmission, user_id: str = None, access_
 
     results = []
     for answer in submission.answers:
-        selected_option = selected_map.get(answer.selected_option_id)
-        correct_option = correct_map.get(answer.question_id)
-        question = question_map.get(answer.question_id)
+        question = question_map.get(answer.question_id) or {}
+        question_type = question.get("question_type") or "multiple_choice"
+        correct_answer_text = question.get("correct_answer_text") or ""
 
-        is_correct = selected_option and selected_option.get("is_correct", False) or False
-
-        results.append({
-            "question_id": answer.question_id,
-            "selected": answer.selected_option_id,
-            "correct": str(correct_option["id"]) if correct_option else "",
-            "is_correct": is_correct,
-            "explanation": question.get("explanation", "") if question else "",
-        })
+        if question_type in OPTION_BASED_TYPES:
+            selected_option = selected_map.get(answer.selected_option_id)
+            correct_option = correct_map.get(answer.question_id)
+            is_correct = bool(selected_option and selected_option.get("is_correct", False))
+            results.append({
+                "question_id": answer.question_id,
+                "question_type": question_type,
+                "selected": answer.selected_option_id,
+                "answer_text": "",
+                "correct": str(correct_option["id"]) if correct_option else "",
+                "correct_answer_text": correct_answer_text,
+                "is_correct": is_correct,
+                "explanation": question.get("explanation", ""),
+            })
+        else:
+            # Typed answers: form, notes, sentences, flow chart, plan labels, matching.
+            is_correct = _check_text_answer(answer.answer_text, correct_answer_text)
+            results.append({
+                "question_id": answer.question_id,
+                "question_type": question_type,
+                "selected": "",
+                "answer_text": answer.answer_text,
+                "correct": "",
+                "correct_answer_text": correct_answer_text,
+                "is_correct": is_correct,
+                "explanation": question.get("explanation", ""),
+            })
 
     correct_count = sum(1 for r in results if r["is_correct"])
     total = len(results)

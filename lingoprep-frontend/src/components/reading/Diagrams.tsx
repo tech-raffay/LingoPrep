@@ -123,8 +123,79 @@ function MorseTelegraph({ numbers }: { numbers: number[] }) {
   );
 }
 
+/** A lettered marker on a plan, for "write the correct letter, A–H". */
+function Letter({ x, y, l }: { x: number; y: number; l: string }) {
+  return (
+    <g>
+      <circle cx={x} cy={y} r={12} fill="#fff" stroke={INK} strokeWidth="1.6" />
+      <text x={x} y={y + 5} textAnchor="middle" fontSize="13" fontWeight="700" fill={INK}>{l}</text>
+    </g>
+  );
+}
+
+function Room({ x, y, w, h, label, letter }: { x: number; y: number; w: number; h: number; label?: string; letter?: string }) {
+  return (
+    <g>
+      <rect x={x} y={y} width={w} height={h} fill="#fff" stroke={INK} strokeWidth="1.6" />
+      {label && (
+        <text x={x + w / 2} y={y + h / 2 + 4} textAnchor="middle" fontSize="12" fontWeight="600" fill={INK}>{label}</text>
+      )}
+      {letter && <Letter x={x + w / 2} y={y + h / 2} l={letter} />}
+    </g>
+  );
+}
+
+/** Ground floor of a museum: the entrance at the bottom, a central hall,
+ *  rooms down both sides and the stairs at the far end. Eight lettered
+ *  rooms; the recording names five of them. */
+function MuseumPlan() {
+  return (
+    <svg viewBox="0 0 440 372" role="img" aria-label="Floor plan of a museum with rooms lettered A to H" className="mx-auto block h-auto w-full max-w-[460px]">
+      {/* outer wall */}
+      <rect x="20" y="20" width="400" height="320" fill={FILL} stroke={INK} strokeWidth="2" />
+
+      {/* main hall */}
+      <rect x="150" y="70" width="140" height="200" fill="#fff" stroke={INK} strokeWidth="1" strokeDasharray="3 4" />
+      <text x="220" y="165" textAnchor="middle" fontSize="12" fontWeight="700" letterSpacing="1.5" fill={SOFT}>MAIN HALL</text>
+
+      {/* left side, front to back */}
+      <Room x={20} y={260} w={130} h={80} letter="A" />
+      <Room x={20} y={190} w={130} h={70} letter="B" />
+      <Room x={20} y={120} w={130} h={70} letter="D" />
+      <Room x={20} y={20} w={130} h={100} letter="C" />
+
+      {/* right side, front to back */}
+      <Room x={290} y={270} w={130} h={70} label="Toilets" />
+      <Room x={290} y={160} w={130} h={110} letter="F" />
+      <Room x={290} y={20} w={130} h={140} letter="G" />
+
+      {/* beside the entrance */}
+      <Room x={150} y={270} w={40} h={70} letter="E" />
+      <Room x={250} y={270} w={40} h={70} letter="H" />
+
+      {/* stairs and lift at the back of the hall */}
+      <rect x="185" y="20" width="60" height="50" fill="#fff" stroke={INK} strokeWidth="1.6" />
+      {[30, 38, 46, 54, 62].map((y) => <line key={y} x1="185" y1={y} x2="245" y2={y} stroke={INK} strokeWidth="1" />)}
+      <text x="215" y="84" textAnchor="middle" fontSize="11" fontWeight="600" fill={INK}>Stairs</text>
+      <rect x="250" y="25" width="30" height="40" fill="#fff" stroke={INK} strokeWidth="1.6" />
+      <text x="265" y="49" textAnchor="middle" fontSize="10" fontWeight="600" fill={INK}>Lift</text>
+
+      {/* information desk, just inside the entrance */}
+      <rect x="192" y="282" width="56" height="18" rx="2" fill={INK} />
+      <text x="220" y="316" textAnchor="middle" fontSize="10.5" fontWeight="600" fill={INK}>Info desk</text>
+
+      {/* entrance */}
+      <rect x="195" y="333" width="50" height="14" fill="#fff" />
+      <path d="M220 366 V342" stroke={INK} strokeWidth="1.6" fill="none" />
+      <path d="M214 348 L220 341 L226 348" stroke={INK} strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <text x="310" y="362" textAnchor="middle" fontSize="11" fontWeight="700" letterSpacing="1" fill={SOFT}>MAIN ENTRANCE</text>
+    </svg>
+  );
+}
+
 const DIAGRAMS: Record<string, (props: { numbers: number[] }) => React.ReactElement> = {
   "morse-telegraph": MorseTelegraph,
+  "museum-plan": MuseumPlan,
 };
 
 export function hasDiagram(key?: string): boolean {

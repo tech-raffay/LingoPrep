@@ -31,32 +31,48 @@ AUDIO_CACHE_DIR = Path(__file__).resolve().parent.parent.parent / "static" / "au
 AUDIO_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 # Bump to invalidate every cached recording (e.g. after changing voices).
-_AUDIO_VERSION = "v1"
+_AUDIO_VERSION = "v2"
+
+# ── Silence ──────────────────────────────────────────────────────────────
+# The IELTS recording pauses so the candidate can read the next questions
+# ("[pause 20]" in a transcript). Edge-TTS cannot produce silence, so these
+# gaps are empty MPEG-2 Layer III frames in the format Edge-TTS returns
+# (24 kHz, 48 kbps, mono): a 144-byte frame is 24 ms of silence.
+_SILENT_FRAME = bytes([0xFF, 0xF3, 0x64, 0xC4]) + bytes(140)
+_FRAME_SECONDS = 0.024
+
+
+def silence(seconds: float) -> bytes:
+    return _SILENT_FRAME * max(0, int(round(seconds / _FRAME_SECONDS)))
 
 # Simultaneous requests to the speech service across the whole process.
 _MAX_PARALLEL_LINES = 5
 
-# Accent voice definitions
+# Accent voice definitions. A transcript names each speaker's voice gender
+# ("Student (f): …"); the voices for that gender are rotated per recording,
+# so two recordings with the same roles do not sound identical.
+# IELTS recordings mix British, Australian and North American voices, as the
+# real test does; TOEFL (ETS 2026) likewise balances US, UK and Australian.
 VOICE_MAP = {
     "ielts": {
-        "female": "en-GB-SoniaNeural",
-        "male": "en-GB-RyanNeural",
+        "female": ["en-GB-SoniaNeural", "en-AU-NatashaNeural", "en-GB-LibbyNeural", "en-US-JennyNeural"],
+        "male": ["en-GB-RyanNeural", "en-GB-ThomasNeural", "en-AU-WilliamNeural", "en-US-GuyNeural"],
         "narrator": "en-GB-LibbyNeural",
-        "academic": "en-GB-ThomasNeural",
-        "voices": ["en-GB-SoniaNeural", "en-GB-RyanNeural", "en-GB-LibbyNeural", "en-GB-ThomasNeural"],
         "accent_name": "British English (UK RP)",
         "accent_code": "en-GB"
     },
     "toefl": {
-        "female": "en-US-JennyNeural",
-        "male": "en-US-GuyNeural",
+        "female": ["en-US-JennyNeural", "en-US-AriaNeural", "en-AU-NatashaNeural", "en-GB-SoniaNeural"],
+        "male": ["en-US-GuyNeural", "en-US-ChristopherNeural", "en-GB-RyanNeural", "en-AU-WilliamNeural"],
         "narrator": "en-US-AriaNeural",
-        "academic": "en-US-ChristopherNeural",
-        "voices": ["en-US-JennyNeural", "en-US-GuyNeural", "en-US-AriaNeural", "en-US-ChristopherNeural"],
         "accent_name": "North American English (US)",
         "accent_code": "en-US"
     }
 }
+
+# A line of the transcript: "Name (f): words" / "Name (m): words" / "Name: words".
+_SPEAKER_LINE = re.compile(r"^([A-Za-z0-9\s\.\-,']+?)\s*(?:\((m|f)\))?:\s*(.*)$")
+_PAUSE_LINE = re.compile(r"^\[pause\s+(\d+(?:\.\d+)?)\]$", re.IGNORECASE)
 
 # audio_id -> cache key, filled whenever a transcript is seen (test list,
 # stream request), so the stream endpoint can usually skip the database.
@@ -95,6 +111,14 @@ def known_cached_path(audio_id: str) -> Path | None:
     return path if path.exists() and path.stat().st_size > 0 else None
 
 
+def committed_path(audio_id: str) -> Path | None:
+    """The newest file for this recording in the cache directory, whatever
+    its fingerprint (the pregenerate script keeps exactly one per recording)."""
+    files = sorted(AUDIO_CACHE_DIR.glob(f"{audio_id}-*.mp3"), key=lambda p: p.stat().st_mtime)
+    files = [p for p in files if p.stat().st_size > 0]
+    return files[-1] if files else None
+
+
 def get_audio_file_path(audio_id: str, transcript: str = "", exam_type: str = "ielts") -> Path:
     """Path of the cached audio file for this recording's current transcript."""
     return AUDIO_CACHE_DIR / f"{audio_key(audio_id, transcript, exam_type)}.mp3"
@@ -112,39 +136,57 @@ def get_accent_info(exam_type: str = "ielts") -> dict:
     return {
         "accent_name": cfg["accent_name"],
         "accent_code": cfg["accent_code"],
-        "voices": cfg["voices"]
+        "voices": cfg["female"] + cfg["male"],
     }
 
 
-def _segments(transcript: str, exam_type: str) -> list[tuple[str, str]]:
-    """Split a transcript into (voice, text) lines. Dialogue speakers
-    ('Librarian:', 'Student:') each get their own voice."""
+def _segments(transcript: str, exam_type: str, seed: str = "") -> list[tuple[str, str] | float]:
+    """Split a transcript into (voice, text) lines and pauses (seconds).
+
+    Dialogue speakers ("Tom (m): …") each get their own voice of the stated
+    gender; a line with no speaker is the announcer. `seed` (the recording
+    id) decides where in the voice list the rotation starts."""
     voice_config = VOICE_MAP[_exam_key(exam_type)]
-    available_voices = voice_config["voices"]
+    offset = int(hashlib.sha1(seed.encode("utf-8")).hexdigest(), 16) if seed else 0
+    used = {"f": 0, "m": 0}
 
-    lines = [line.strip() for line in transcript.split("\n") if line.strip()]
-    speaker_pattern = re.compile(r"^([A-Za-z0-9\s\.\-]+):\s*(.*)$")
+    segments: list[tuple[str, str] | float] = []
+    assigned: dict[str, str] = {}
 
-    segments: list[tuple[str, str]] = []
-    speaker_voice_assignment: dict[str, str] = {}
-    voice_index = 0
-
-    for line in lines:
-        match = speaker_pattern.match(line)
+    for raw in transcript.split("\n"):
+        line = raw.strip()
+        if not line:
+            continue
+        pause = _PAUSE_LINE.match(line)
+        if pause:
+            segments.append(float(pause.group(1)))
+            continue
+        match = _SPEAKER_LINE.match(line)
         if match:
-            speaker_name = match.group(1).strip()
-            speech_text = match.group(2).strip()
-
-            if speaker_name not in speaker_voice_assignment:
-                speaker_voice_assignment[speaker_name] = available_voices[voice_index % len(available_voices)]
-                voice_index += 1
-
-            if speech_text:
-                segments.append((speaker_voice_assignment[speaker_name], speech_text))
+            speaker, gender, text = match.group(1).strip(), match.group(2), match.group(3).strip()
+            if speaker not in assigned:
+                g = gender or ("f" if (offset + len(assigned)) % 2 else "m")
+                pool = voice_config["female" if g == "f" else "male"]
+                assigned[speaker] = pool[(offset + used[g]) % len(pool)]
+                used[g] += 1
+            if text:
+                segments.append((assigned[speaker], text))
         else:
-            # Monologue / narrator line
             segments.append((voice_config["narrator"], line))
     return segments
+
+
+def display_transcript(transcript: str) -> str:
+    """The transcript as shown to the candidate afterwards: no pause
+    markers and no voice-gender tags."""
+    out = []
+    for raw in transcript.split("\n"):
+        line = raw.strip()
+        if not line or _PAUSE_LINE.match(line):
+            continue
+        m = _SPEAKER_LINE.match(line)
+        out.append(f"{m.group(1).strip()}: {m.group(3).strip()}" if m else line)
+    return "\n".join(out)
 
 
 async def _synthesize_line(voice: str, text: str) -> bytes:
@@ -170,14 +212,16 @@ async def _synthesize_line(voice: str, text: str) -> bytes:
         raise RuntimeError(f"Could not synthesise line: {last_error}")
 
 
-async def synthesize_transcript(transcript: str, exam_type: str = "ielts", output_path: Path | None = None) -> bytes:
+async def synthesize_transcript(transcript: str, exam_type: str = "ielts", output_path: Path | None = None, seed: str = "") -> bytes:
     """
     Synthesize transcript text into authentic accented audio.
-    Lines are synthesised in parallel and joined in order.
+    Lines are synthesised in parallel and joined in order; pauses become
+    silent frames.
     """
-    segments = _segments(transcript, exam_type)
-    parts = await asyncio.gather(*(_synthesize_line(voice, text) for voice, text in segments))
-    audio_bytes = b"".join(parts)
+    segments = _segments(transcript, exam_type, seed)
+    spoken = [s for s in segments if isinstance(s, tuple)]
+    parts = iter(await asyncio.gather(*(_synthesize_line(voice, text) for voice, text in spoken)))
+    audio_bytes = b"".join(silence(s) if isinstance(s, float) else next(parts) for s in segments)
 
     if output_path:
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -206,7 +250,7 @@ async def get_or_generate_audio(audio_id: str, transcript: str, exam_type: str =
 
     task = _inflight.get(key)
     if task is None:
-        task = asyncio.create_task(synthesize_transcript(transcript, exam_type, cached_path))
+        task = asyncio.create_task(synthesize_transcript(transcript, exam_type, cached_path, seed=audio_id))
         _inflight[key] = task
         task.add_done_callback(lambda _t, k=key: _inflight.pop(k, None))
 

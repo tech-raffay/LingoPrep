@@ -234,7 +234,7 @@ export function testLabel(r: SessionRow, exam: ExamType): string {
   }
   if (r.is_full_test) {
     if (r.module === "reading") return exam === "ielts" ? "Full test · 3 passages" : "Full test · 9 tasks";
-    return exam === "ielts" ? "Full test · 4 sections" : "Full test · 3 recordings";
+    return exam === "ielts" ? "Full test · 4 parts" : "Full test · 4 task types";
   }
   return `${SKILL_TITLE[r.module]} practice`;
 }

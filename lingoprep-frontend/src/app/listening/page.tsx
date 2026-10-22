@@ -1,64 +1,73 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+/**
+ * Listening test, in the shape of the real exams.
+ *
+ * IELTS   Four parts, ten questions each, 40 in all. The recording for a part
+ *         starts when the part opens and is heard once; it carries the exam's
+ *         own directions and the pauses for reading the questions, which stay
+ *         on screen throughout. After Part 4 there are two minutes to check
+ *         the answers (as in the computer-delivered test), then the test is
+ *         submitted.
+ *
+ * TOEFL   The January 2026 format: Listen and Choose a Response, Listen to a
+ *         Conversation, Listen to an Announcement and Listen to an Academic
+ *         Talk, 47 items. Every recording is accompanied by a picture of the
+ *         speaker(s), plays once, and its questions appear when it ends.
+ *
+ * Both tests play each recording once only. Pausing is allowed here, as a
+ * practice convenience; the real tests never pause.
+ */
+
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import Image from "next/image";
 import api from "@/lib/api";
 import { jumpToTop } from "@/lib/scroll";
+import { gapContext } from "@/lib/gapContext";
 import TestIntro from "@/components/test/TestIntro";
-import ScoreReport, { type ReviewSection } from "@/components/test/ScoreReport";
+import ScoreReport, { type ReviewSection, type ReviewItem } from "@/components/test/ScoreReport";
 import { useExam } from "@/components/theme/ExamThemeProvider";
-import Image from "next/image";
+import { isOptionBasedType } from "@/types";
+import type { MCQQuestion } from "@/types";
+import QuestionGroupRenderer, { groupQuestions } from "@/components/reading/QuestionRenderers";
+import SpeakerCard, { parseScene, type Scene, type SceneKind } from "@/components/listening/SpeakerCard";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
 
-/**
- * One photo per recording, matched to its topic. Free Unsplash photos
- * (Unsplash License), stored in /public/media/listening so the test never
- * depends on a third-party host. Sources: public/media/listening/CREDITS.md.
- */
-const SECTION_PHOTOS: Record<"ielts" | "toefl", { src: string; alt: string }[]> = {
-  ielts: [
-    { src: "/media/listening/ielts-1-library.jpg", alt: "Rows of library bookshelves" },
-    { src: "/media/listening/ielts-2-museum.jpg", alt: "Museum gallery wall of framed paintings" },
-    { src: "/media/listening/ielts-3-research.jpg", alt: "Students discussing a project at their laptops" },
-    { src: "/media/listening/ielts-4-ocean.jpg", alt: "Aerial view of ocean waves meeting the shore" },
-  ],
-  toefl: [
-    { src: "/media/listening/toefl-1-library.jpg", alt: "Library shelves of books" },
-    { src: "/media/listening/toefl-2-tectonics.jpg", alt: "Mountain range formed by tectonic uplift" },
-    { src: "/media/listening/toefl-3-decisions.jpg", alt: "Chess pieces, a pawn stepping forward" },
-  ],
-};
-
-interface Option {
-  id: string;
-  text: string;
-  label: string;
-}
-
-interface Question {
-  id: string;
-  question_text: string;
-  options: Option[];
-  correct_option_id: string;
-  explanation?: string;
-  sort_order: number;
-}
-
-interface AudioExercise {
+interface Recording {
   id: string;
   title: string;
-  audio_url: string;
-  duration_seconds: number;
+  content?: string;
   transcript?: string;
-  difficulty: string;
+  transcript_display?: string;
   exam_type: string;
-  questions: Question[];
+  questions: MCQQuestion[];
 }
 
+const TOEFL_TASK: Partial<Record<SceneKind, string>> = {
+  response: "Listen and Choose a Response",
+  conversation: "Listen to a Conversation",
+  announcement: "Listen to an Announcement",
+  talk: "Listen to an Academic Talk",
+};
+
+/** The transcript as shown afterwards (older rows have no display copy). */
+const cleanTranscript = (r: Recording) =>
+  r.transcript_display ??
+  (r.transcript || "")
+    .split("\n")
+    .filter((l) => l.trim() && !/^\[pause/i.test(l.trim()))
+    .map((l) => l.replace(/^([^:\n]+?)\s*\((?:m|f)\)\s*:/, "$1:"))
+    .join("\n");
+
+/** On resume, step back this far so the last words are heard again. */
+const RESUME_REWIND_SECONDS = 2.5;
+/** After a part ends, IELTS moves on to the next part after this long. */
+const NEXT_PART_DELAY_MS = 3000;
 
 export default function ListeningPage() {
   // Exam theme comes from the shared provider (src/lib/exam.ts), never a
-  // local copy — see brand book §07: one accent token, set in one place.
+  // local copy: brand book §07, one accent token, set in one place.
   const { exam: examType, theme: examTheme } = useExam();
   const theme = {
     color: examTheme.accent,
@@ -66,422 +75,303 @@ export default function ListeningPage() {
     colorLight: examTheme.accentTint,
     name: examTheme.name,
   };
+  const isToefl = examType === "toefl";
 
-  const [exercises, setExercises] = useState<AudioExercise[]>([]);
+  const [recordings, setRecordings] = useState<Recording[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Flow control
+  // Flow
   const [isTestStarted, setIsTestStarted] = useState(false);
-  const [activeSectionIdx, setActiveSectionIdx] = useState(0);
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-
-  // Review screen state
   const [isReviewPeriod, setIsReviewPeriod] = useState(false);
-  const [reviewTimeLeft, setReviewTimeLeft] = useState(120); // 2 minutes in seconds
+  const [reviewTimeLeft, setReviewTimeLeft] = useState(120);
 
-  // Audio playback states (neural TTS via backend)
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  // Paused mid-recording. Kept separate from "already played": a paused
-  // recording must stay resumable, only a finished one is locked.
-  const [isPaused, setIsPaused] = useState(false);
-  const [speechProgress, setSpeechProgress] = useState(0);
-  const [playedSections, setPlayedSections] = useState<Record<number, boolean>>({});
-  // Neural TTS audio element + loading state
+  // Playback
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [playingIdx, setPlayingIdx] = useState<number | null>(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [audioLoading, setAudioLoading] = useState(false);
-  // Whether backend TTS is available (falls back to browser speechSynthesis)
+  const [needsTap, setNeedsTap] = useState(false);
+  const [progress, setProgress] = useState(0);
+  /** Recordings that have started (each plays once) and that have ended. */
+  const [started, setStarted] = useState<Record<number, boolean>>({});
+  const [finished, setFinished] = useState<Record<number, boolean>>({});
+  const startedRef = useRef<Set<number>>(new Set());
+  const pausedAtRef = useRef(0);
+  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const advanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [useFallbackTTS, setUseFallbackTTS] = useState(false);
 
-  // Results from backend
+  // Results
   const [bandScore, setBandScore] = useState<number | null>(null);
   const [correctCount, setCorrectCount] = useState<number | null>(null);
   const [scorePercentage, setScorePercentage] = useState<number | null>(null);
-  const [dbResults, setDbResults] = useState<any[] | null>(null);
-  // Backend-confirmed: this attempt is now in the candidate's Results page.
+  const [dbResults, setDbResults] = useState<Record<string, unknown>[] | null>(null);
   const [saved, setSaved] = useState<boolean | undefined>(undefined);
 
-
-  const questionRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  // Scrollable panes, so a new section always starts at the top.
+  const questionRefs = useRef<Record<string, HTMLElement | null>>({});
   const leftPaneRef = useRef<HTMLDivElement | null>(null);
   const questionsPaneRef = useRef<HTMLDivElement | null>(null);
-  const firstSectionRender = useRef(true);
-  useEffect(() => {
-    if (firstSectionRender.current) { firstSectionRender.current = false; return; }
-    // An instant jump ("instant" overrides the site-wide smooth scrolling,
-    // which a re-render could interrupt half way), repeated once the new
-    // section has been laid out.
-    return jumpToTop(leftPaneRef.current, questionsPaneRef.current);
-  }, [activeSectionIdx]);
 
-  // Clean up audio on unmount
+  /* ── Audio element (off-screen, created once) ─────────────────────────── */
   useEffect(() => {
+    const audio = new Audio();
+    audio.preload = "auto";
+    audioRef.current = audio;
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = "";
-      }
-      window.speechSynthesis.cancel();
+      audio.pause();
+      audio.removeAttribute("src");
+      audioRef.current = null;
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+      if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
+      window.speechSynthesis?.cancel();
     };
   }, []);
 
+  /* ── Load ─────────────────────────────────────────────────────────────── */
   useEffect(() => {
-    async function fetchAudios() {
+    async function load() {
       try {
         setLoading(true);
         const response = await api.get(`/api/listening/audios?exam_type=${examType}`);
-        const data = response.data?.data || [];
+        const data: Recording[] = response.data?.data || [];
         if (data.length > 0) {
-          // Sort by ID to ensure Section 1, 2, 3, 4 ordering
           const sorted = [...data].sort((a, b) => a.id.localeCompare(b.id));
-          setExercises(sorted);
+          for (const r of sorted) {
+            for (const q of r.questions) {
+              q.question_type = q.question_type || "multiple_choice";
+              q.question_group_label = q.question_group_label || "";
+              q.question_data = q.question_data || {};
+              q.correct_answer_text = q.correct_answer_text || "";
+            }
+          }
+          setRecordings(sorted);
         } else {
-          setError(`No ${theme.name} listening exercises found in the database.`);
+          setError(`No ${theme.name} listening test found in the database.`);
         }
       } catch (err) {
-        console.error("Fetch listening exercises error:", err);
+        console.error("Fetch listening error:", err);
         setError("Failed to load test content. Please verify database seeding and backend status.");
       } finally {
         setLoading(false);
       }
     }
-    fetchAudios();
+    load();
   }, [examType, theme.name]);
 
-  // Review period timer countdown
-  useEffect(() => {
-    if (!isReviewPeriod || submitted || reviewTimeLeft <= 0) return;
+  /* ── Derived ──────────────────────────────────────────────────────────── */
+  const allQuestions = useMemo(() => recordings.flatMap((r) => r.questions), [recordings]);
+  const scenes = useMemo(() => recordings.map((r) => parseScene(r.content)), [recordings]);
+  const numberOf = (qId: string) => allQuestions.findIndex((q) => q.id === qId) + 1;
+  const isAnswered = (qId: string) => !!answers[qId]?.trim();
+  const unansweredCount = allQuestions.filter((q) => !isAnswered(q.id)).length;
 
-    const interval = setInterval(() => {
-      setReviewTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          autoSubmit();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [isReviewPeriod, submitted, reviewTimeLeft]);
-
-  // ── Neural TTS Audio Player ────────────────────────────────────────────────
-  // Uses Edge-TTS backend for authentic British (IELTS) or American (TOEFL)
-  // accented audio. Falls back to browser speechSynthesis only if backend
-  // audio streaming fails.
-  const advanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Track which section the audio belongs to (for auto-advance after finish).
-  const audioSectionRef = useRef<number>(0);
-
-  const clearAdvance = () => {
-    if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
-    advanceTimerRef.current = null;
+  // TOEFL: recordings belong to one of four tasks, in order.
+  const tasks = useMemo(() => {
+    const kinds: SceneKind[] = [];
+    for (const s of scenes) if (!kinds.includes(s.kind)) kinds.push(s.kind);
+    return kinds.map((kind) => ({ kind, name: TOEFL_TASK[kind] ?? kind, idxs: scenes.map((s, i) => (s.kind === kind ? i : -1)).filter((i) => i >= 0) }));
+  }, [scenes]);
+  const taskOf = (idx: number) => {
+    const t = tasks.findIndex((x) => x.idxs.includes(idx));
+    return { task: t, name: tasks[t]?.name ?? "", pos: (tasks[t]?.idxs.indexOf(idx) ?? 0) + 1, count: tasks[t]?.idxs.length ?? 0 };
   };
 
-  const stopProgressTimer = () => {
-    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
-    progressTimerRef.current = null;
-  };
+  const sectionWord = isToefl ? "Recording" : "Part";
 
-  /** Stop any playing audio and reset state. */
-  const stopSpeech = () => {
-    const audio = audioRef.current;
-    if (audio) {
-      audio.onplaying = audio.onended = audio.onerror = null;
-      audio.pause();
-      audio.removeAttribute("src");
-      audio.load();
-    }
-    stopProgressTimer();
-    clearAdvance();
-    window.speechSynthesis.cancel();
-  };
-
+  /* ── Playback ─────────────────────────────────────────────────────────── */
   const audioUrlFor = (id: string) => `${API_BASE}/api/listening/audio/${id}`;
 
-  const startProgressTimer = () => {
+  const stopProgressTimer = useCallback(() => {
+    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    progressTimerRef.current = null;
+  }, []);
+  const startProgressTimer = useCallback(() => {
     stopProgressTimer();
     progressTimerRef.current = setInterval(() => {
       const audio = audioRef.current;
       if (audio && audio.duration && isFinite(audio.duration)) {
-        setSpeechProgress((audio.currentTime / audio.duration) * 100);
+        setProgress((audio.currentTime / audio.duration) * 100);
       }
     }, 250);
-  };
+  }, [stopProgressTimer]);
 
-  /** Go to a specific section. */
-  const goToSection = (idx: number) => {
-    stopSpeech();
-    setIsSpeaking(false);
-    setIsPaused(false);
-    setSpeechProgress(0);
-    setAudioLoading(false);
-    setActiveSectionIdx(idx);
-  };
-
-  useEffect(() => () => { clearAdvance(); stopProgressTimer(); }, []);
-
-  /** Recording finished: show 100%, then move on after a short pause. */
-  const finishRecording = useCallback((sectionIdx: number) => {
+  /** The recording has ended: IELTS moves on by itself, TOEFL shows the questions. */
+  const finishRecording = useCallback((idx: number) => {
     stopProgressTimer();
     setIsSpeaking(false);
     setIsPaused(false);
-    setSpeechProgress(100);
-
-    clearAdvance();
+    setProgress(100);
+    setFinished((prev) => ({ ...prev, [idx]: true }));
+    setPlayingIdx(null);
+    if (isToefl) return;
+    if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
     advanceTimerRef.current = setTimeout(() => {
       advanceTimerRef.current = null;
-      if (sectionIdx < exercises.length - 1) {
-        setActiveSectionIdx((cur) => (cur === sectionIdx ? sectionIdx + 1 : cur));
-        setSpeechProgress(0);
+      if (idx < recordings.length - 1) {
+        setActiveIdx((cur) => (cur === idx ? idx + 1 : cur));
       } else {
         setIsReviewPeriod(true);
       }
-    }, 3000);
-  }, [exercises.length]);
+    }, NEXT_PART_DELAY_MS);
+  }, [isToefl, recordings.length, stopProgressTimer]);
 
-  // ── Fallback: browser speechSynthesis (robotic, only if backend fails) ────
-  const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
-  const playbackRef = useRef<{
-    section: number; chunks: string[]; starts: number[]; total: number; idx: number;
-  } | null>(null);
-  const boundaryPosRef = useRef(0);
+  // Browser speech as a last resort, if the recording cannot be fetched.
+  const fallbackRef = useRef<{ idx: number; chunks: string[]; at: number; current: SpeechSynthesisUtterance | null } | null>(null);
+  // Each chunk queues the next through this ref (a callback cannot call itself).
+  const speakChunkRef = useRef<(i: number) => void>(() => {});
+  const speakFallbackChunk = useCallback((i: number) => {
+    const fb = fallbackRef.current;
+    if (!fb) return;
+    if (i >= fb.chunks.length) { fallbackRef.current = null; finishRecording(fb.idx); return; }
+    fb.at = i;
+    const u = new SpeechSynthesisUtterance(fb.chunks[i]);
+    const voice = window.speechSynthesis.getVoices().find((v) => v.lang.startsWith(isToefl ? "en-US" : "en-GB")) ?? window.speechSynthesis.getVoices().find((v) => v.lang.startsWith("en"));
+    if (voice) u.voice = voice;
+    u.rate = 0.95;
+    fb.current = u;
+    const next = () => { if (fb.current === u) { setProgress(((i + 1) / fb.chunks.length) * 100); speakChunkRef.current(i + 1); } };
+    u.onend = next;
+    u.onerror = (e) => { if (e.error !== "interrupted" && e.error !== "canceled") next(); };
+    window.speechSynthesis.speak(u);
+  }, [finishRecording, isToefl]);
 
-  const SPEECH_RATE = 0.95;
-  const CHARS_PER_SEC = 14 * SPEECH_RATE;
+  useEffect(() => { speakChunkRef.current = speakFallbackChunk; }, [speakFallbackChunk]);
 
-  const toChunks = (text: string): string[] => {
-    const pieces = text.split(/\n+/)
-      .flatMap((line) => line.match(/[^.!?]+[.!?]+["')\]]*|[^.!?]+$/g) ?? [])
-      .map((p) => p.trim()).filter(Boolean)
-      .flatMap((p) => (p.length > 220 ? (p.match(/[^,]+,?/g) ?? [p]).map((x) => x.trim()) : [p]))
-      .filter(Boolean);
-    const out: string[] = [];
-    for (const p of pieces) {
-      if (out.length && out[out.length - 1].length < 40) out[out.length - 1] += " " + p;
-      else out.push(p);
-    }
-    return out;
-  };
-
-  const speakChunk = (i: number) => {
-    const pb = playbackRef.current;
-    if (!pb) return;
-    pb.idx = i;
-    const text = pb.chunks[i];
-    const utterance = new SpeechSynthesisUtterance(text);
-    currentUtteranceRef.current = utterance;
-    let done = false;
-    const voices = window.speechSynthesis.getVoices();
-    const naturalVoice = voices.find((v) => v.lang.startsWith("en"));
-    if (naturalVoice) utterance.voice = naturalVoice;
-    utterance.rate = SPEECH_RATE;
-    boundaryPosRef.current = pb.starts[i];
-    let elapsed = 0;
-    stopProgressTimer();
-    progressTimerRef.current = setInterval(() => {
-      if (currentUtteranceRef.current !== utterance) return;
-      elapsed += 0.2;
-      const est = pb.starts[i] + Math.min(text.length, elapsed * CHARS_PER_SEC);
-      const pos = Math.max(est, boundaryPosRef.current);
-      setSpeechProgress(Math.min(99.5, (pos / pb.total) * 100));
-    }, 200);
-    utterance.onboundary = (event) => {
-      if (currentUtteranceRef.current !== utterance) return;
-      boundaryPosRef.current = Math.max(boundaryPosRef.current, pb.starts[i] + event.charIndex);
-    };
-    const next = () => {
-      if (done || currentUtteranceRef.current !== utterance) return;
-      done = true; stopProgressTimer();
-      if (i + 1 < pb.chunks.length) speakChunk(i + 1);
-      else finishRecording(pb.section);
-    };
-    utterance.onend = next;
-    utterance.onerror = (err) => {
-      if (currentUtteranceRef.current !== utterance) return;
-      if (err.error === "interrupted" || err.error === "canceled") return;
-      next();
-    };
-    window.speechSynthesis.speak(utterance);
-  };
-
-  const startFallbackSpeech = () => {
-    const transcript = exercises[activeSectionIdx]?.transcript;
-    if (!transcript) return;
+  const startFallback = useCallback((idx: number) => {
+    const text = cleanTranscript(recordings[idx]).replace(/^[^:\n]+:\s*/gm, "");
+    const chunks = text.match(/[^.!?\n]+[.!?]+["')\]]*|[^.!?\n]+$/gm)?.map((c) => c.trim()).filter(Boolean) ?? [text];
     window.speechSynthesis.cancel();
-    const chunks = toChunks(transcript);
-    const starts: number[] = []; let acc = 0;
-    for (const c of chunks) { starts.push(acc); acc += c.length + 1; }
-    playbackRef.current = { section: activeSectionIdx, chunks, starts, total: acc, idx: 0 };
-    setIsPaused(false); setIsSpeaking(true); setSpeechProgress(0);
-    setPlayedSections((prev) => ({ ...prev, [activeSectionIdx]: true }));
-    speakChunk(0);
-  };
-
-  // ── Neural audio: preload, play, resume ─────────────────────────────────
-  // Start buffering a section's recording as soon as the section is on
-  // screen, so pressing play starts it without a wait.
-  useEffect(() => {
-    const audio = audioRef.current;
-    const exercise = exercises[activeSectionIdx];
-    if (!audio || !exercise) return;
-    if (!isTestStarted || submitted || isReviewPeriod || useFallbackTTS) return;
-    if (playedSections[activeSectionIdx]) return; // playing or already played
-    const url = audioUrlFor(exercise.id);
-    if (audio.src === url) return;
-    audio.onplaying = audio.onended = audio.onerror = null;
-    audio.preload = "auto";
-    audio.src = url;
-    audio.load();
-  }, [activeSectionIdx, exercises, isTestStarted, submitted, isReviewPeriod, useFallbackTTS, playedSections]);
-
-  /** Where the recording was paused, in seconds. */
-  const pausedAtRef = useRef(0);
-  /** On resume, step back this far so the candidate re-hears the last words
-   *  before the pause instead of landing mid-sentence (or past it). */
-  const RESUME_REWIND_SECONDS = 2.5;
-
-  /** Start playback using the neural TTS recording from the backend. */
-  const startNeuralAudio = () => {
-    const exercise = exercises[activeSectionIdx];
-    const audio = audioRef.current;
-    if (!exercise || !audio) return;
-
-    const sectionAtStart = activeSectionIdx;
-    const url = audioUrlFor(exercise.id);
-    audioSectionRef.current = sectionAtStart;
-
-    setAudioLoading(true);
+    fallbackRef.current = { idx, chunks, at: 0, current: null };
+    setUseFallbackTTS(true);
+    setAudioLoading(false);
+    setIsSpeaking(true);
     setIsPaused(false);
-    setSpeechProgress(0);
-    setPlayedSections((prev) => ({ ...prev, [sectionAtStart]: true }));
+    speakFallbackChunk(0);
+  }, [recordings, speakFallbackChunk]);
 
-    // Normally already buffering (preload effect above); (re)load only if not.
+  /** Start a recording (each one only ever starts once). */
+  const startRecording = useCallback((idx: number) => {
+    const audio = audioRef.current;
+    const recording = recordings[idx];
+    if (!audio || !recording || startedRef.current.has(idx)) return;
+    startedRef.current.add(idx);
+    setStarted((prev) => ({ ...prev, [idx]: true }));
+    setPlayingIdx(idx);
+    setNeedsTap(false);
+    setIsPaused(false);
+    setProgress(0);
+    setAudioLoading(true);
+
+    const url = audioUrlFor(recording.id);
     if (audio.src !== url || audio.error) {
       audio.src = url;
       audio.load();
     }
+    audio.onplaying = () => { setAudioLoading(false); setIsSpeaking(true); startProgressTimer(); };
+    audio.onended = () => finishRecording(idx);
+    audio.onerror = () => { console.error("Recording failed to play; using browser speech"); startFallback(idx); };
 
-    const fallBack = () => {
-      audio.onplaying = audio.onended = audio.onerror = null;
-      stopProgressTimer();
-      setAudioLoading(false);
-      setUseFallbackTTS(true);
-      startFallbackSpeech();
-    };
-
-    audio.onplaying = () => {
-      setAudioLoading(false);
-      setIsSpeaking(true);
-      startProgressTimer();
-    };
-    audio.onended = () => {
-      stopProgressTimer();
-      finishRecording(sectionAtStart);
-    };
-    audio.onerror = () => {
-      console.error("Neural TTS audio playback error, falling back to browser TTS");
-      fallBack();
-    };
-
-    // play() is called directly in the click, not after an await: iOS only
-    // allows audio to start from within the tap itself. The browser begins
-    // playback as soon as enough has buffered.
+    // play() straight away: on iOS a tap unlocks the element, and after that
+    // later recordings may start on their own.
     audio.play().catch((err: { name?: string }) => {
-      if (err?.name === "AbortError") return; // superseded by a section change
-      console.error("Neural TTS failed, falling back to browser speech synthesis");
-      fallBack();
+      if (err?.name === "AbortError") return;
+      if (err?.name === "NotAllowedError") {
+        // Autoplay refused: ask for a tap, and let the same recording start then.
+        startedRef.current.delete(idx);
+        setStarted((prev) => { const n = { ...prev }; delete n[idx]; return n; });
+        setAudioLoading(false);
+        setPlayingIdx(null);
+        setNeedsTap(true);
+        return;
+      }
+      startFallback(idx);
     });
-  };
+  }, [recordings, finishRecording, startFallback, startProgressTimer]);
+
+  // A recording starts when its screen opens, unless another is still going
+  // or it has already played.
+  useEffect(() => {
+    if (!isTestStarted || submitted || isReviewPeriod) return;
+    if (isSpeaking || isPaused || audioLoading) return;
+    if (startedRef.current.has(activeIdx)) return;
+    startRecording(activeIdx);
+  }, [activeIdx, isTestStarted, submitted, isReviewPeriod, isSpeaking, isPaused, audioLoading, startRecording]);
 
   const togglePlay = () => {
-    if (audioLoading) return; // still loading, ignore clicks
-
+    if (audioLoading) return;
     if (isSpeaking) {
-      // Pause
-      if (!useFallbackTTS && audioRef.current) {
+      if (useFallbackTTS) {
+        const fb = fallbackRef.current;
+        if (fb) fb.current = null;
+        window.speechSynthesis.cancel();
+      } else if (audioRef.current) {
         pausedAtRef.current = audioRef.current.currentTime;
         audioRef.current.pause();
         stopProgressTimer();
-      } else {
-        currentUtteranceRef.current = null;
-        stopProgressTimer();
-        window.speechSynthesis.cancel();
       }
       setIsSpeaking(false);
       setIsPaused(true);
     } else if (isPaused) {
-      // Resume
       setIsPaused(false);
       setIsSpeaking(true);
-      if (!useFallbackTTS && audioRef.current && audioRef.current.src) {
+      if (useFallbackTTS) {
+        const fb = fallbackRef.current;
+        if (fb) speakFallbackChunk(fb.at);
+      } else if (audioRef.current) {
         const audio = audioRef.current;
-        // Resume slightly before the pause point, never after it.
-        try {
-          audio.currentTime = Math.max(0, pausedAtRef.current - RESUME_REWIND_SECONDS);
-        } catch {
-          /* not seekable yet: resume from where it stopped */
-        }
+        try { audio.currentTime = Math.max(0, pausedAtRef.current - RESUME_REWIND_SECONDS); } catch { /* not seekable yet */ }
         startProgressTimer();
         audio.play().catch(() => {});
-      } else {
-        const pb = playbackRef.current;
-        if (pb) speakChunk(pb.idx);
       }
-    } else {
-      // First play — recording can only play once!
-      if (playedSections[activeSectionIdx]) return;
-      if (!useFallbackTTS) {
-        startNeuralAudio();
-      } else {
-        startFallbackSpeech();
-      }
+    } else if (!startedRef.current.has(activeIdx)) {
+      startRecording(activeIdx);
     }
   };
 
-  // Helper: flatten all questions
-  const allQuestions = exercises.reduce<Question[]>((acc, ex) => {
-    return [...acc, ...ex.questions];
-  }, []);
-
-  const handleSelect = (qId: string, oId: string) => {
-    if (submitted) return;
-    setSelectedAnswers((prev) => ({ ...prev, [qId]: oId }));
+  const goTo = (idx: number) => {
+    if (idx < 0 || idx >= recordings.length) return;
+    setActiveIdx(idx);
   };
 
-  const handleSubmit = async (force: boolean = false) => {
-    if (exercises.length === 0 || submitted) return;
+  /* ── Scroll ───────────────────────────────────────────────────────────── */
+  const firstRender = useRef(true);
+  useEffect(() => {
+    if (firstRender.current) { firstRender.current = false; return; }
+    return jumpToTop(leftPaneRef.current, questionsPaneRef.current);
+  }, [activeIdx]);
 
-    if (!force) {
-      const unanswered = allQuestions.length - Object.keys(selectedAnswers).length;
-      if (unanswered > 0) {
-        setShowConfirmModal(true);
-        return;
-      }
-    }
+  /* ── Answers and submission ───────────────────────────────────────────── */
+  const handleSelect = (qId: string, oId: string) => { if (!submitted) setAnswers((p) => ({ ...p, [qId]: oId })); };
+  const handleText = (qId: string, text: string) => { if (!submitted) setAnswers((p) => ({ ...p, [qId]: text })); };
 
-    // Stop audio
-    stopSpeech();
+  const handleSubmit = async (force = false) => {
+    if (recordings.length === 0 || submitted) return;
+    if (!force && unansweredCount > 0) { setShowConfirmModal(true); return; }
+
+    audioRef.current?.pause();
+    stopProgressTimer();
+    window.speechSynthesis?.cancel();
     setIsSpeaking(false);
+    setIsPaused(false);
     setAudioLoading(false);
 
     try {
       setLoading(true);
-      const answersPayload = allQuestions.map((q) => ({
-        question_id: q.id,
-        selected_option_id: selectedAnswers[q.id] || "",
-      }));
-
-      const res = await api.post("/api/listening/submit-full", {
-        answers: answersPayload,
-        exam_type: examType,
+      const payload = allQuestions.map((q) => {
+        const optionBased = isOptionBasedType(q.question_type || "multiple_choice");
+        return {
+          question_id: q.id,
+          selected_option_id: optionBased ? (answers[q.id] || "") : "",
+          answer_text: optionBased ? "" : (answers[q.id] || ""),
+        };
       });
-
+      const res = await api.post("/api/listening/submit-full", { answers: payload, exam_type: examType });
       setCorrectCount(res.data.correct_answers);
       setScorePercentage(res.data.score_percentage);
       setBandScore(res.data.band_score);
@@ -497,19 +387,23 @@ export default function ListeningPage() {
       setLoading(false);
     }
   };
+  const autoSubmit = () => handleSubmit(true);
 
-  const autoSubmit = () => {
-    handleSubmit(true);
-  };
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-  };
+  // IELTS: two minutes to check answers, then the test submits itself.
+  useEffect(() => {
+    if (!isReviewPeriod || submitted || reviewTimeLeft <= 0) return;
+    const interval = setInterval(() => {
+      setReviewTimeLeft((prev) => {
+        if (prev <= 1) { clearInterval(interval); autoSubmit(); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isReviewPeriod, submitted, reviewTimeLeft]);
 
   const handleReset = () => {
-    setSelectedAnswers({});
+    setAnswers({});
     setSubmitted(false);
     setScorePercentage(null);
     setCorrectCount(null);
@@ -518,49 +412,49 @@ export default function ListeningPage() {
     setSaved(undefined);
     setIsReviewPeriod(false);
     setReviewTimeLeft(120);
-    setPlayedSections({});
-    setSpeechProgress(0);
+    setStarted({});
+    setFinished({});
+    startedRef.current = new Set();
+    setPlayingIdx(null);
+    setProgress(0);
+    setIsSpeaking(false);
     setIsPaused(false);
     setAudioLoading(false);
+    setNeedsTap(false);
     setUseFallbackTTS(false);
-    clearAdvance();
-    currentUtteranceRef.current = null;
+    fallbackRef.current = null;
+    if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
     setIsTestStarted(false);
-    setActiveSectionIdx(0);
-    stopSpeech();
+    setActiveIdx(0);
   };
 
+  const formatTime = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+
   const handleNavClick = (qIndex: number) => {
-    let questionCount = 0;
-    for (let eIdx = 0; eIdx < exercises.length; eIdx++) {
-      const exQuestions = exercises[eIdx].questions;
-      if (qIndex >= questionCount && qIndex < questionCount + exQuestions.length) {
-        setActiveSectionIdx(eIdx);
-        const qId = exQuestions[qIndex - questionCount].id;
-        setTimeout(() => {
-          const el = questionRefs.current[qId];
-          if (el) {
-            el.scrollIntoView({ behavior: "smooth", block: "center" });
-          }
-        }, 100);
+    let count = 0;
+    for (let i = 0; i < recordings.length; i++) {
+      const qs = recordings[i].questions;
+      if (qIndex >= count && qIndex < count + qs.length) {
+        goTo(i);
+        const qId = qs[qIndex - count].id;
+        setTimeout(() => questionRefs.current[qId]?.scrollIntoView({ behavior: "smooth", block: "center" }), 260);
         break;
       }
-      questionCount += exQuestions.length;
+      count += qs.length;
     }
   };
 
-  const getOverallQuestionNumber = (qId: string) => {
-    return allQuestions.findIndex((q) => q.id === qId) + 1;
-  };
+  const currentGroups = useMemo(
+    () => (recordings[activeIdx] ? groupQuestions(recordings[activeIdx].questions) : []),
+    [recordings, activeIdx],
+  );
 
-  if (loading && exercises.length === 0) {
+  /* ── Screens ──────────────────────────────────────────────────────────── */
+  if (loading && recordings.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[50vh] flex-col gap-3">
-        <div
-          className="w-8 h-8 border-3 border-t-transparent rounded-full animate-spin"
-          style={{ borderColor: `${theme.color} transparent transparent transparent` }}
-        />
-        <p className="text-[14px] text-slate-500 font-medium">Loading {theme.name} listening exam content...</p>
+        <div className="w-8 h-8 border-3 border-t-transparent rounded-full animate-spin" style={{ borderColor: `${theme.color} transparent transparent transparent` }} />
+        <p className="text-[14px] text-slate-500 font-medium">Loading {theme.name} listening test...</p>
       </div>
     );
   }
@@ -575,67 +469,93 @@ export default function ListeningPage() {
         </div>
         <h2 className="text-[16px] font-bold text-slate-800 mb-2">Error Loading Test</h2>
         <p className="text-[13px] text-slate-500 mb-6">{error}</p>
-        <button
-          onClick={() => window.location.reload()}
-          className="px-5 py-2.5 text-white font-semibold text-[13px] rounded-full transition-all shadow-sm"
-          style={{ backgroundColor: theme.color }}
-        >
+        <button onClick={() => window.location.reload()} className="px-5 py-2.5 text-white font-semibold text-[13px] rounded-full transition-all shadow-sm cursor-pointer" style={{ backgroundColor: theme.color }}>
           Retry Load
         </button>
       </div>
     );
   }
 
-  // 1. Welcome / Instructions Screen
+  // 1. Intro
   if (!isTestStarted && !submitted) {
+    const count = allQuestions.length;
+    const points = isToefl
+      ? [
+          { label: "Format:", text: <>The format ETS introduced in January 2026: {recordings.length} short recordings and {count} questions, in four task types.</> },
+          { label: "Listen and Choose a Response:", text: "A single spoken question or remark. Choose the reply that fits." },
+          { label: "Listen to a Conversation:", text: "A short campus conversation, followed by two questions." },
+          { label: "Listen to an Announcement:", text: "A classroom or campus notice, followed by three questions." },
+          { label: "Listen to an Academic Talk:", text: "A short talk by a professor, followed by four questions." },
+          { label: "Playback:", text: "Each recording plays ONCE, with a picture of the speaker(s). The questions appear when it ends. You may take notes." },
+          { label: "Scoring:", text: "One mark per correct answer, reported on the TOEFL iBT 0–30 section scale." },
+        ]
+      : [
+          { label: "Parts:", text: <>4 parts, 10 questions each: a conversation and a talk in everyday situations, then a discussion and a lecture in an academic setting.</> },
+          { label: "Playback:", text: "Each part is heard ONCE. The recording gives you time to read the questions before each group, as in the real test." },
+          { label: "Questions:", text: "Form, note and sentence completion, labelling a plan, multiple choice, matching and a flow chart. Answer as you listen." },
+          { label: "Answers:", text: "Keep to the word limit in the instructions, for example NO MORE THAN TWO WORDS AND/OR A NUMBER. Spelling counts." },
+          { label: "Checking:", text: "After Part 4 you have two minutes to check your answers before the test is submitted." },
+          { label: "Scoring:", text: "One mark per correct answer, converted to an IELTS band from 0 to 9." },
+        ];
     return (
       <TestIntro
         skill="listening"
         title={`${theme.name} Listening Test`}
-        meta={examType === "toefl" ? "1 Conversation + 2 Academic Lectures · 17 Questions" : "4 Sections · 40 Questions"}
+        meta={isToefl ? `4 Task Types · ${count} Questions · about 30 Minutes` : `4 Parts · ${count} Questions · about 30 Minutes`}
         subhead="Exam structure & audio rules"
-        points={[
-          { label: "Audio playback:", text: "Each recording is played exactly ONCE. Playback cannot be restarted once completed." },
-          examType === "toefl"
-            ? { label: "Recordings:", text: "One campus conversation and two academic lectures (17 questions total)." }
-            : { label: "Sections:", text: "4 distinct conversational and academic listening modules (40 questions total)." },
-          { label: "Review period:", text: "A 2-minute review countdown begins automatically after all audios complete." },
-          examType === "toefl"
-            ? { label: "🇺🇸 Authentic accent:", text: "Audio uses studio-quality North American English neural voices for an authentic TOEFL experience." }
-            : { label: "🇬🇧 Authentic accent:", text: "Audio uses studio-quality British English (UK RP) neural voices for an authentic IELTS experience." },
-        ]}
-        instructions={<>Ensure your speakers or headphones are connected and set to a comfortable volume. Once you press &ldquo;Start exam&rdquo;, the audio player interface will load.</>}
+        points={points}
+        instructions={
+          <>Use headphones or speakers at a comfortable volume. The first recording starts as soon as you press &ldquo;Start exam&rdquo;. {isToefl ? "Answer each set of questions before moving on." : "Write your answers while you listen."}</>
+        }
         onStart={() => {
+          window.speechSynthesis?.getVoices();
           setIsTestStarted(true);
-          window.speechSynthesis.getVoices();
+          // Started inside the tap itself, which is what iOS requires.
+          startRecording(0);
         }}
       />
     );
   }
 
-  // 2. Score report ("Listening Score Report.dc.html")
+  // 2. Score report
   if (submitted) {
-    const optionText = (q: Question, id?: string) => {
-      const o = q.options.find((x) => x.id === id);
+    const optionText = (q: MCQQuestion, id?: string) => {
+      const o = q.options?.find((x) => x.id === id);
       return o ? `${o.label}. ${o.text}` : null;
     };
-    const sections: ReviewSection[] = exercises.map((ex) => ({
-      title: ex.title,
-      material: ex.transcript ? { kind: "transcript", text: ex.transcript } : undefined,
-      items: ex.questions.map((q) => {
-        const r = dbResults?.find((x) => x.question_id === q.id);
-        const correctId = (r?.correct as string) || q.correct_option_id;
-        return {
-          id: q.id,
-          num: getOverallQuestionNumber(q.id),
-          question: q.question_text,
-          your: optionText(q, selectedAnswers[q.id] || (r?.selected as string)),
-          answer: optionText(q, correctId) ?? "",
-          ok: !!r?.is_correct,
-          why: (r?.explanation as string) || q.explanation || null,
-        };
-      }),
-    }));
+    const itemFor = (q: MCQQuestion, _i: number, group: MCQQuestion[]): ReviewItem => {
+      const r = dbResults?.find((x) => x.question_id === q.id);
+      const optionBased = isOptionBasedType(q.question_type || "multiple_choice");
+      const your = optionBased
+        ? optionText(q, answers[q.id] || (r?.selected as string))
+        : ((r?.answer_text as string) || answers[q.id] || null);
+      const answer = optionBased
+        ? optionText(q, (r?.correct as string) || q.correct_option_id) ?? ""
+        : ((r?.correct_answer_text as string) || q.correct_answer_text || "").split("|")[0];
+      return {
+        id: q.id,
+        num: numberOf(q.id),
+        question: q.question_text?.trim() || gapContext(q, group.filter((x) => x.question_group_label === q.question_group_label)) || q.question_group_label || `Question ${numberOf(q.id)}`,
+        your,
+        answer,
+        ok: !!r?.is_correct,
+        why: (r?.explanation as string) || q.explanation || null,
+      };
+    };
+    const sections: ReviewSection[] = isToefl
+      ? tasks.map((t) => ({
+          title: t.name,
+          material: {
+            kind: "transcript",
+            text: t.idxs.map((i) => `${recordings[i].title}\n${cleanTranscript(recordings[i])}`).join("\n\n"),
+          },
+          items: t.idxs.flatMap((i) => recordings[i].questions.map(itemFor)),
+        }))
+      : recordings.map((r) => ({
+          title: r.title,
+          material: { kind: "transcript", text: cleanTranscript(r) },
+          items: r.questions.map(itemFor),
+        }));
     return (
       <ScoreReport
         skill="listening"
@@ -650,349 +570,305 @@ export default function ListeningPage() {
     );
   }
 
-  // 3. Active Test Screen
-  const currentExercise = exercises[activeSectionIdx];
-  const totalSections = exercises.length;
-  const qStart = getOverallQuestionNumber(currentExercise.questions[0].id);
-  const qEnd   = getOverallQuestionNumber(currentExercise.questions[currentExercise.questions.length - 1].id);
+  // 3. The test
+  const current = recordings[activeIdx];
+  const scene: Scene = scenes[activeIdx];
+  const total = recordings.length;
+  const qStart = numberOf(current.questions[0].id);
+  const qEnd = numberOf(current.questions[current.questions.length - 1].id);
+  const task = taskOf(activeIdx);
+  const isLast = activeIdx === total - 1;
 
-  // Clean section cards - gradient bg + SVG icon
-  const sectionCards = [
-    {
-      bg: "var(--n-100)", color: "var(--n-600)", label: "Telephone Conversation",
-      svg: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="var(--n-600)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12">
-          <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 8.81 19.79 19.79 0 010.07 2.18 2 2 0 012.07.07h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.29 6.29l.41-1.21a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/>
-        </svg>
-      )
-    },
-    {
-      bg: "#F0FDF4", color: "#22C55E", label: "Training / Social Context",
-      svg: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12">
-          <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
-          <circle cx="9" cy="7" r="4"/>
-          <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
-        </svg>
-      )
-    },
-    {
-      bg: "#FFF7ED", color: "#F97316", label: "General Training Monologue",
-      svg: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="#F97316" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12">
-          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
-          <polyline points="9 22 9 12 15 12 15 22"/>
-        </svg>
-      )
-    },
-    {
-      bg: "#F5F3FF", color: "#8B5CF6", label: "Academic Lecture",
-      svg: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12">
-          <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-          <path d="M6 12v5c3 3 9 3 12 0v-5"/>
-        </svg>
-      )
-    },
-  ];
-  const toeflSectionCards = [
-    {
-      bg: "var(--n-100)", color: "var(--n-600)", label: "Campus Conversation",
-      svg: (<svg viewBox="0 0 24 24" fill="none" stroke="var(--n-600)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 8.81 19.79 19.79 0 010.07 2.18 2 2 0 012.07.07h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.29 6.29l.41-1.21a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>)
-    },
-    {
-      bg: "#F5F3FF", color: "#8B5CF6", label: "Academic Lecture 1",
-      svg: (<svg viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>)
-    },
-    {
-      bg: "#FFF7ED", color: "#F97316", label: "Academic Lecture 2",
-      svg: (<svg viewBox="0 0 24 24" fill="none" stroke="#F97316" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>)
-    },
-  ];
-  const card = examType === "toefl"
-    ? (toeflSectionCards[activeSectionIdx] ?? toeflSectionCards[0])
-    : (sectionCards[activeSectionIdx] ?? sectionCards[0]);
-  const photos = SECTION_PHOTOS[examType === "toefl" ? "toefl" : "ielts"];
-  const photo = photos[activeSectionIdx] ?? photos[0];
-  // The play button locks only after the recording has fully played.
-  const locked = !!playedSections[activeSectionIdx] && !isSpeaking && !isPaused;
+  // The player describes whatever is playing, even if another part is on screen.
+  const playerIdx = playingIdx ?? activeIdx;
+  const playerLabel = isToefl ? recordings[playerIdx].title : `Part ${playerIdx + 1}`;
+  const activeStarted = !!started[activeIdx];
+  const activeFinished = !!finished[activeIdx];
+  const activePlaying = playingIdx === activeIdx && (isSpeaking || isPaused);
+  const status = audioLoading ? "Loading recording"
+    : isSpeaking ? "Playing"
+    : isPaused ? "Paused"
+    : needsTap && !activeStarted ? "Tap to play"
+    : activeFinished ? "Finished"
+    : activeStarted ? "Ready" : "Starting";
+  const canToggle = !audioLoading && (isSpeaking || isPaused || (!activeStarted && !isReviewPeriod));
+  // TOEFL questions wait for the recording; IELTS questions are always there.
+  const questionsVisible = !isToefl || activeFinished || isReviewPeriod;
+  const canGoNext = !isLast && (activeFinished || isReviewPeriod);
+
+  const playerCard = (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+      <div className="flex justify-center items-end gap-1 h-8" aria-hidden="true">
+        {[5, 12, 8, 18, 10, 22, 16, 26, 14, 20, 9, 16, 7].map((h, i) => (
+          <div key={i} className="w-1.5 rounded-full" style={{
+            height: isSpeaking ? `${h}px` : audioLoading ? "6px" : "3px",
+            backgroundColor: isSpeaking ? theme.color : audioLoading ? theme.color + "80" : "#CBD5E1",
+            transition: "height 0.2s ease",
+            animation: isSpeaking ? `pulse 0.5s ease-in-out ${i * 0.08}s infinite alternate` : audioLoading ? `pulse 0.8s ease-in-out ${i * 0.1}s infinite alternate` : "none",
+          }} />
+        ))}
+      </div>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={togglePlay}
+          disabled={!canToggle}
+          aria-label={audioLoading ? "Loading recording" : isSpeaking ? "Pause recording" : isPaused ? "Resume recording" : activeFinished ? "Recording already played" : "Play recording"}
+          className="w-10 h-10 flex items-center justify-center rounded-full text-white flex-shrink-0 transition-all shadow enabled:cursor-pointer enabled:hover:scale-105 enabled:active:scale-95 disabled:cursor-not-allowed"
+          style={{ backgroundColor: canToggle ? theme.color : "#94a3b8" }}
+        >
+          {audioLoading ? (
+            <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+          ) : isSpeaking ? (
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><rect x="5" y="4" width="4" height="16" rx="1"/><rect x="15" y="4" width="4" height="16" rx="1"/></svg>
+          ) : (
+            <svg className="w-4 h-4 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          )}
+        </button>
+        <div className="flex-1 min-w-0 space-y-1">
+          <div className="flex justify-between gap-2 text-[11px] font-semibold">
+            <span className="truncate text-slate-600">{playerLabel} · {status}</span>
+            <span className="text-slate-400 tabular-nums">{Math.round(activePlaying || playingIdx === null ? progress : 100)}%</span>
+          </div>
+          <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
+            <div className="h-full rounded-full transition-all duration-300" style={{ width: `${activePlaying || playingIdx === null ? progress : 100}%`, backgroundColor: theme.color }} />
+          </div>
+        </div>
+      </div>
+      <p className="text-[11.5px] leading-snug text-slate-500">
+        {isToefl ? "Plays once. The questions appear when it ends." : "Plays once. The recording includes time to read each group of questions."}
+      </p>
+    </div>
+  );
+
+  const sectionNav = (
+    <div className="pt-6 border-t border-slate-200 flex items-center justify-between gap-3">
+      <button
+        disabled={activeIdx === 0}
+        onClick={() => goTo(activeIdx - 1)}
+        className="flex items-center gap-1.5 px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-[13px] font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm cursor-pointer"
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
+        <span>Previous</span>
+      </button>
+      {isLast ? (
+        <button
+          onClick={() => handleSubmit(false)}
+          disabled={!activeFinished && !isReviewPeriod}
+          className="flex items-center gap-1.5 px-6 py-2.5 text-white font-bold text-[13px] rounded-xl transition-all shadow-sm hover:opacity-90 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          style={{ backgroundColor: theme.color }}
+        >
+          <span>Finish Test</span>
+        </button>
+      ) : (
+        <button
+          onClick={() => goTo(activeIdx + 1)}
+          disabled={!canGoNext}
+          title={canGoNext ? undefined : "Available when the recording has finished"}
+          className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-[13px] font-bold text-white transition-all shadow-sm hover:opacity-90 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          style={{ backgroundColor: "#1e293b" }}
+        >
+          <span>Next {sectionWord}</span>
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
+        </button>
+      )}
+    </div>
+  );
+
+  const navigator = !isToefl && (
+    <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+      <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3">Question Navigator</p>
+      <div className="grid grid-cols-10 gap-1.5">
+        {allQuestions.map((q, qi) => {
+          const answered = isAnswered(q.id);
+          const inSection = current.questions.some((x) => x.id === q.id);
+          return (
+            <button
+              key={q.id}
+              onClick={() => handleNavClick(qi)}
+              className={`w-full aspect-square sm:aspect-auto sm:h-9 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                answered ? "text-white shadow-sm" : inSection ? "bg-slate-200 text-slate-700 hover:bg-slate-300" : "bg-slate-100 text-slate-400 hover:bg-slate-200"
+              }`}
+              style={answered ? { backgroundColor: theme.color } : undefined}
+              title={`Question ${qi + 1}`}
+            >
+              {qi + 1}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 
   return (
-    <>
-    {/* Hidden HTML5 audio element for neural TTS playback */}
-    <audio ref={audioRef} preload="auto" style={{ display: "none" }} />
     <div className="min-h-screen bg-[#f4f5f7] flex flex-col">
 
-      {/* TOP BAR */}
-      <header className="bg-white border-b border-slate-200 px-4 sm:px-8 py-3 flex items-center justify-between sticky top-0 z-30 shadow-sm gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-[15px] sm:text-[17px] font-extrabold tracking-tight flex-shrink-0" style={{ color: theme.color }}>LingoPrep</span>
-          <span className="text-slate-300 hidden sm:inline">|</span>
-          <span className="text-[12px] sm:text-[14px] font-semibold text-slate-600 hidden sm:inline truncate">{theme.name} Listening Test</span>
-        </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {isReviewPeriod && (
-            <div className="flex items-center gap-1.5 text-[13px] font-mono font-bold text-[var(--error)] bg-[var(--error-tint)] border border-[var(--error)] px-3 py-1.5 rounded-lg">
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              {formatTime(reviewTimeLeft)}
-            </div>
-          )}
-          <button onClick={() => handleSubmit(false)}
-            className="px-3 sm:px-5 py-2 text-white font-bold text-[12px] sm:text-[13px] rounded-lg transition-all hover:opacity-90 active:scale-95"
-            style={{ backgroundColor: theme.color }}
-          >Finish</button>
-        </div>
-      </header>
-
-      {/* MAIN CONTENT */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-
-        {/* LEFT PANEL */}
-        <div ref={leftPaneRef} className="md:w-72 bg-white border-b md:border-b-0 md:border-r border-slate-200 flex flex-col gap-4 p-4 md:p-5 overflow-y-auto md:flex-shrink-0">
-
-          {/* Section photo card */}
-          <div className="rounded-2xl overflow-hidden border border-slate-200">
-            <div className="relative h-36 bg-slate-100">
-              <Image
-                key={photo.src}
-                src={photo.src}
-                alt={photo.alt}
-                fill
-                sizes="(min-width: 768px) 288px, 100vw"
-                priority
-                className="object-cover"
-              />
-              <div
-                className="absolute inset-0"
-                aria-hidden="true"
-                style={{ background: "linear-gradient(180deg, transparent 45%, rgb(18 23 43 / .55))" }}
-              />
-              <span className="absolute left-3 bottom-2.5 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-wider text-slate-700 shadow-sm">
-                {card.svg && <span className="[&>svg]:w-3.5 [&>svg]:h-3.5 flex">{card.svg}</span>}
-                {card.label}
-              </span>
-            </div>
-            <div className="px-4 py-2.5 bg-white border-t border-slate-100 text-center">
-              <p className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
-                Part {activeSectionIdx + 1}: Questions {qStart}-{qEnd}
-              </p>
-            </div>
+      {/* TOP BAR: sits under the site header and stays in view */}
+      <div className="sticky top-14 z-30 shadow-sm">
+        <header className="bg-white border-b border-slate-200 px-4 sm:px-8 py-3 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-[15px] sm:text-[17px] font-extrabold tracking-tight flex-shrink-0" style={{ color: theme.color }}>LingoPrep</span>
+            <span className="text-slate-300 hidden sm:inline">|</span>
+            <span className="text-[12px] sm:text-[14px] font-semibold text-slate-600 hidden sm:inline truncate">{theme.name} Listening Test</span>
           </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="text-[12px] font-bold text-slate-500 tabular-nums">
+              {isToefl ? `${activeIdx + 1}/${total}` : `Part ${activeIdx + 1}/${total}`}
+            </span>
+            {isReviewPeriod && (
+              <div className="flex items-center gap-1.5 text-[13px] font-bold tabular-nums text-[var(--error)] bg-[var(--error-tint)] border border-[var(--error)] px-3 py-1.5 rounded-lg">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                {formatTime(reviewTimeLeft)}
+              </div>
+            )}
+            <button onClick={() => handleSubmit(false)}
+              className="px-3 sm:px-5 py-2 text-white font-bold text-[12px] sm:text-[13px] rounded-lg transition-all hover:opacity-90 active:scale-95 cursor-pointer"
+              style={{ backgroundColor: theme.color }}
+            >Finish</button>
+          </div>
+        </header>
 
-          {/* Section info row */}
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[15px] font-bold text-slate-800">Section {activeSectionIdx + 1}</p>
-              <p className="text-[12px] text-slate-500 mt-0.5 leading-snug">{currentExercise.title}</p>
-            </div>
-            <span
-              className="px-2.5 py-1 rounded-full text-[10.5px] font-extrabold uppercase tracking-wider text-white flex-shrink-0"
+        {/* Phone: the recording's controls stay in reach while answering */}
+        {(isSpeaking || isPaused || audioLoading) && (
+          <div className="md:hidden flex items-center gap-3 bg-white border-b border-slate-200 px-4 py-2">
+            <button
+              onClick={togglePlay}
+              disabled={audioLoading}
+              aria-label={isSpeaking ? "Pause recording" : "Resume recording"}
+              className="w-8 h-8 flex items-center justify-center rounded-full text-white flex-shrink-0 cursor-pointer disabled:cursor-not-allowed"
               style={{ backgroundColor: theme.color }}
             >
-              Q {qStart}-{qEnd}
-            </span>
+              {isSpeaking
+                ? <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><rect x="5" y="4" width="4" height="16" rx="1"/><rect x="15" y="4" width="4" height="16" rx="1"/></svg>
+                : <svg className="w-3.5 h-3.5 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>}
+            </button>
+            <div className="flex-1 min-w-0">
+              <p className="truncate text-[11.5px] font-semibold text-slate-600">{playerLabel} · {status}</p>
+              <div className="mt-1 h-1 bg-slate-200 rounded-full overflow-hidden">
+                <div className="h-full rounded-full" style={{ width: `${progress}%`, backgroundColor: theme.color }} />
+              </div>
+            </div>
           </div>
+        )}
+      </div>
 
-          {/* Audio player */}
+      {/* MAIN */}
+      <div className="flex-1 flex flex-col md:flex-row md:h-[calc(100vh-113px)] md:overflow-hidden">
+
+        {/* LEFT: what is being heard */}
+        <div ref={leftPaneRef} className="md:w-80 lg:w-[22rem] bg-white border-b md:border-b-0 md:border-r border-slate-200 flex flex-col gap-4 p-4 md:p-5 md:min-h-0 md:overflow-y-auto md:flex-shrink-0">
+
+          {isToefl ? (
+            <>
+              <div>
+                <span className="px-3.5 py-1 bg-slate-100 border border-slate-200 text-slate-600 font-extrabold rounded-full text-[10.5px] uppercase tracking-wider">
+                  Task {task.task + 1} of {tasks.length}
+                </span>
+                <p className="mt-2.5 text-[15px] font-bold leading-snug text-slate-900">{task.name}</p>
+                <p className="text-[12px] text-slate-500 mt-0.5">Recording {task.pos} of {task.count} · {qStart === qEnd ? `Question ${qStart}` : `Questions ${qStart}–${qEnd}`}</p>
+              </div>
+              <SpeakerCard scene={scene} talking={activePlaying && isSpeaking} />
+            </>
+          ) : (
+            <>
+              <div className="rounded-2xl overflow-hidden border border-slate-200">
+                <div className="relative h-36 bg-slate-100">
+                  {scene.photo ? (
+                    <Image key={scene.photo.src} src={scene.photo.src} alt={scene.photo.alt} fill sizes="(min-width: 768px) 352px, 100vw" priority className="object-cover" />
+                  ) : (
+                    <SpeakerCard scene={scene} talking={activePlaying && isSpeaking} />
+                  )}
+                  <div className="absolute inset-0" aria-hidden="true" style={{ background: "linear-gradient(180deg, transparent 45%, rgb(18 23 43 / .55))" }} />
+                  <span className="absolute left-3 bottom-2.5 inline-flex items-center rounded-full bg-white/95 px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-wider text-slate-700 shadow-sm">
+                    Part {activeIdx + 1} of {total}
+                  </span>
+                </div>
+                <div className="px-4 py-3 bg-white border-t border-slate-100">
+                  <p className="text-[14px] font-bold leading-snug text-slate-900">{current.title.replace(/^Part \d+:\s*/, "")}</p>
+                  <p className="mt-1 text-[12.5px] leading-snug text-slate-500">
+                    {scene.setting}{scene.speakers.length ? `. You will hear ${scene.speakers.map((s) => s.role).join(" and ")}.` : ""}
+                  </p>
+                  <p className="mt-1.5 text-[11px] font-extrabold uppercase tracking-wider text-slate-500">Questions {qStart}–{qEnd}</p>
+                </div>
+              </div>
+            </>
+          )}
+
           {isReviewPeriod ? (
             <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 text-center space-y-1.5">
               <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
-                <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
+                <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+              </div>
+              <p className="text-[13px] font-bold text-emerald-800">That is the end of the recording</p>
+              <p className="text-[11.5px] text-emerald-600">You have two minutes to check your answers.</p>
+            </div>
+          ) : playerCard}
+
+          {!isToefl && (
+            <div className="flex gap-2 flex-wrap">
+              {recordings.map((_, idx) => (
+                <button
+                  key={idx}
+                  disabled={!isReviewPeriod && idx !== activeIdx && !finished[idx]}
+                  onClick={() => goTo(idx)}
+                  className={`px-3 py-1.5 rounded-lg text-[12px] font-bold border transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${
+                    activeIdx === idx ? "text-white border-transparent" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                  }`}
+                  style={activeIdx === idx ? { backgroundColor: theme.color } : undefined}
+                >
+                  Part {idx + 1}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT: the questions */}
+        <div ref={questionsPaneRef} className="flex-1 md:min-h-0 md:overflow-y-auto px-4 sm:px-8 py-6 space-y-7">
+          {questionsVisible ? (
+            currentGroups.map((group, gi) => {
+              const from = numberOf(group.questions[0].id);
+              const to = numberOf(group.questions[group.questions.length - 1].id);
+              const named = /^Questions?\s+\d+(?:\s*[–-]\s*\d+)?\s*[:.]?\s*(.*)$/.exec(group.label);
+              const taskName = isToefl ? "" : named ? named[1] : "";
+              return (
+                <section key={`${activeIdx}-${gi}`} className="space-y-3.5">
+                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                    <span className="h-5 w-1 flex-shrink-0 rounded-full" style={{ backgroundColor: theme.color }} />
+                    <h3 className="text-[15px] font-extrabold text-slate-900">
+                      {from === to ? `Question ${from}` : `Questions ${from}–${to}`}
+                    </h3>
+                    {taskName && <span className="text-[11.5px] font-bold uppercase tracking-wider text-slate-500">{taskName}</span>}
+                  </div>
+                  <QuestionGroupRenderer
+                    group={group}
+                    selectedAnswers={answers}
+                    onSelectOption={handleSelect}
+                    onTextAnswer={handleText}
+                    getOverallNumber={numberOf}
+                    theme={theme}
+                    questionRefs={questionRefs}
+                  />
+                </section>
+              );
+            })
+          ) : (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center">
+              <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full" style={{ backgroundColor: theme.colorLight }}>
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke={theme.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 18v-6a9 9 0 0118 0v6" /><path d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z" />
                 </svg>
               </div>
-              <p className="text-[13px] font-bold text-emerald-800">All Recordings Complete</p>
-              <p className="text-[11.5px] text-emerald-600">Review your answers before submitting.</p>
-            </div>
-          ) : (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
-              {/* Waveform bars */}
-              <div className="flex justify-center items-end gap-1 h-8">
-                {[5,12,8,18,10,22,16,26,14,20,9,16,7].map((h, i) => (
-                  <div
-                    key={i}
-                    className="w-1.5 rounded-full"
-                    style={{
-                      height: isSpeaking ? `${h}px` : audioLoading ? "6px" : "3px",
-                      backgroundColor: isSpeaking ? theme.color : audioLoading ? theme.color + '80' : "#CBD5E1",
-                      transition: "height 0.2s ease",
-                      animation: isSpeaking ? `pulse 0.5s ease-in-out ${i * 0.08}s infinite alternate` : audioLoading ? `pulse 0.8s ease-in-out ${i * 0.1}s infinite alternate` : "none",
-                    }}
-                  />
-                ))}
-              </div>
-              {/* Play + progress */}
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={togglePlay}
-                  disabled={locked || audioLoading}
-                  aria-label={audioLoading ? "Loading audio..." : isSpeaking ? "Pause recording" : isPaused ? "Resume recording" : locked ? "Recording already played" : "Play recording"}
-                  className="w-10 h-10 flex items-center justify-center rounded-full text-white flex-shrink-0 transition-all shadow enabled:cursor-pointer enabled:hover:scale-105 enabled:active:scale-95 disabled:cursor-not-allowed"
-                  style={{ backgroundColor: locked ? "#94a3b8" : theme.color }}
-                >
-                  {audioLoading ? (
-                    <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                  ) : isSpeaking ? (
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                      <rect x="5" y="4" width="4" height="16" rx="1"/>
-                      <rect x="15" y="4" width="4" height="16" rx="1"/>
-                    </svg>
-                  ) : (
-                    <svg className="w-4 h-4 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z"/>
-                    </svg>
-                  )}
-                </button>
-                <div className="flex-1 space-y-1">
-                  <div className="flex justify-between text-[11px] font-semibold">
-                    <span className="text-slate-600">
-                      {audioLoading ? "Loading audio..." : isSpeaking ? "Listening..." : isPaused ? "Paused" : speechProgress === 100 ? "Completed" : locked ? "Played once" : "Ready to play"}
-                    </span>
-                    <span className="text-slate-400 font-mono">{Math.round(speechProgress)}%</span>
-                  </div>
-                  <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-300"
-                      style={{ width: `${speechProgress}%`, backgroundColor: theme.color }}
-                    />
-                  </div>
-                </div>
-              </div>
+              <p className="text-[15px] font-bold text-slate-900">
+                {needsTap && !activeStarted ? "Tap play to hear the recording" : "Listen to the recording"}
+              </p>
+              <p className="mt-1 text-[13px] text-slate-500">
+                {qStart === qEnd ? `Question ${qStart} appears` : `Questions ${qStart}–${qEnd} appear`} when it ends. You may take notes while you listen.
+              </p>
             </div>
           )}
 
-          {/* Instructions */}
-          <div className="rounded-xl border border-slate-200 bg-white p-4">
-            <p className="text-[13px] font-bold text-slate-800 mb-2">Instructions</p>
-            <p className="text-[12.5px] text-slate-600 leading-relaxed">
-              {currentExercise.transcript
-                ? currentExercise.transcript.slice(0, 180).trim() + "..."
-                : "You will hear a recording for this section. Answer the questions as you listen."}
-            </p>
-            {!isReviewPeriod && (
-              <p className="text-[12px] font-bold mt-3" style={{ color: theme.color }}>
-                Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.
-              </p>
-            )}
-          </div>
-
-          {/* Section pills */}
-          <div className="flex gap-2 flex-wrap">
-            {exercises.map((_, idx) => (
-              <button
-                key={idx}
-                disabled={!isReviewPeriod && idx !== activeSectionIdx}
-                onClick={() => goToSection(idx)}
-                className={`px-3 py-1.5 rounded-lg text-[12px] font-bold border transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
-                  activeSectionIdx === idx
-                    ? "text-white border-transparent"
-                    : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-                }`}
-                style={activeSectionIdx === idx ? { backgroundColor: theme.color } : undefined}
-              >
-                Section {idx + 1}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* RIGHT PANEL - Questions */}
-        <div ref={questionsPaneRef} className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 space-y-4">
-          <div className="mb-4">
-            <h2 className="text-[18px] font-bold text-slate-900">{currentExercise.title}</h2>
-            <p className="text-[13px] text-slate-500 mt-1">
-              Questions {qStart}-{qEnd} - Choose the correct letter A, B, C or D.
-            </p>
-          </div>
-
-          {currentExercise.questions.map((q) => {
-            const overallNum = getOverallQuestionNumber(q.id);
-            const userSelectedOpt = selectedAnswers[q.id];
-
-            return (
-              <div
-                key={q.id}
-                ref={(el) => { questionRefs.current[q.id] = el; }}
-                className={`bg-white rounded-2xl border p-5 shadow-sm transition-all ${
-                  userSelectedOpt ? "border-slate-300" : "border-slate-200"
-                }`}
-              >
-                <div className="flex items-start gap-3 mb-4">
-                  <span
-                    className="inline-flex items-center justify-center w-7 h-7 rounded-full text-white text-[12px] font-extrabold flex-shrink-0"
-                    style={{ backgroundColor: theme.color }}
-                  >
-                    {overallNum}
-                  </span>
-                  <p className="text-[14.5px] font-semibold text-slate-900 leading-snug pt-0.5">
-                    {q.question_text}
-                  </p>
-                </div>
-
-                <div className="space-y-2 pl-10">
-                  {q.options.map((opt) => {
-                    const isSelected = userSelectedOpt === opt.id;
-                    return (
-                      <label
-                        key={opt.id}
-                        onClick={() => handleSelect(q.id, opt.id)}
-                        className={`flex items-center gap-3 py-2.5 px-4 rounded-xl border cursor-pointer text-[13.5px] transition-all select-none ${
-                          isSelected
-                            ? "font-semibold border-transparent shadow-sm"
-                            : "border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-700"
-                        }`}
-                        style={isSelected ? { backgroundColor: theme.colorLight, borderColor: theme.color, color: theme.color } : undefined}
-                      >
-                        <span
-                          className="w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center"
-                          style={isSelected ? { borderColor: theme.color } : { borderColor: "#CBD5E1" }}
-                        >
-                          {isSelected && <span className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.color }}/>}
-                        </span>
-                        <span className="font-bold w-4 text-slate-400">{opt.label}.</span>
-                        <span className="flex-1">{opt.text}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Clean Inline Navigation Bar below questions */}
-          <div className="pt-6 border-t border-slate-200 flex items-center justify-between gap-3 mt-6">
-            <button
-              disabled={activeSectionIdx === 0}
-              onClick={() => goToSection(activeSectionIdx - 1)}
-              className="flex items-center gap-1.5 px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-[13px] font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
-              </svg>
-              <span>Previous Section</span>
-            </button>
-
-            {activeSectionIdx < totalSections - 1 ? (
-              <button
-                onClick={() => goToSection(activeSectionIdx + 1)}
-                className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-[13px] font-bold text-white transition-all shadow-sm hover:opacity-90 active:scale-95"
-                style={{ backgroundColor: "#1e293b" }}
-              >
-                <span>Next Section</span>
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/>
-                </svg>
-              </button>
-            ) : (
-              <button
-                onClick={() => handleSubmit(false)}
-                className="flex items-center gap-1.5 px-6 py-2.5 text-white font-bold text-[13px] rounded-xl transition-all shadow-sm hover:opacity-90 active:scale-95"
-                style={{ backgroundColor: theme.color }}
-              >
-                <span>Finish Test</span>
-              </button>
-            )}
-          </div>
+          {sectionNav}
+          {navigator}
         </div>
       </div>
 
@@ -1001,26 +877,17 @@ export default function ListeningPage() {
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-sm w-full p-7">
             <div className="w-11 h-11 bg-red-50 rounded-full flex items-center justify-center mb-4 mx-auto">
-              <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-              </svg>
+              <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
             </div>
-            <h3 className="text-[17px] font-bold text-slate-900 mb-2 text-center">Submit Exam?</h3>
+            <h3 className="text-[17px] font-bold text-slate-900 mb-2 text-center">Submit Test?</h3>
             <p className="text-[13px] text-slate-500 mb-6 leading-relaxed text-center">
-              You have {allQuestions.length - Object.keys(selectedAnswers).length} unanswered questions.
+              You have {unansweredCount} unanswered {unansweredCount === 1 ? "question" : "questions"}.
             </p>
             <div className="flex gap-3">
-              <button
-                onClick={() => setShowConfirmModal(false)}
-                className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 font-bold text-[13px] rounded-lg hover:bg-slate-50 transition-colors"
-              >
+              <button onClick={() => setShowConfirmModal(false)} className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 font-bold text-[13px] rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
                 Keep Working
               </button>
-              <button
-                onClick={() => { setShowConfirmModal(false); handleSubmit(true); }}
-                className="flex-1 px-4 py-2.5 text-white font-bold text-[13px] rounded-lg transition-all"
-                style={{ backgroundColor: theme.color }}
-              >
+              <button onClick={() => { setShowConfirmModal(false); handleSubmit(true); }} className="flex-1 px-4 py-2.5 text-white font-bold text-[13px] rounded-lg transition-all cursor-pointer" style={{ backgroundColor: theme.color }}>
                 Yes, Submit
               </button>
             </div>
@@ -1028,6 +895,5 @@ export default function ListeningPage() {
         </div>
       )}
     </div>
-    </>
   );
 }

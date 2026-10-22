@@ -491,21 +491,33 @@ function DiagramRenderer({ group, selectedAnswers, onTextAnswer, getOverallNumbe
   const { data } = group;
   const numbers = group.questions.map((q) => getOverallNumber(q.id));
   const drawn = hasDiagram(data.diagram);
+  // A plan or map prints letters on the drawing; the candidate picks one
+  // for each place named in the list.
+  const letters = data.choices?.map((c) => ({ value: c, label: c }));
   return (
     <Panel title={data.diagram_title}>
       {drawn && <ReadingDiagram diagram={data.diagram as string} numbers={numbers} />}
-      <div className={`grid gap-x-5 gap-y-2.5 ${drawn ? "mt-4 border-t border-slate-200 pt-4 sm:grid-cols-2" : ""}`}>
+      <div className={`grid gap-x-5 gap-y-2.5 ${drawn ? "mt-4 border-t border-slate-200 pt-4" : ""} ${drawn && !letters ? "sm:grid-cols-2" : ""}`}>
         {group.questions.map((q, i) => (
           <div key={q.id} className="flex min-w-0 items-center gap-2.5">
             <Num n={numbers[i]} />
-            {/* With a drawing, the gap is located on the diagram itself, as in
-                the exam. Without one, the label's description stands in. */}
-            {!drawn && <span className="flex-1 text-[13.5px] text-slate-800">{q.question_text}</span>}
-            <Gap
-              q={q} num={numbers[i]} value={selectedAnswers[q.id] || ""}
-              onChange={(v) => onTextAnswer(q.id, v)} questionRefs={questionRefs}
-              className={drawn ? "min-w-0 flex-1 !mx-0" : "w-[136px]"}
-            />
+            {/* With a numbered drawing, the gap is located on the diagram
+                itself, as in the exam. A lettered plan lists the places to
+                find; without a drawing, the label's description stands in. */}
+            {(!drawn || letters) && <span className="min-w-0 flex-1 text-[13.5px] font-semibold text-slate-900">{q.question_text}</span>}
+            {letters ? (
+              <SelectGap
+                q={q} num={numbers[i]} value={selectedAnswers[q.id] || ""} options={letters}
+                onChange={(v) => onTextAnswer(q.id, v)} questionRefs={questionRefs}
+                className="w-[88px] !mx-0" placeholder="A–H"
+              />
+            ) : (
+              <Gap
+                q={q} num={numbers[i]} value={selectedAnswers[q.id] || ""}
+                onChange={(v) => onTextAnswer(q.id, v)} questionRefs={questionRefs}
+                className={drawn ? "min-w-0 flex-1 !mx-0" : "w-[136px]"}
+              />
+            )}
           </div>
         ))}
       </div>

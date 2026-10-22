@@ -6,9 +6,10 @@ import TestIntro from "@/components/test/TestIntro";
 import ScoreReport, { type ReviewSection } from "@/components/test/ScoreReport";
 import { useExam } from "@/components/theme/ExamThemeProvider";
 import { isOptionBasedType } from "@/types";
-import type { ReadingQuestionType } from "@/types";
+import type { MCQQuestion, ReadingQuestionType } from "@/types";
 import QuestionGroupRenderer, { groupQuestions } from "@/components/reading/QuestionRenderers";
 import { jumpToTop } from "@/lib/scroll";
+import { gapContext } from "@/lib/gapContext";
 import Stimulus, { parseStimulus, stimulusText } from "@/components/reading/Stimulus";
 
 /**
@@ -412,7 +413,7 @@ export default function ReadingPage() {
         return {
           id: q.id,
           num,
-          question: q.question_text?.trim() || q.question_group_label || `Question ${num}`,
+          question: q.question_text?.trim() || gapContext(q as MCQQuestion, p.questions.filter((x) => x.question_group_label === q.question_group_label) as MCQQuestion[]) || q.question_group_label || `Question ${num}`,
           your,
           answer,
           ok: !!r?.is_correct,
