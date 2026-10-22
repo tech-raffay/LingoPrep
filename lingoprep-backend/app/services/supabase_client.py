@@ -70,6 +70,20 @@ class SupabaseTableQuery:
             print(f"Supabase GET execution error: {e}")
             raise
 
+    def delete(self):
+        """Delete the rows matched by the filters set so far. Returns the
+        deleted rows (empty when nothing matched or RLS hid them)."""
+        if not self.params:
+            raise ValueError("Refusing to delete without a filter")
+        try:
+            response = _http.delete(self.url, headers=self.headers, params=self.params)
+            if response.status_code >= 400:
+                raise ValueError(f"Supabase delete error: {response.text}")
+            return SupabaseResponse(data=response.json() if response.content else [])
+        except Exception as e:
+            print(f"Supabase DELETE execution error: {e}")
+            raise
+
     def insert(self, data: dict | list):
         try:
             response = _http.post(self.url, headers=self.headers, json=data)

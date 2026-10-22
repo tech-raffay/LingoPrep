@@ -21,7 +21,7 @@ export type IconName =
   | "saved" | "streak" | "bookmark" | "next"
   | "info" | "support" | "report" | "ai"
   | "menu" | "close" | "check" | "chevronRight"
-  | "signOut" | "retry" | "warning"
+  | "signOut" | "retry" | "warning" | "bin"
   // Added for the home page design
   | "chevronDown" | "chevronLeft" | "lightbulb" | "monitor" | "mobile"
   | "replies" | "library" | "community" | "sparkle" | "clock" | "playCircle";
@@ -212,6 +212,13 @@ const PATHS: Record<IconName, React.ReactNode> = {
   /* ── Interface utility ─────────────────────────────────────────────────── */
   menu: <path d="M3.5 12h17M3.5 6.5h17M3.5 17.5h17" />,
   close: <path d="M18 6L6 18M6 6l12 12" />,
+  bin: (
+    <>
+      <path d="M4 7h16M9.5 7V4.5h5V7" />
+      <path d="M6.5 7l.9 12.2A1.5 1.5 0 0 0 8.9 20.5h6.2a1.5 1.5 0 0 0 1.5-1.3L17.5 7" />
+      <path d="M10 11v6M14 11v6" />
+    </>
+  ),
   check: <path d="M20 6.5L9.5 17 4.5 12" />,
   chevronRight: <path d="M9.5 5.5L16 12l-6.5 6.5" />,
   signOut: (

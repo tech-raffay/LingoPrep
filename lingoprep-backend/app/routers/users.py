@@ -115,6 +115,28 @@ def get_all_sessions(user: AuthenticatedUser = Depends(verify_user)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.delete("/sessions/{session_id}")
+def delete_session(session_id: str, user: AuthenticatedUser = Depends(verify_user)):
+    """Remove one of the user's own test results from their history.
+
+    Runs as the user, so the row-level policy "Users can delete own sessions"
+    (migration_delete_sessions.sql) decides what can go."""
+    try:
+        client = get_client(user.token)
+        res = (
+            client.table("session_logs")
+            .eq("id", session_id)
+            .eq("user_id", user.id)
+            .delete()
+        )
+        deleted = res.data or []
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    if not deleted:
+        raise HTTPException(status_code=404, detail="That result was not found, or is not yours to delete.")
+    return {"success": True, "deleted": len(deleted)}
+
+
 @router.get("/stats")
 def get_user_stats(user: AuthenticatedUser = Depends(verify_user)):
     """Get aggregated stats for the dashboard of the authenticated user."""

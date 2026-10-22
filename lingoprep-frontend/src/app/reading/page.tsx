@@ -501,7 +501,7 @@ export default function ReadingPage() {
       {isLast ? (
         <button
           onClick={() => handleSubmit(false)}
-          className="flex items-center gap-1.5 px-6 py-2.5 text-white font-bold text-[13px] rounded-xl transition-all shadow-sm hover:opacity-90 active:scale-95 cursor-pointer"
+          className="flex items-center gap-1.5 px-6 py-2.5 text-white font-bold text-[13px] rounded-xl shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-[0_10px_20px_-10px_rgb(0_0_0/.5)] hover:brightness-[1.06] active:translate-y-0 active:scale-95 cursor-pointer"
           style={{ backgroundColor: theme.color }}
         >
           <span>Submit Exam</span>
@@ -590,7 +590,7 @@ export default function ReadingPage() {
             </div>
 
             <button onClick={() => handleSubmit(false)}
-              className="px-3 sm:px-5 py-2 text-white font-bold text-[12px] sm:text-[13px] rounded-lg transition-all hover:opacity-90 active:scale-95 cursor-pointer"
+              className="px-3 sm:px-5 py-2 text-white font-bold text-[12px] sm:text-[13px] rounded-lg shadow-sm cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-[0_10px_20px_-10px_rgb(0_0_0/.5)] hover:brightness-[1.06] active:translate-y-0 active:scale-95"
               style={{ backgroundColor: theme.color }}
             >Finish</button>
           </div>

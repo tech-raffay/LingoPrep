@@ -28,7 +28,7 @@
  *   page for a signed-in candidate.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import api from "@/lib/api";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
@@ -109,6 +109,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  // After the first load, refreshes (a retry, a deleted row) keep the page
+  // on screen instead of flashing the loading state.
+  const loadedOnce = useRef(false);
   const { exam, theme, withExam } = useExam();
   const { user } = useAuth();
 
@@ -116,10 +119,10 @@ export default function DashboardPage() {
     let live = true;
     (async () => {
       try {
-        setLoading(true);
+        if (!loadedOnce.current) setLoading(true);
         setError(null);
         const res = await api.get("/api/users/stats");
-        if (live) setStats(res.data?.data || null);
+        if (live) { setStats(res.data?.data || null); loadedOnce.current = true; }
       } catch (err) {
         console.error("Error fetching stats:", err);
         if (live) setError("We couldn't load your practice results. Check your connection and try again.");
@@ -129,6 +132,11 @@ export default function DashboardPage() {
     })();
     return () => { live = false; };
   }, [attempt]);
+
+  const deleteSession = async (id: string) => {
+    await api.delete(`/api/users/sessions/${id}`);
+    setAttempt((a) => a + 1);
+  };
 
   return (
     <ProtectedRoute>
@@ -150,6 +158,7 @@ export default function DashboardPage() {
           legalName={theme.legalName}
           examName={theme.name}
           withExam={withExam}
+          onDelete={deleteSession}
         />
       )}
     </ProtectedRoute>
@@ -166,7 +175,7 @@ function firstNameOf(full?: string, email?: string | null): string | null {
 /* ═══ The page ═════════════════════════════════════════════════════════════ */
 
 function Results({
-  stats, exam, firstName, scoreRange, legalName, examName, withExam,
+  stats, exam, firstName, scoreRange, legalName, examName, withExam, onDelete,
 }: {
   stats: UserStats;
   exam: ExamType;
@@ -175,6 +184,7 @@ function Results({
   legalName: string;
   examName: string;
   withExam: (p: string) => string;
+  onDelete: (id: string) => Promise<void>;
 }) {
   const own = stats[exam];
   const modules = useMemo(() => modulesOf(own), [own]);
@@ -546,7 +556,7 @@ function Results({
             <ul className="flex flex-col gap-3 max-w-[920px] mx-auto">
               {history.map((r, i) => (
                 <Reveal as="li" key={r.id} delay={i * 60}>
-                  <HistoryRow r={r} exam={exam} href={withExam(`/${r.module}`)} />
+                  <HistoryRow r={r} exam={exam} href={withExam(`/${r.module}`)} onDelete={onDelete} />
                 </Reveal>
               ))}
             </ul>
@@ -621,8 +631,25 @@ function HangingBadge({ children }: { children: React.ReactNode }) {
 
 /* ── History row ────────────────────────────────────────────────────────── */
 
-function HistoryRow({ r, exam, href }: { r: SessionRow; exam: ExamType; href: string }) {
+function HistoryRow({ r, exam, href, onDelete }: { r: SessionRow; exam: ExamType; href: string; onDelete: (id: string) => Promise<void> }) {
   const hue = HUES[r.module] ?? HUES.reading;
+  // The bin asks once before it deletes; nothing leaves the history on a
+  // single tap.
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const remove = async () => {
+    setBusy(true);
+    setFailed(false);
+    try {
+      await onDelete(r.id);
+    } catch (err) {
+      console.error("Delete session error:", err);
+      setFailed(true);
+      setBusy(false);
+      setConfirming(false);
+    }
+  };
   const banded = Number(r.band_score) > 0;
   const estimate = banded
     ? `${exam === "ielts" ? "Band" : "Score"} ${fmt(Number(r.band_score), exam)}`
@@ -640,18 +667,51 @@ function HistoryRow({ r, exam, href }: { r: SessionRow; exam: ExamType; href: st
         <span className="text-[15.5px] font-bold text-ink">{SKILL_TITLE[r.module]}</span>
         <span className="text-[13px] text-n-500 truncate">{testLabel(r, exam)} · {shortDate(r.created_at)}</span>
       </span>
-      <span className="flex items-center gap-4 ml-auto sm:ml-0">
-        <span
-          className="inline-flex items-center rounded-full px-3.5 py-1.5 text-[14px] font-extrabold whitespace-nowrap t-numeric"
-          style={{ background: hue.tint, color: hue.deep }}
-        >
-          {estimate}
+      {confirming ? (
+        <span className="flex flex-wrap items-center gap-3 ml-auto sm:ml-0">
+          <span className="text-[13.5px] font-semibold text-n-600">Delete this result?</span>
+          <button
+            type="button"
+            onClick={remove}
+            disabled={busy}
+            className="inline-flex items-center gap-1.5 rounded-full bg-[var(--error)] px-4 py-[7px] text-[13px] font-bold text-white transition-colors hover:brightness-95 disabled:opacity-60 cursor-pointer"
+          >
+            {busy ? "Deleting" : "Delete"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfirming(false)}
+            disabled={busy}
+            className="rounded-full border border-n-300 px-4 py-[7px] text-[13px] font-bold text-ink transition-colors hover:border-ink cursor-pointer"
+          >
+            Keep
+          </button>
         </span>
-        <Link href={href} className="inline-flex items-center gap-1.5 text-[13.5px] font-bold text-accent hover:text-accent-strong whitespace-nowrap">
-          Practise again
-          <Icon name="next" size={16} />
-        </Link>
-      </span>
+      ) : (
+        <span className="flex items-center gap-3 sm:gap-4 ml-auto sm:ml-0">
+          <span
+            className="inline-flex items-center rounded-full px-3.5 py-1.5 text-[14px] font-extrabold whitespace-nowrap t-numeric"
+            style={{ background: hue.tint, color: hue.deep }}
+          >
+            {estimate}
+          </span>
+          <Link href={href} className="inline-flex items-center gap-1.5 text-[13.5px] font-bold text-accent hover:text-accent-strong whitespace-nowrap">
+            Practise again
+            <Icon name="next" size={16} />
+          </Link>
+          <button
+            type="button"
+            onClick={() => setConfirming(true)}
+            aria-label={`Delete this ${SKILL_TITLE[r.module]} result`}
+            title={failed ? "Could not delete. Try again." : "Delete this result"}
+            className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors cursor-pointer ${
+              failed ? "text-[var(--error)] bg-[var(--error-tint)]" : "text-n-400 hover:text-[var(--error)] hover:bg-[var(--error-tint)]"
+            }`}
+          >
+            <Icon name="bin" size={16} />
+          </button>
+        </span>
+      )}
     </div>
   );
 }
