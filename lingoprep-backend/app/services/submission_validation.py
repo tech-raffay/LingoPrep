@@ -14,21 +14,23 @@ class TestContentUnavailable(RuntimeError):
     """Authoritative test content could not be loaded safely."""
 
 
-def load_full_test(client, module: str, exam: str, answers: list):
+def load_full_test(client, module: str, exam: str, answers: list, passage_id: str | None = None):
     """Return question, correct-option and selected-option maps.
 
     The current UI presents every passage for one module/exam as one test.
     Derive that same inventory on the server instead of trusting submitted IDs.
     Blank answers are valid, but every expected question must appear once.
+    Legacy submissions restrict the inventory to the supplied passage ID.
     """
     ids = [answer.question_id for answer in answers]
     if not ids or len(ids) != len(set(ids)):
         raise InvalidSubmission("Include each test question exactly once.")
 
     try:
-        passages = client.table("passages").select("id").eq(
-            "module", module
-        ).eq("exam_type", exam).execute().data or []
+        query = client.table("passages").select("id").eq("module", module).eq("exam_type", exam)
+        if passage_id is not None:
+            query = query.eq("id", passage_id)
+        passages = query.execute().data or []
         if not passages:
             raise TestContentUnavailable("Test content is unavailable. Please reload the test.")
         questions = client.table("questions").select("*").in_(

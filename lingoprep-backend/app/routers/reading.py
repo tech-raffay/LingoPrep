@@ -48,8 +48,10 @@ def submit_answers(
         )
         return result
 
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+    except InvalidSubmission as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    except TestContentUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
 
 
 @router.post("/submit-full", response_model=FullTestResult)

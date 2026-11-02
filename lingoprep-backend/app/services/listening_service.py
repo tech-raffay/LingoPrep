@@ -6,6 +6,7 @@ Fetches listening audio exercises from Supabase and scores MCQ submissions.
 from app.services.supabase_client import get_client
 from app.services.content_loader import attach_questions
 from app.services.submission_validation import load_full_test
+from app.services.passage_scoring import score_passage
 from app.services.reading_service import OPTION_BASED_TYPES, _check_text_answer
 from app.schemas.models import MCQSubmission, MCQResult, FullTestSubmission, FullTestResult
 
@@ -69,91 +70,10 @@ def get_audio_by_id(audio_id: str) -> dict | None:
 
 
 def score_submission(submission: MCQSubmission, user_id: str = None, access_token: str = None) -> MCQResult:
-    """Score listening MCQ answers against correct options in the database."""
-    client = get_client(access_token)
-
-    results = []
-    for answer in submission.answers:
-        option_res = (
-            client.table("options")
-            .select("*")
-            .eq("id", answer.selected_option_id)
-            .single()
-            .execute()
-        )
-        selected_option = option_res.data
-
-        correct_res = (
-            client.table("options")
-            .select("*")
-            .eq("question_id", answer.question_id)
-            .eq("is_correct", True)
-            .single()
-            .execute()
-        )
-        correct_option = correct_res.data
-
-        question_res = (
-            client.table("questions")
-            .select("explanation")
-            .eq("id", answer.question_id)
-            .single()
-            .execute()
-        )
-        question = question_res.data
-
-        is_correct = selected_option and selected_option.get("is_correct", False)
-
-        results.append({
-            "question_id": answer.question_id,
-            "selected": answer.selected_option_id,
-            "correct": str(correct_option["id"]) if correct_option else "",
-            "is_correct": is_correct,
-            "explanation": question.get("explanation", "") if question else "",
-        })
-
-    # Fetch passage to check exam_type
-    exam_type = "ielts"
-    try:
-        passage_res = client.table("passages").select("exam_type").eq("id", submission.passage_id).single().execute()
-        if passage_res.data:
-            exam_type = passage_res.data.get("exam_type", "ielts")
-    except Exception:
-        pass
-
-    correct_count = sum(1 for r in results if r["is_correct"])
-    total = len(results)
-    percentage = round((correct_count / total * 100) if total > 0 else 0, 1)
-
-    if exam_type == "toefl":
-        band_score = round((correct_count / total * 30.0) if total > 0 else 0.0, 1)
-        max_score = 30.0
-    else:
-        band_score = _percentage_to_band(percentage)
-        max_score = 9.0
-
-    # Log the session
-    try:
-        client.table("session_logs").insert({
-            "user_id": user_id,
-            "module": "listening",
-            "passage_id": submission.passage_id,
-            "score": band_score,
-            "max_score": max_score,
-            "percentage": percentage,
-            "band_score": band_score,
-            "details": {"exam_type": exam_type, "results": results},
-        }).execute()
-    except Exception as e:
-        print(f"Failed to log listening session: {str(e)}")
-
-
-    return MCQResult(
-        passage_id=submission.passage_id,
-        total_questions=total,
-        correct_answers=correct_count,
-        score_percentage=percentage,
-        results=results,
+    """Validate and score one passage, then save it once."""
+    return score_passage(
+        get_client(access_token), "listening", submission, user_id,
+        _percentage_to_band, _check_text_answer,
     )
 
 

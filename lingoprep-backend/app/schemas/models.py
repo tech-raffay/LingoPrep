@@ -76,7 +76,7 @@ class AnswerSubmission(BaseModel):
 class MCQSubmission(BaseModel):
     """Submit answers for a reading or listening passage."""
     passage_id: str
-    answers: list[AnswerSubmission]
+    answers: list[AnswerSubmission] = Field(..., min_length=1, max_length=200)
 
 
 class MCQResult(BaseModel):
