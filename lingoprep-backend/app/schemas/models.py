@@ -3,7 +3,7 @@ LingoPrep API — Pydantic Schemas (Request/Response Models)
 """
 
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Literal
 from datetime import datetime
 from enum import Enum
 
@@ -89,8 +89,8 @@ class MCQResult(BaseModel):
 
 class FullTestSubmission(BaseModel):
     """Submit answers for a full IELTS/TOEFL exam."""
-    answers: list[AnswerSubmission]
-    exam_type: Optional[str] = "ielts"  # "ielts" or "toefl"
+    answers: list[AnswerSubmission] = Field(..., min_length=1, max_length=200)
+    exam_type: Literal["ielts", "toefl"] = "ielts"  # "ielts" or "toefl"
 
 
 class FullTestResult(BaseModel):

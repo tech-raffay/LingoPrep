@@ -8,6 +8,7 @@ completion, diagram, table, flowchart, notes, summary, short-answer).
 import re
 from app.services.supabase_client import get_client
 from app.services.content_loader import attach_questions
+from app.services.submission_validation import load_full_test
 from app.schemas.models import MCQSubmission, MCQResult, FullTestSubmission, FullTestResult
 
 # Question types that use the options table (radio button selection)
@@ -278,55 +279,9 @@ def score_full_test(submission: FullTestSubmission, user_id: str = None, access_
     client = get_client(access_token)
     exam_type = getattr(submission, 'exam_type', 'ielts') or 'ielts'
 
-    question_ids = [ans.question_id for ans in submission.answers]
-    selected_option_ids = [
-        ans.selected_option_id for ans in submission.answers
-        if ans.selected_option_id
-    ]
-
-    # Batch fetch all questions (including new fields)
-    question_map = {}
-    try:
-        questions_res = (
-            client.table("questions")
-            .select("id, explanation, question_type, correct_answer_text")
-            .in_("id", question_ids)
-            .execute()
-        )
-        if questions_res and questions_res.data:
-            question_map = {q["id"]: q for q in questions_res.data}
-    except Exception as e:
-        print(f"Error fetching questions batch: {e}")
-
-    # Batch fetch all correct options (for option-based types)
-    correct_map = {}
-    try:
-        correct_res = (
-            client.table("options")
-            .select("id, question_id")
-            .in_("question_id", question_ids)
-            .eq("is_correct", True)
-            .execute()
-        )
-        if correct_res and correct_res.data:
-            correct_map = {opt["question_id"]: opt for opt in correct_res.data}
-    except Exception as e:
-        print(f"Error fetching correct options batch: {e}")
-
-    # Batch fetch user selected options details (for option-based types)
-    selected_map = {}
-    if selected_option_ids:
-        try:
-            selected_res = (
-                client.table("options")
-                .select("id, is_correct")
-                .in_("id", selected_option_ids)
-                .execute()
-            )
-            if selected_res and selected_res.data:
-                selected_map = {opt["id"]: opt for opt in selected_res.data}
-        except Exception as e:
-            print(f"Error fetching selected options batch: {e}")
+    question_map, correct_map, selected_map = load_full_test(
+        client, "reading", exam_type, submission.answers
+    )
 
     results = []
     for answer in submission.answers:

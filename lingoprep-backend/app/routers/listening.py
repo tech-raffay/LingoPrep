@@ -7,6 +7,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
 from typing import Optional
+from app.services.submission_validation import InvalidSubmission, TestContentUnavailable
 
 from app.schemas.models import MCQSubmission, MCQResult, FullTestSubmission, FullTestResult
 from app.services import listening_service, tts_service
@@ -144,6 +145,8 @@ def submit_full_test(
             submission, user_id=user_id, access_token=(user.token if user else None)
         )
         return result
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+    except InvalidSubmission as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    except TestContentUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
 
