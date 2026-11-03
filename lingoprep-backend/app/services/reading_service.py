@@ -8,6 +8,8 @@ completion, diagram, table, flowchart, notes, summary, short-answer).
 import re
 from app.services.supabase_client import get_client
 from app.services.content_loader import attach_questions
+from app.services.submission_validation import load_full_test
+from app.services.passage_scoring import score_passage
 from app.schemas.models import MCQSubmission, MCQResult, FullTestSubmission, FullTestResult
 
 # Question types that use the options table (radio button selection)
@@ -111,94 +113,10 @@ def _check_text_answer(user_answer: str, correct_answer: str) -> bool:
 
 
 def score_submission(submission: MCQSubmission, user_id: str = None, access_token: str = None) -> MCQResult:
-    """Score MCQ answers by checking against correct options in the database."""
-    client = get_client(access_token)
-
-    results = []
-    for answer in submission.answers:
-        # Look up the option the user selected
-        option_res = (
-            client.table("options")
-            .select("*")
-            .eq("id", answer.selected_option_id)
-            .single()
-            .execute()
-        )
-        selected_option = option_res.data
-
-        # Find the correct option for this question
-        correct_res = (
-            client.table("options")
-            .select("*")
-            .eq("question_id", answer.question_id)
-            .eq("is_correct", True)
-            .single()
-            .execute()
-        )
-        correct_option = correct_res.data
-
-        # Get the question for its explanation
-        question_res = (
-            client.table("questions")
-            .select("explanation")
-            .eq("id", answer.question_id)
-            .single()
-            .execute()
-        )
-        question = question_res.data
-
-        is_correct = selected_option and selected_option.get("is_correct", False)
-
-        results.append({
-            "question_id": answer.question_id,
-            "selected": answer.selected_option_id,
-            "correct": str(correct_option["id"]) if correct_option else "",
-            "is_correct": is_correct,
-            "explanation": question.get("explanation", "") if question else "",
-        })
-
-    # Fetch passage to check exam_type
-    exam_type = "ielts"
-    try:
-        passage_res = client.table("passages").select("exam_type").eq("id", submission.passage_id).single().execute()
-        if passage_res.data:
-            exam_type = passage_res.data.get("exam_type", "ielts")
-    except Exception:
-        pass
-
-    correct_count = sum(1 for r in results if r["is_correct"])
-    total = len(results)
-    percentage = round((correct_count / total * 100) if total > 0 else 0, 1)
-
-    if exam_type == "toefl":
-        band_score = round((correct_count / total * 30.0) if total > 0 else 0.0, 1)
-        max_score = 30.0
-    else:
-        band_score = _percentage_to_band(percentage)
-        max_score = 9.0
-
-    # Log the session
-    try:
-        client.table("session_logs").insert({
-            "user_id": user_id,
-            "module": "reading",
-            "passage_id": submission.passage_id,
-            "score": band_score,
-            "max_score": max_score,
-            "percentage": percentage,
-            "band_score": band_score,
-            "details": {"exam_type": exam_type, "results": results},
-        }).execute()
-    except Exception as e:
-        print(f"Failed to log reading session: {str(e)}")
-
-
-    return MCQResult(
-        passage_id=submission.passage_id,
-        total_questions=total,
-        correct_answers=correct_count,
-        score_percentage=percentage,
-        results=results,
+    """Validate and score one passage, then save it once."""
+    return score_passage(
+        get_client(access_token), "reading", submission, user_id,
+        _percentage_to_band, _check_text_answer,
     )
 
 
@@ -278,55 +196,9 @@ def score_full_test(submission: FullTestSubmission, user_id: str = None, access_
     client = get_client(access_token)
     exam_type = getattr(submission, 'exam_type', 'ielts') or 'ielts'
 
-    question_ids = [ans.question_id for ans in submission.answers]
-    selected_option_ids = [
-        ans.selected_option_id for ans in submission.answers
-        if ans.selected_option_id
-    ]
-
-    # Batch fetch all questions (including new fields)
-    question_map = {}
-    try:
-        questions_res = (
-            client.table("questions")
-            .select("id, explanation, question_type, correct_answer_text")
-            .in_("id", question_ids)
-            .execute()
-        )
-        if questions_res and questions_res.data:
-            question_map = {q["id"]: q for q in questions_res.data}
-    except Exception as e:
-        print(f"Error fetching questions batch: {e}")
-
-    # Batch fetch all correct options (for option-based types)
-    correct_map = {}
-    try:
-        correct_res = (
-            client.table("options")
-            .select("id, question_id")
-            .in_("question_id", question_ids)
-            .eq("is_correct", True)
-            .execute()
-        )
-        if correct_res and correct_res.data:
-            correct_map = {opt["question_id"]: opt for opt in correct_res.data}
-    except Exception as e:
-        print(f"Error fetching correct options batch: {e}")
-
-    # Batch fetch user selected options details (for option-based types)
-    selected_map = {}
-    if selected_option_ids:
-        try:
-            selected_res = (
-                client.table("options")
-                .select("id, is_correct")
-                .in_("id", selected_option_ids)
-                .execute()
-            )
-            if selected_res and selected_res.data:
-                selected_map = {opt["id"]: opt for opt in selected_res.data}
-        except Exception as e:
-            print(f"Error fetching selected options batch: {e}")
+    question_map, correct_map, selected_map = load_full_test(
+        client, "reading", exam_type, submission.answers
+    )
 
     results = []
     for answer in submission.answers:
