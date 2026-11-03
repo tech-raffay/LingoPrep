@@ -4,6 +4,7 @@ Direct HTTP client using httpx to bypass Windows AppLocker/WDAC DLL execution bl
 """
 
 import httpx
+from threading import Lock
 from app.config import settings
 
 # One pooled client for the whole process. Opening a new client per query
@@ -14,6 +15,38 @@ _http = httpx.Client(
     timeout=httpx.Timeout(15.0, connect=10.0),
     limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
 )
+_http_lock = Lock()
+
+
+def start_http_client():
+    """Reopen the pool when an application lifespan is started again."""
+    global _http
+    with _http_lock:
+        if _http.is_closed:
+            _http = httpx.Client(timeout=httpx.Timeout(15.0, connect=10.0),
+                                 limits=httpx.Limits(max_connections=20, max_keepalive_connections=10))
+
+
+def close_http_client():
+    _http.close()
+
+
+class DatabaseUnavailable(RuntimeError):
+    """A database request failed; diagnostic response bodies stay private."""
+
+
+class DatabaseCardinalityError(DatabaseUnavailable):
+    """An optional single-row lookup unexpectedly matched multiple rows."""
+
+
+def _request(method, url, **kwargs):
+    try:
+        response = getattr(_http, method)(url, **kwargs)
+        response.raise_for_status()
+        return response.json() if response.content else []
+    except (httpx.HTTPError, ValueError) as exc:
+        raise DatabaseUnavailable("Database operation is temporarily unavailable.") from exc
+
 
 
 class SupabaseResponse:
@@ -27,6 +60,7 @@ class SupabaseTableQuery:
         self.headers = headers.copy()
         self.params = {}
         self._single = False
+        self._filters = set()
 
     def select(self, select_str: str = "*"):
         self.params["select"] = select_str
@@ -34,11 +68,13 @@ class SupabaseTableQuery:
 
     def eq(self, column: str, value: str):
         self.params[column] = f"eq.{value}"
+        self._filters.add(column)
         return self
 
     def in_(self, column: str, values: list):
         val_str = ",".join(str(v) for v in values)
         self.params[column] = f"in.({val_str})"
+        self._filters.add(column)
         return self
 
     def order(self, column: str, desc: bool = False):
@@ -53,54 +89,41 @@ class SupabaseTableQuery:
         self._single = True
         return self
 
-    def execute(self):
-        try:
-            response = _http.get(self.url, headers=self.headers, params=self.params)
-            if response.status_code in (404, 406):
-                return SupabaseResponse(data=None)
-            if response.status_code >= 400:
-                raise ValueError(f"Supabase REST error: {response.text}")
+    def range(self, start: int, end: int):
+        """Inclusive row range. Callers must supply deterministic ordering."""
+        if start < 0 or end < start:
+            raise ValueError("Invalid result range")
+        self.params["offset"] = str(start)
+        self.params["limit"] = str(end - start + 1)
+        return self
 
-            data = response.json()
-            if self._single:
-                if isinstance(data, list):
-                    data = data[0] if len(data) > 0 else None
-            return SupabaseResponse(data=data)
-        except Exception as e:
-            print(f"Supabase GET execution error: {e}")
-            raise
+    def execute(self):
+        data = _request("get", self.url, headers=self.headers, params=self.params)
+        if not isinstance(data, list):
+            raise DatabaseUnavailable("Invalid database result.")
+        if self._single:
+            if len(data) > 1:
+                raise DatabaseCardinalityError("Expected at most one database record.")
+            data = data[0] if data else None
+        return SupabaseResponse(data=data)
 
     def delete(self):
-        """Delete the rows matched by the filters set so far. Returns the
-        deleted rows (empty when nothing matched or RLS hid them)."""
-        if not self.params:
-            raise ValueError("Refusing to delete without a filter")
-        try:
-            response = _http.delete(self.url, headers=self.headers, params=self.params)
-            if response.status_code >= 400:
-                raise ValueError(f"Supabase delete error: {response.text}")
-            return SupabaseResponse(data=response.json() if response.content else [])
-        except Exception as e:
-            print(f"Supabase DELETE execution error: {e}")
-            raise
+        """Terminal operation: require a row predicate, not select/order/limit."""
+        if not self._filters:
+            raise ValueError("Refusing to delete without a row filter")
+        return SupabaseResponse(_request("delete", self.url, headers=self.headers, params=self.params))
 
     def insert(self, data: dict | list):
-        try:
-            response = _http.post(self.url, headers=self.headers, json=data)
-            if response.status_code >= 400:
-                raise ValueError(f"Supabase insert error: {response.text}")
-            return SupabaseResponse(data=response.json())
-        except Exception as e:
-            print(f"Supabase POST execution error: {e}")
-            raise
+        """Terminal operation; do not chain execute() after this call."""
+        return SupabaseResponse(_request("post", self.url, headers=self.headers, json=data))
 
 
 class SupabaseHttpClient:
     def __init__(self, access_token: str | None = None, *, server_key: str | None = None):
         key = server_key or settings.SUPABASE_KEY
         if not settings.SUPABASE_URL or not key:
-            raise ValueError(
-                "Supabase credentials not configured in .env file."
+            raise DatabaseUnavailable(
+                "Database access is not configured."
             )
         self.url = settings.SUPABASE_URL
         self.key = key

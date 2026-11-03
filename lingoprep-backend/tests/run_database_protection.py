@@ -17,6 +17,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pg-bin", type=Path, required=True)
     parser.add_argument("--persistence", action="store_true", help="Also test attempt transactions and workload admission")
+    parser.add_argument("--maintenance", action="store_true", help="Test additive writing prompt setup and access")
     args = parser.parse_args()
     repository = Path(__file__).resolve().parents[2]
     directory = repository / "tmp" / f"database-protection-{uuid4().hex}"
@@ -47,7 +48,7 @@ def main():
             "-o", f"-h 127.0.0.1 -p {port}")
         output = run("psql", "-X", "-w", "-h", "127.0.0.1", "-p", port,
                      "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1",
-                     "-f", Path(__file__).with_name("persistence_resources.sql" if args.persistence else "database_protection.sql"))
+                     "-f", Path(__file__).with_name("statistics_maintenance.sql" if args.maintenance else "persistence_resources.sql" if args.persistence else "database_protection.sql"))
         (directory / "test-output.txt").write_text(output, encoding="utf-8")
         if args.persistence:
             def query(statement):

@@ -310,3 +310,14 @@ async def prewarm(items: list[tuple[str, str, str]]) -> None:
     task = asyncio.create_task(_prewarm_run(missing))
     _background.add(task)
     task.add_done_callback(_background.discard)
+
+
+async def shutdown_audio_tasks() -> None:
+    """Cancel and await process-owned synthesis before closing shared clients."""
+    tasks = set(_inflight.values()) | set(_background)
+    for task in tasks:
+        task.cancel()
+    if tasks:
+        await asyncio.gather(*tasks, return_exceptions=True)
+    _inflight.clear()
+    _background.clear()

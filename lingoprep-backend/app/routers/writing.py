@@ -7,99 +7,30 @@ from app.services.ai_evaluation import InvalidEvaluation, EvaluationUnavailable
 from starlette.concurrency import run_in_threadpool
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional
+from typing import Optional, Literal
+import random
 import logging
 
 from app.schemas.models import EssaySubmissionSchema, EssayEvaluationSchema
 from app.services import writing_service
-from app.services.supabase_client import get_client
 from app.services.result_storage import save_owned_record
 from app.dependencies.auth import get_optional_user, AuthenticatedUser
 
 from app.services.reliable_routes import ReliableRoute
+from app.services.prompts import list_writing_prompts, get_writing_prompt
 
 router = APIRouter(route_class=ReliableRoute)
 
 
-TOEFL_PROMPTS = [
-    {
-        "id": "toefl_w1",
-        "exam_type": "toefl",
-        "task_type": "1",
-        "question": "Build a coherent, grammatically correct sentence using the following words/phrase: 'due to', 'unforeseen circumstances', 'postponed'. Make sure the sentence makes academic sense.",
-        "overall": 0,
-    },
-    {
-        "id": "toefl_w2",
-        "exam_type": "toefl",
-        "task_type": "2",
-        "question": "Write an email to your professor, Dr. Evelyn Vance, requesting a short extension on your term paper. Explain the reasons for your request and propose a new deadline. Write between 120 and 150 words.",
-        "overall": 0,
-    },
-    {
-        "id": "toefl_w3",
-        "exam_type": "toefl",
-        "task_type": "3",
-        "question": "Your professor is teaching a class on sociology. Write a response to the discussion prompt: 'Some people argue that government funding should focus entirely on STEM subjects (science, technology, engineering, and mathematics), while others believe that the arts and humanities deserve equal support. What is your opinion?' Support your response with specific reasons and examples.",
-        "overall": 0,
-    },
-]
-
-
 @router.get("/prompts")
-async def get_prompts(exam_type: Optional[str] = "ielts"):
-    """Get writing prompts based on the exam_type."""
-    if exam_type == "toefl":
-        return {"success": True, "data": TOEFL_PROMPTS, "count": len(TOEFL_PROMPTS)}
-
-    try:
-        db = get_client()
-        res = db.table("writing_samples").select("id,task_type,question,overall").limit(50).execute()
-        prompts = res.data or []
-    except Exception:
-        prompts = []
-
-    # Fallback to static prompts if DB is empty or fails
-    if not prompts:
-        prompts = [
-            {
-                "id": "p1",
-                "exam_type": "ielts",
-                "task_type": "task2",
-                "question": "Some people believe that universities should focus on providing academic skills, while others think they should prepare students for employment. Discuss both views and give your opinion.",
-                "overall": 0,
-            },
-        ]
-
-    for p in prompts:
-        if "exam_type" not in p:
-            p["exam_type"] = "ielts"
-
+def get_prompts(exam_type: Literal["ielts", "toefl"] = "ielts"):
+    prompts = list_writing_prompts(exam_type)
     return {"success": True, "data": prompts, "count": len(prompts)}
 
 
 @router.get("/prompt/random")
-async def get_random_prompt(exam_type: Optional[str] = "ielts"):
-    """Get a single random writing prompt based on exam_type."""
-    if exam_type == "toefl":
-        import random
-        return {"success": True, "data": random.choice(TOEFL_PROMPTS)}
-
-    try:
-        db = get_client()
-        res = db.table("writing_samples").select("*").limit(20).execute()
-        data = res.data or []
-    except Exception:
-        data = []
-
-    if not data:
-        raise HTTPException(status_code=404, detail="No writing prompts found in the database.")
-
-    import random
-    prompt = random.choice(data)
-    if isinstance(prompt, dict) and "exam_type" not in prompt:
-        prompt["exam_type"] = "ielts"
-    return {"success": True, "data": prompt}
+def get_random_prompt(exam_type: Literal["ielts", "toefl"] = "ielts"):
+    return {"success": True, "data": random.choice(list_writing_prompts(exam_type))}
 
 
 class WritingSubmitRequest(BaseModel):
@@ -123,33 +54,7 @@ async def submit_essay(
     3. Saves user_essay, ai_feedback, and score into writing_submissions.
     4. Returns the AI feedback to the frontend.
     """
-    # Prompt lookup uses the public/user client; result writes use server access.
-    db = get_client(user.token if user else None)
-
-    # 1. Fetch the prompt text
-    prompt_data = None
-    # Check static TOEFL prompts first
-    for p in TOEFL_PROMPTS:
-        if p["id"] == req.prompt_id:
-            prompt_data = p
-            break
-
-    if not prompt_data:
-        # Check static fallback IELTS prompt
-        if req.prompt_id == "p1":
-            prompt_data = {
-                "id": "p1",
-                "exam_type": "ielts",
-                "task_type": "task2",
-                "question": "Some people believe that universities should focus on providing academic skills, while others think they should prepare students for employment. Discuss both views and give your opinion.",
-                "overall": 0,
-            }
-        else:
-            try:
-                prompt_res = await run_in_threadpool(db.table("writing_samples").select("*").eq("id", req.prompt_id).single().execute)
-                prompt_data = prompt_res.data
-            except Exception as exc:
-                raise HTTPException(status_code=503, detail="Writing prompt is temporarily unavailable.") from exc
+    prompt_data = await run_in_threadpool(get_writing_prompt, req.prompt_id)
 
     if not prompt_data:
         raise HTTPException(status_code=404, detail="Prompt not found.")
