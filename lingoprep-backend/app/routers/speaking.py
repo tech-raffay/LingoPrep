@@ -5,12 +5,15 @@ Endpoints for speaking test prompts, audio transcription, and AI-powered evaluat
 
 from fastapi import APIRouter, HTTPException, UploadFile, File, Query
 from typing import Optional
+import logging
+from app.services.audio_upload import read_audio_upload
 
 from app.schemas.models import SpeakingSubmissionSchema, SpeakingEvaluationSchema
 from app.services import speaking_service
 from app.services.supabase_client import get_client
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.get("/prompts")
@@ -59,14 +62,13 @@ async def list_prompts(
 @router.post("/transcribe")
 async def transcribe_audio(file: UploadFile = File(...)):
     """Transcribe user speaking recording using Groq Whisper."""
+    audio_bytes, extension, mime = await read_audio_upload(file)
     try:
-        audio_bytes = await file.read()
-        transcript = await speaking_service.transcribe_audio_file(audio_bytes, file.filename)
+        transcript = await speaking_service.transcribe_audio_file(audio_bytes, extension, mime)
         return {"success": True, "transcript": transcript}
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as exc:
+        logger.warning("Audio transcription failed (%s)", type(exc).__name__)
+        raise HTTPException(status_code=503, detail="Transcription is temporarily unavailable.") from exc
 
 
 from app.dependencies.auth import get_optional_user, AuthenticatedUser
