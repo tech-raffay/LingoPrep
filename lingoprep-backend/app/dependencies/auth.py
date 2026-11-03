@@ -21,13 +21,14 @@ async def get_current_user(authorization: str | None = Header(None)) -> Authenti
             detail="Authorization header missing."
         )
 
-    if not authorization.startswith("Bearer "):
+    parts = authorization.split()
+    if len(parts) != 2 or parts[0].lower() != "bearer":
         raise HTTPException(
             status_code=401,
             detail="Invalid authorization header format. Use 'Bearer <token>'."
         )
 
-    token = authorization.split(" ")[1]
+    token = parts[1]
 
     # Query Supabase Auth API
     url = f"{settings.SUPABASE_URL}/auth/v1/user"
@@ -61,18 +62,15 @@ async def get_current_user(authorization: str | None = Header(None)) -> Authenti
     except httpx.RequestError as e:
         raise HTTPException(
             status_code=503,
-            detail=f"Authentication service temporarily unavailable: {str(e)}"
-        )
+            detail="Authentication service temporarily unavailable."
+        ) from e
 
 async def get_optional_user(authorization: str | None = Header(None)) -> AuthenticatedUser | None:
     """
     Attempt to verify user JWT token if present.
-    If absent or invalid, returns None (allowing guest access).
+    Only an absent header enables guest access. Invalid credentials are rejected.
     """
-    if not authorization or not authorization.startswith("Bearer "):
+    if authorization is None:
         return None
-    try:
-        return await get_current_user(authorization)
-    except Exception:
-        return None
+    return await get_current_user(authorization)
 

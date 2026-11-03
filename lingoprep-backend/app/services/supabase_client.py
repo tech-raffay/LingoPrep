@@ -96,17 +96,18 @@ class SupabaseTableQuery:
 
 
 class SupabaseHttpClient:
-    def __init__(self, access_token: str | None = None):
-        if not settings.SUPABASE_URL or not settings.SUPABASE_KEY:
+    def __init__(self, access_token: str | None = None, *, server_key: str | None = None):
+        key = server_key or settings.SUPABASE_KEY
+        if not settings.SUPABASE_URL or not key:
             raise ValueError(
                 "Supabase credentials not configured in .env file."
             )
         self.url = settings.SUPABASE_URL
-        self.key = settings.SUPABASE_KEY
-        # With a user's access token, requests run *as that user*, so the
-        # row-level-security policies ("users can insert/view own sessions")
-        # apply. The anon key alone can only touch rows with user_id IS NULL,
-        # which is why signed-in users' results were silently never saved.
+        self.key = key
+        # User clients retain RLS for history reads/deletes. Server clients
+        # are separate and must never inherit a caller's bearer token.
+        if server_key and access_token:
+            raise ValueError("Server credentials cannot be combined with a user token.")
         self.headers = {
             "apikey": self.key,
             "Authorization": f"Bearer {access_token or self.key}",
@@ -131,3 +132,15 @@ def get_client(access_token: str | None = None) -> SupabaseHttpClient:
     if _client is None:
         _client = SupabaseHttpClient()
     return _client
+
+
+class ServerDatabaseUnavailable(RuntimeError):
+    """Protected database access is not configured."""
+
+
+def get_server_client() -> SupabaseHttpClient:
+    """Server-only answer reads and trusted writes; never fall back to anon."""
+    key = settings.SUPABASE_SERVICE_ROLE_KEY
+    if not key or key == settings.SUPABASE_KEY:
+        raise ServerDatabaseUnavailable("Protected database access is unavailable.")
+    return SupabaseHttpClient(server_key=key)

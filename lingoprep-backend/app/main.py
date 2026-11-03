@@ -6,6 +6,8 @@ Run with: uvicorn app.main:app --reload
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from app.services.supabase_client import ServerDatabaseUnavailable
 
 from app.config import settings
 from app.routers import reading, listening, writing, users, speaking
@@ -19,6 +21,11 @@ app = FastAPI(
 )
 
 # CORS — allow the Next.js frontend
+@app.exception_handler(ServerDatabaseUnavailable)
+async def protected_database_unavailable(request, exc):
+    return JSONResponse(status_code=503, content={"detail": "Protected database access is unavailable."})
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[

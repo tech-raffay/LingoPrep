@@ -3,6 +3,7 @@
 import logging
 from collections.abc import Callable
 
+from app.services.result_storage import save_owned_record
 from app.schemas.models import MCQResult, MCQSubmission
 from app.services.submission_validation import (
     InvalidSubmission, TestContentUnavailable, OPTION_TYPES, load_full_test,
@@ -55,12 +56,12 @@ def score_passage(client, module: str, submission: MCQSubmission, user_id: str |
     # Preserve the legacy passage scale; full-test calibration is separate.
     score = round(count / len(results) * 30, 1) if exam == "toefl" else percentage_to_band(percentage)
     try:
-        client.table("session_logs").insert({
+        save_owned_record("session_logs", {
             "user_id": user_id, "module": module, "passage_id": submission.passage_id,
             "score": score, "max_score": 30.0 if exam == "toefl" else 9.0,
             "percentage": percentage, "band_score": score,
             "details": {"exam_type": exam, "results": results},
-        })
+        }, user_id)
     except Exception:
         # Legacy response has no save-status field; retain feedback on save failure.
         logger.exception("Could not save %s passage result", module)

@@ -3,7 +3,8 @@ LingoPrep API — Listening Service
 Fetches listening audio exercises from Supabase and scores MCQ submissions.
 """
 
-from app.services.supabase_client import get_client
+from app.services.supabase_client import get_client, get_server_client
+from app.services.result_storage import save_owned_record
 from app.services.content_loader import attach_questions
 from app.services.submission_validation import load_full_test
 from app.services.passage_scoring import score_passage
@@ -22,7 +23,7 @@ def get_audios(exam_type: str = None, difficulty: str = None) -> list[dict]:
         query = query.eq("difficulty", difficulty)
 
     audios = query.execute().data or []
-    return attach_questions(audios, reading_defaults=True)
+    return attach_questions(audios)
 
 
 def get_audio_source(audio_id: str) -> dict | None:
@@ -72,7 +73,7 @@ def get_audio_by_id(audio_id: str) -> dict | None:
 def score_submission(submission: MCQSubmission, user_id: str = None, access_token: str = None) -> MCQResult:
     """Validate and score one passage, then save it once."""
     return score_passage(
-        get_client(access_token), "listening", submission, user_id,
+        get_server_client(), "listening", submission, user_id,
         _percentage_to_band, _check_text_answer,
     )
 
@@ -145,7 +146,7 @@ def _toefl_listening_raw_to_scaled(correct: int, total: int) -> float:
 
 def score_full_test(submission: FullTestSubmission, user_id: str = None, access_token: str = None) -> FullTestResult:
     """Score a full Listening test, calculate band/scaled score, and log the session."""
-    client = get_client(access_token)
+    client = get_server_client()
     exam_type = getattr(submission, 'exam_type', 'ielts') or 'ielts'
 
     question_map, correct_map, selected_map = load_full_test(
@@ -201,7 +202,7 @@ def score_full_test(submission: FullTestSubmission, user_id: str = None, access_
     # Log the session
     saved = False
     try:
-        client.table("session_logs").insert({
+        saved = save_owned_record("session_logs", {
             "user_id": user_id,
             "module": "listening",
             "passage_id": None,
@@ -210,8 +211,7 @@ def score_full_test(submission: FullTestSubmission, user_id: str = None, access_
             "percentage": percentage,
             "band_score": band_score,
             "details": {"exam_type": exam_type, "results": results, "is_full_test": True},
-        })
-        saved = bool(user_id)
+        }, user_id)
     except Exception as e:
         print(f"Failed to log full listening session: {str(e)}")
 

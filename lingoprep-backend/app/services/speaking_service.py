@@ -9,7 +9,7 @@ import tempfile
 from groq import Groq
 from app.config import settings
 from app.schemas.models import SpeakingSubmissionSchema, SpeakingEvaluationSchema
-from app.services.supabase_client import get_client
+from app.services.result_storage import save_owned_record
 
 EVALUATION_SYSTEM_PROMPT = """You are an expert IELTS/TOEFL speaking examiner. Evaluate the following spoken response based on the exam type.
 
@@ -121,8 +121,9 @@ Word count: {len(submission.transcript.split())}
         
         evaluation = SpeakingEvaluationSchema(**evaluation_data)
 
+        evaluation.saved = False
+
         # Log session in Supabase
-        db = get_client(access_token)
         try:
             # Map score to percentage
             # For IELTS, percentage is (band / 9) * 100
@@ -131,7 +132,7 @@ Word count: {len(submission.transcript.split())}
             max_score = 30.0 if is_toefl else 9.0
             percentage = round((evaluation.overall_band / max_score) * 100, 1)
 
-            db.table("session_logs").insert({
+            evaluation.saved = save_owned_record("session_logs", {
                 "user_id": user_id,
                 "module": "speaking",
                 "score": evaluation.overall_band,
@@ -151,8 +152,7 @@ Word count: {len(submission.transcript.split())}
                     "feedback": evaluation.feedback,
                     "suggestions": evaluation.suggestions,
                 }
-            })  # this client sends the insert immediately; there is no .execute()
-            evaluation.saved = bool(user_id)
+            }, user_id)
         except Exception as e:
             # Silent fail so user still gets feedback
             print(f"Failed to log speaking session: {str(e)}")

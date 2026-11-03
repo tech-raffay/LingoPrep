@@ -3,13 +3,15 @@ LingoPrep API — Writing Router
 Endpoints for writing prompts, essay submission, and AI-powered evaluation.
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional
 
 from app.schemas.models import EssaySubmissionSchema, EssayEvaluationSchema
 from app.services import writing_service
 from app.services.supabase_client import get_client
+from app.services.result_storage import save_owned_record
+from app.dependencies.auth import get_optional_user, AuthenticatedUser
 
 router = APIRouter()
 
@@ -101,9 +103,6 @@ class WritingSubmitRequest(BaseModel):
     user_id: Optional[str] = None
 
 
-from app.dependencies.auth import get_optional_user, AuthenticatedUser
-from fastapi import Depends
-
 @router.post("/submit")
 async def submit_essay(
     req: WritingSubmitRequest,
@@ -118,7 +117,7 @@ async def submit_essay(
     3. Saves user_essay, ai_feedback, and score into writing_submissions.
     4. Returns the AI feedback to the frontend.
     """
-    # Act as the signed-in user so their submission passes row-level security.
+    # Prompt lookup uses the public/user client; result writes use server access.
     db = get_client(user.token if user else None)
 
     # 1. Fetch the prompt text
@@ -195,14 +194,13 @@ async def submit_essay(
         "suggestions": evaluation.suggestions,
     }
     # Determine user_id
-    # Only a verified user can own a row; an unverified user_id in the body
-    # would be rejected by row-level security anyway.
+    # Only the verified identity may own a server-written row. Ignore req.user_id.
     current_uid = user.id if user else None
     if current_uid:
         insert_data["user_id"] = current_uid
 
     try:
-        db.table("writing_submissions").insert(insert_data)  # sends immediately; no .execute()
+        save_owned_record("writing_submissions", insert_data, current_uid)
     except Exception as e:
         print(f"Failed to save writing submission: {e}")
 
