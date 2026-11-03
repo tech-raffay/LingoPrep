@@ -3,9 +3,12 @@ LingoPrep API — Writing Router
 Endpoints for writing prompts, essay submission, and AI-powered evaluation.
 """
 
+from app.services.ai_evaluation import InvalidEvaluation, EvaluationUnavailable
+from starlette.concurrency import run_in_threadpool
 from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
+import logging
 
 from app.schemas.models import EssaySubmissionSchema, EssayEvaluationSchema
 from app.services import writing_service
@@ -98,8 +101,9 @@ async def get_random_prompt(exam_type: Optional[str] = "ielts"):
 
 
 class WritingSubmitRequest(BaseModel):
-    prompt_id: str
-    essay: str
+    model_config = ConfigDict(str_strip_whitespace=True)
+    prompt_id: str = Field(..., min_length=1, max_length=100)
+    essay: str = Field(..., min_length=50, max_length=20000)
     user_id: Optional[str] = None
 
 
@@ -140,10 +144,10 @@ async def submit_essay(
             }
         else:
             try:
-                prompt_res = db.table("writing_samples").select("*").eq("id", req.prompt_id).single().execute()
+                prompt_res = await run_in_threadpool(db.table("writing_samples").select("*").eq("id", req.prompt_id).single().execute)
                 prompt_data = prompt_res.data
-            except Exception:
-                prompt_data = None
+            except Exception as exc:
+                raise HTTPException(status_code=503, detail="Writing prompt is temporarily unavailable.") from exc
 
     if not prompt_data:
         raise HTTPException(status_code=404, detail="Prompt not found.")
@@ -165,9 +169,11 @@ async def submit_essay(
             access_token=(user.token if user else None),
         )
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except RuntimeError as e:
-        raise HTTPException(status_code=503, detail=str(e))
+        raise HTTPException(status_code=503, detail="Writing prompt configuration is unavailable.") from e
+    except InvalidEvaluation as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
+    except EvaluationUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
 
     # 3. Save to writing_submissions table
     feedback_json = {
@@ -200,9 +206,9 @@ async def submit_essay(
         insert_data["user_id"] = current_uid
 
     try:
-        save_owned_record("writing_submissions", insert_data, current_uid)
+        await run_in_threadpool(save_owned_record, "writing_submissions", insert_data, current_uid)
     except Exception as e:
-        print(f"Failed to save writing submission: {e}")
+        logging.getLogger(__name__).warning("Writing archive persistence failed (%s)", type(e).__name__)
 
     # 4. Return feedback to frontend
     return {
@@ -215,7 +221,7 @@ async def submit_essay(
 
 
 @router.post("/evaluate", response_model=EssayEvaluationSchema)
-async def evaluate_essay(submission: EssaySubmissionSchema):
+async def evaluate_essay(submission: EssaySubmissionSchema, user: AuthenticatedUser | None = Depends(get_optional_user)):
     """
     Submit an essay for AI evaluation (legacy endpoint).
     
@@ -228,9 +234,11 @@ async def evaluate_essay(submission: EssaySubmissionSchema):
     Returns band scores, detailed feedback, and improvement suggestions.
     """
     try:
-        evaluation = await writing_service.evaluate_essay(submission)
+        evaluation = await writing_service.evaluate_essay(submission, user_id=user.id if user else None)
         return evaluation
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except RuntimeError as e:
-        raise HTTPException(status_code=503, detail=str(e))
+        raise HTTPException(status_code=503, detail="Writing prompt configuration is unavailable.") from e
+    except InvalidEvaluation as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
+    except EvaluationUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e

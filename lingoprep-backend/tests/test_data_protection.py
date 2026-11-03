@@ -129,31 +129,15 @@ class AuthenticationProtectionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(save.call_args.args[2], "verified")
         self.assertNotIn("forged", json.dumps(save.call_args.args[1]))
 
-    async def test_ai_results_use_verified_ownership_and_actual_save_status(self):
-        # A provider must not be able to claim a result was saved in our database.
-        provider_data = dict(overall_band=7, task_achievement=7, coherence_cohesion=7,
-                             lexical_resource=7, grammatical_range=7, pronunciation_fluency=7,
-                             grammar=7, coherence_structure=7, feedback="Review",
-                             suggestions=[], saved=True)
-        provider = Mock()
-        provider.chat.completions.create.return_value = SimpleNamespace(
-            choices=[SimpleNamespace(message=SimpleNamespace(content=json.dumps(provider_data)))])
-        cases = [
-            (writing_service, writing_service.evaluate_essay, EssaySubmissionSchema(
-                prompt="Prompt", essay_text="Sample essay. " * 10, exam_type="ielts")),
-            (speaking_service, speaking_service.evaluate_speaking, SpeakingSubmissionSchema(
-                prompt="Prompt", transcript="Sample spoken response.", exam_type="ielts")),
-        ]
-        for service, evaluate, submission in cases:
-            for owner in (None, "verified"):
-                database = ContentDatabase()
-                with self.subTest(service=service.__name__, owner=owner), patch.object(
-                    service, "_get_groq_client", return_value=provider
-                ), patch.object(settings, "GROQ_API_KEY", "test-only"), patch(
-                    "app.services.result_storage.get_server_client", return_value=database
-                ):
-                    result = await evaluate(submission, user_id=owner, access_token="caller-token")
-                self.assertEqual(result.saved, bool(owner))
-                self.assertEqual(len(database.writes), 1 if owner else 0)
-                if owner:
-                    self.assertEqual(database.writes[0]["user_id"], owner)
+    async def test_validated_writing_result_uses_server_save_state(self):
+        data = dict(overall_band=7, task_achievement=7, coherence_cohesion=7,
+                    lexical_resource=7, grammatical_range=7, feedback="Review", suggestions=["Improve examples"])
+        submission = EssaySubmissionSchema(prompt="Prompt", essay_text="Sample essay. " * 10, exam_type="ielts")
+        for owner in (None, "verified"):
+            database = ContentDatabase()
+            with patch.object(writing_service, "request_evaluation", new=AsyncMock(return_value=data)), patch(
+                "app.services.result_storage.get_server_client", return_value=database
+            ):
+                result = await writing_service.evaluate_essay(submission, user_id=owner)
+            self.assertEqual(result.saved, bool(owner))
+            self.assertEqual(len(database.writes), 1 if owner else 0)

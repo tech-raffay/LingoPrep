@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from "react";
 import api from "@/lib/api";
 import TestIntro from "@/components/test/TestIntro";
-import ScoreReport, { CriteriaReview } from "@/components/test/ScoreReport";
 import { useExam } from "@/components/theme/ExamThemeProvider";
 
 interface SpeakingPrompt {
@@ -15,22 +14,12 @@ interface SpeakingPrompt {
 }
 
 interface EvaluationResult {
-  overall_band: number;
-  pronunciation_fluency: number;
-  grammar: number;
-  lexical_resource: number;
-  coherence_structure: number;
+  overall_band: null;
+  pronunciation_fluency: null;
+  assessment_type: "transcript_feedback";
   feedback: string;
   suggestions: string[];
 }
-
-const bandLabels: Record<string, string> = {
-  pronunciation_fluency: "Pronunciation & Fluency",
-  grammar: "Grammar",
-  lexical_resource: "Lexical Resource",
-  coherence_structure: "Coherence & Structure",
-};
-
 
 const fallbackPrompts: Record<string, SpeakingPrompt[]> = {
   ielts: [
@@ -80,7 +69,6 @@ export default function SpeakingPage() {
   // Intro screen first, as for every skill.
   const [started, setStarted] = useState(false);
   // Backend-confirmed: this answer is now in the candidate's Results page.
-  const [saved, setSaved] = useState<boolean | undefined>(undefined);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -185,7 +173,6 @@ export default function SpeakingPage() {
         exam_type: selectedPrompt.exam_type || examType,
       });
       setEvaluation(res.data);
-      setSaved(typeof res.data?.saved === "boolean" ? res.data.saved : undefined);
       window.scrollTo({ top: 0 });
     } catch (err: any) {
       setError(
@@ -200,7 +187,6 @@ export default function SpeakingPage() {
     setRecordingState("idle");
     setTranscript("");
     setEvaluation(null);
-    setSaved(undefined);
     setError(null);
     setRecordingTime(0);
     chunksRef.current = [];
@@ -214,37 +200,18 @@ export default function SpeakingPage() {
   };
 
   const wordCount = transcript.trim() ? transcript.trim().split(/\s+/).length : 0;
-  const maxScale = examType === "toefl" ? 30 : 9;
-  const subScoreMax = examType === "toefl" ? 4 : 9;
 
-  // Score report ("Listening Score Report.dc.html" frame, criteria review)
   if (evaluation) {
     return (
-      <ScoreReport
-        skill="speaking"
-        score={evaluation.overall_band}
-        saved={saved}
-        facts={[
-          { label: "Topic", value: selectedPrompt.title.length > 28 ? `${selectedPrompt.title.slice(0, 27)}…` : selectedPrompt.title },
-          { label: "Words spoken", value: `${wordCount}` },
-        ]}
-        review={
-          <CriteriaReview
-            skill="speaking"
-            prompt={selectedPrompt.content}
-            response={transcript}
-            responseLabel="your transcript"
-            criteria={Object.entries(bandLabels).map(([key, label]) => ({
-              label,
-              value: Number((evaluation as unknown as Record<string, number>)[key]) || 0,
-              max: subScoreMax,
-            }))}
-            feedback={evaluation.feedback}
-            suggestions={evaluation.suggestions}
-          />
-        }
-        onRetake={() => { handleReset(); window.scrollTo({ top: 0 }); }}
-      />
+      <section className="mx-auto max-w-3xl space-y-6 px-6 py-12">
+        <h1 className="text-3xl font-semibold">Transcript feedback</h1>
+        <p>This review covers your written transcript. Pronunciation and acoustic fluency were not assessed, and no overall speaking grade was saved.</p>
+        <p className="whitespace-pre-wrap">{evaluation.feedback}</p>
+        <ul className="list-disc space-y-2 pl-6">
+          {evaluation.suggestions.map((suggestion, index) => <li key={index}>{suggestion}</li>)}
+        </ul>
+        <button className="rounded-lg border px-4 py-2" onClick={() => { handleReset(); window.scrollTo({ top: 0 }); }}>Practise again</button>
+      </section>
     );
   }
 
@@ -261,9 +228,7 @@ export default function SpeakingPage() {
               : "Speak on a cue-card topic. In the real exam you get 1 minute to prepare and speak for up to 2 minutes." },
           { label: "Recording:", text: "Your answer is recorded in the browser and transcribed. You can also type a transcript if the microphone is unavailable." },
           { label: "Topics:", text: "Pick from the topics above the recorder; switching topic clears the current answer." },
-          { label: "Scoring:", text: examType === "toefl"
-              ? "An AI-estimated score on the 0–30 scale, with sub-scores for Pronunciation & Fluency, Grammar, Lexical Resource, and Coherence & Structure."
-              : "An AI-estimated band for Pronunciation & Fluency, Grammar, Lexical Resource, and Coherence & Structure." },
+          { label: "Feedback:", text: "Receive suggestions on grammar, vocabulary and organization from your transcript. Pronunciation is not assessed, and this practice does not produce an overall speaking grade." },
         ]}
         instructions={<>Allow microphone access when prompted and find a quiet room. Speak naturally, as you would to an examiner.</>}
         startLabel="Start speaking"
@@ -531,7 +496,6 @@ export default function SpeakingPage() {
       )}
 
       {/* Evaluation Results */}
-      {/* Results now render as the full-page ScoreReport above. */}
     </div>
   );
 }
