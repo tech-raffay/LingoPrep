@@ -1,6 +1,6 @@
 from uuid import UUID
 import httpx
-from fastapi import Header, HTTPException
+from fastapi import Header, HTTPException, Request
 from app.config import settings
 
 class AuthenticatedUser:
@@ -83,11 +83,13 @@ async def get_current_user(authorization: str | None = Header(None)) -> Authenti
             detail="Authentication service temporarily unavailable."
         ) from e
 
-async def get_optional_user(authorization: str | None = Header(None)) -> AuthenticatedUser | None:
+async def get_optional_user(authorization: str | None = Header(None), request: Request = None) -> AuthenticatedUser | None:
     """
     Attempt to verify user JWT token if present.
     Only an absent header enables guest access. Invalid credentials are rejected.
     """
+    if request is not None and getattr(request.state, "verified_authorization", object()) == authorization:
+        return request.state.verified_user
     if authorization is None:
         return None
     return await get_current_user(authorization)

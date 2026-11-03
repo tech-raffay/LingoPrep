@@ -12,7 +12,9 @@ from app.schemas.models import SpeakingSubmissionSchema, SpeakingEvaluationSchem
 from app.services import speaking_service
 from app.services.supabase_client import get_client
 
-router = APIRouter()
+from app.services.reliable_routes import ReliableRoute
+
+router = APIRouter(route_class=ReliableRoute)
 
 
 @router.get("/prompts")
@@ -61,14 +63,18 @@ async def list_prompts(
 @router.post("/transcribe")
 async def transcribe_audio(file: UploadFile = File(...)):
     """Transcribe user speaking recording using Groq Whisper."""
+    from app.services.audio_upload import read_audio_upload
+    from app.services.audio_duration import validate_audio_duration
     try:
-        audio_bytes = await file.read()
-        transcript = await speaking_service.transcribe_audio_file(audio_bytes, file.filename)
+        audio_bytes, extension, mime = await read_audio_upload(file)
+        await run_in_threadpool(validate_audio_duration, audio_bytes, extension)
+        transcript = await speaking_service.transcribe_audio_file(audio_bytes, extension, mime)
         return {"success": True, "transcript": transcript}
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Transcription is temporarily unavailable.") from exc
+
 
 
 from app.dependencies.auth import get_optional_user, AuthenticatedUser

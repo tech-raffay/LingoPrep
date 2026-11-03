@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import api from "@/lib/api";
+import api, { resetAttempt } from "@/lib/api";
 import TestIntro from "@/components/test/TestIntro";
 import { useExam } from "@/components/theme/ExamThemeProvider";
 
@@ -184,6 +184,7 @@ export default function SpeakingPage() {
   };
 
   const handleReset = () => {
+    resetAttempt("speaking");
     setRecordingState("idle");
     setTranscript("");
     setEvaluation(null);

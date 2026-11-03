@@ -16,7 +16,9 @@ from app.services.supabase_client import get_client
 from app.services.result_storage import save_owned_record
 from app.dependencies.auth import get_optional_user, AuthenticatedUser
 
-router = APIRouter()
+from app.services.reliable_routes import ReliableRoute
+
+router = APIRouter(route_class=ReliableRoute)
 
 
 TOEFL_PROMPTS = [

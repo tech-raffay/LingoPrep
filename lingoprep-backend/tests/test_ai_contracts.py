@@ -8,6 +8,7 @@ import httpx
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from app.main import app
+from persistence_fakes import isolated_attempts, headers
 from app.dependencies import auth
 from app.services import ai_evaluation as ai, writing_service, speaking_service
 from app.schemas.models import EssaySubmissionSchema, SpeakingSubmissionSchema
@@ -33,16 +34,16 @@ class ContractTests(unittest.TestCase):
             ai.validate_output("broken JSON", "ielts", "writing")
 
     def test_request_limits_and_whitespace(self):
-        with TestClient(app) as client, patch.object(writing_service, "request_evaluation") as provider:
+        with isolated_attempts(), TestClient(app) as client, patch.object(writing_service, "request_evaluation") as provider:
             for payload in ({**ESSAY, "essay_text": " " * 100}, {**ESSAY, "essay_text": "x" * 20001}, {**ESSAY, "exam_type": "other"}):
-                self.assertEqual(client.post("/api/writing/evaluate", json=payload).status_code, 422)
+                self.assertEqual(client.post("/api/writing/evaluate", json=payload, headers=headers()).status_code, 422)
         provider.assert_not_called()
 
     def test_failures_return_safe_errors_and_never_save(self):
-        with TestClient(app) as client, patch("app.services.result_storage.get_server_client") as database:
+        with isolated_attempts(), TestClient(app) as client, patch("app.services.result_storage.get_server_client") as database:
             for error, status in ((ai.InvalidEvaluation("Invalid evaluation. Please retry."), 502), (ai.EvaluationUnavailable("Evaluation unavailable."), 503)):
                 with patch.object(writing_service, "request_evaluation", new=AsyncMock(side_effect=error)):
-                    response = client.post("/api/writing/submit", json={"prompt_id": "p1", "essay": ESSAY["essay_text"]})
+                    response = client.post("/api/writing/submit", json={"prompt_id": "p1", "essay": ESSAY["essay_text"]}, headers=headers())
                     self.assertEqual(response.status_code, status)
                     self.assertNotIn("score", response.json())
         database.assert_not_called()

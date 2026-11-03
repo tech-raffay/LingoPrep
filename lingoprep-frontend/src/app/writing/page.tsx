@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import api from "@/lib/api";
+import api, { resetAttempt } from "@/lib/api";
 import TestIntro from "@/components/test/TestIntro";
 import ScoreReport, { CriteriaReview } from "@/components/test/ScoreReport";
 import { useExam } from "@/components/theme/ExamThemeProvider";
@@ -53,6 +53,7 @@ export default function WritingPage() {
   // Intro screen first, as for every skill. Prompts load behind it.
   const [started, setStarted] = useState(false);
   // Backend-confirmed: this essay is now in the candidate's Results page.
+  const [attemptId, setAttemptId] = useState<string | undefined>(undefined);
   const [saved, setSaved] = useState<boolean | undefined>(undefined);
 
   // Load prompts from the API on mount
@@ -86,6 +87,7 @@ export default function WritingPage() {
       });
       // The submit endpoint returns { success, feedback, score }
       setEvaluation(res.data.feedback);
+      setAttemptId(res.data.save_retry_available ? res.data.attempt_id : undefined);
       setSaved(typeof res.data.saved === "boolean" ? res.data.saved : undefined);
       window.scrollTo({ top: 0 });
     } catch (err: any) {
@@ -100,9 +102,11 @@ export default function WritingPage() {
   };
 
   const handleReset = () => {
+    resetAttempt("writing");
     setEssay("");
     setEvaluation(null);
     setSaved(undefined);
+    setAttemptId(undefined);
     setError(null);
   };
 
@@ -133,6 +137,8 @@ export default function WritingPage() {
         skill="writing"
         score={evaluation.overall_band}
         saved={saved}
+        attemptId={attemptId}
+        onSaved={() => setSaved(true)}
         facts={[
           ...(selectedPrompt ? [{ label: "Task", value: examType === "ielts" ? `Task ${String(selectedPrompt.task_type).replace(/D/g, "") || "2"}` : "Writing task" }] : []),
           { label: "Word count", value: `${wordCount} words` },
