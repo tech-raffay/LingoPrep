@@ -1,10 +1,9 @@
 """Single-passage routes must enforce the same answer ownership as full tests."""
 import unittest
-from unittest.mock import patch
 from app.schemas.models import MCQSubmission
 from app.services import reading_service, listening_service
 from app.services.submission_validation import InvalidSubmission, TestContentUnavailable
-from test_full_test_validation import ContentDatabase
+from test_full_test_validation import ContentDatabase, patch_database
 
 
 class PassageScoringTests(unittest.TestCase):
@@ -16,7 +15,7 @@ class PassageScoringTests(unittest.TestCase):
                 {"question_id": "q1", "selected_option_id": "o1"},
                 {"question_id": "q2", "answer_text": "Library"},
             ])
-            with self.subTest(module=module), patch.object(service, "get_client", return_value=database):
+            with self.subTest(module=module), patch_database(service, database):
                 result = service.score_submission(submission, user_id="user")
             self.assertEqual(result.correct_answers, 2)
             self.assertEqual(len(database.writes), 1)
@@ -32,7 +31,7 @@ class PassageScoringTests(unittest.TestCase):
                 answers[0]["selected_option_id"] = "foreign"
             else:
                 database.failed_table = "questions"
-            with self.subTest(failure=failure), patch.object(reading_service, "get_client", return_value=database):
+            with self.subTest(failure=failure), patch_database(reading_service, database):
                 with self.assertRaises((InvalidSubmission, TestContentUnavailable)):
                     reading_service.score_submission(MCQSubmission(passage_id="p1", answers=answers))
             self.assertEqual(database.writes, [])
@@ -41,7 +40,7 @@ class PassageScoringTests(unittest.TestCase):
         database = ContentDatabase()
         database.rows["passages"].append({"id": "p2", "module": "reading", "exam_type": "ielts"})
         database.rows["questions"].append({"id": "q3", "passage_id": "p2"})
-        with patch.object(reading_service, "get_client", return_value=database):
+        with patch_database(reading_service, database):
             result = reading_service.score_submission(MCQSubmission(passage_id="p1", answers=[
                 {"question_id": "q1"}, {"question_id": "q2"},
             ]))
@@ -56,7 +55,7 @@ class PassageScoringTests(unittest.TestCase):
             submission = MCQSubmission(passage_id="p1", answers=[
                 {"question_id": question_id}, {"question_id": "q2"},
             ])
-            with self.subTest(failure=failure), patch.object(reading_service, "get_client", return_value=database):
+            with self.subTest(failure=failure), patch_database(reading_service, database):
                 with self.assertRaises(InvalidSubmission):
                     reading_service.score_submission(submission)
             self.assertEqual(database.writes, [])

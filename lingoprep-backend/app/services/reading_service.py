@@ -6,7 +6,8 @@ completion, diagram, table, flowchart, notes, summary, short-answer).
 """
 
 import re
-from app.services.supabase_client import get_client
+from app.services.supabase_client import get_client, get_server_client
+from app.services.result_storage import save_owned_record
 from app.services.content_loader import attach_questions
 from app.services.submission_validation import load_full_test
 from app.services.passage_scoring import score_passage
@@ -28,7 +29,7 @@ def get_passages(exam_type: str = None, difficulty: str = None) -> list[dict]:
         query = query.eq("difficulty", difficulty)
 
     passages = query.execute().data or []
-    return attach_questions(passages, reading_defaults=True)
+    return attach_questions(passages)
 
 
 def get_passage_by_id(passage_id: str) -> dict | None:
@@ -47,42 +48,7 @@ def get_passage_by_id(passage_id: str) -> dict | None:
     if not passage:
         return None
 
-    questions_res = (
-        client.table("questions")
-        .select("*")
-        .eq("passage_id", passage_id)
-        .order("sort_order")
-        .execute()
-    )
-    questions = questions_res.data or []
-
-    for q in questions:
-        q.setdefault("question_type", "multiple_choice")
-        q.setdefault("question_group_label", "")
-        q.setdefault("correct_answer_text", "")
-        q.setdefault("question_data", {})
-
-        options_res = (
-            client.table("options")
-            .select("*")
-            .eq("question_id", q["id"])
-            .order("sort_order")
-            .execute()
-        )
-        q["options"] = [
-            {
-                "id": str(o["id"]),
-                "text": o["option_text"],
-                "label": o["option_label"],
-                "is_correct": o["is_correct"],
-            }
-            for o in (options_res.data or [])
-        ]
-        correct = next((o for o in (options_res.data or []) if o["is_correct"]), None)
-        q["correct_option_id"] = str(correct["id"]) if correct else ""
-
-    passage["questions"] = questions
-    return passage
+    return attach_questions([passage])[0]
 
 
 def _normalize_answer(text: str) -> str:
@@ -115,7 +81,7 @@ def _check_text_answer(user_answer: str, correct_answer: str) -> bool:
 def score_submission(submission: MCQSubmission, user_id: str = None, access_token: str = None) -> MCQResult:
     """Validate and score one passage, then save it once."""
     return score_passage(
-        get_client(access_token), "reading", submission, user_id,
+        get_server_client(), "reading", submission, user_id,
         _percentage_to_band, _check_text_answer,
     )
 
@@ -193,7 +159,7 @@ def score_full_test(submission: FullTestSubmission, user_id: str = None, access_
     For option-based types (MCQ, TFNG, YNG): checks selected_option_id
     For text-based types (all others): checks answer_text vs correct_answer_text
     """
-    client = get_client(access_token)
+    client = get_server_client()
     exam_type = getattr(submission, 'exam_type', 'ielts') or 'ielts'
 
     question_map, correct_map, selected_map = load_full_test(
@@ -254,7 +220,7 @@ def score_full_test(submission: FullTestSubmission, user_id: str = None, access_
     # Log the session
     saved = False
     try:
-        client.table("session_logs").insert({
+        saved = save_owned_record("session_logs", {
             "user_id": user_id,
             "module": "reading",
             "passage_id": None,
@@ -263,8 +229,7 @@ def score_full_test(submission: FullTestSubmission, user_id: str = None, access_
             "percentage": percentage,
             "band_score": band_score,
             "details": {"exam_type": exam_type, "results": results, "is_full_test": True},
-        })
-        saved = bool(user_id)
+        }, user_id)
     except Exception as e:
         print(f"Failed to log full reading session: {str(e)}")
 

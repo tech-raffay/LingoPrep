@@ -39,8 +39,6 @@ class MCQQuestionSchema(BaseModel):
     id: str
     question_text: str
     options: list[MCQOptionSchema]
-    correct_option_id: str
-    explanation: Optional[str] = None
     difficulty: Difficulty
 
 

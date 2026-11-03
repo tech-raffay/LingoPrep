@@ -7,7 +7,7 @@ import json
 from groq import Groq
 from app.config import settings
 from app.schemas.models import EssaySubmissionSchema, EssayEvaluationSchema
-from app.services.supabase_client import get_client
+from app.services.result_storage import save_owned_record
 
 
 
@@ -149,16 +149,17 @@ Return ONLY the JSON object, no other text.
         
         evaluation = EssayEvaluationSchema(**evaluation_data)
 
+        evaluation.saved = False
+
         # Log session in Supabase
         try:
-            db = get_client(access_token)
             is_toefl = submission.exam_type.value == "toefl"
             max_score = 30.0 if is_toefl else 9.0
             percentage = round((evaluation.overall_band / max_score) * 100, 1)
 
             # user_id and exam_type are what the results dashboard filters on;
             # without them a writing attempt never shows up in anyone's results.
-            db.table("session_logs").insert({
+            evaluation.saved = save_owned_record("session_logs", {
                 "user_id": user_id,
                 "module": "writing",
                 "score": evaluation.overall_band,
@@ -179,8 +180,7 @@ Return ONLY the JSON object, no other text.
                     "feedback": evaluation.feedback,
                     "suggestions": evaluation.suggestions,
                 }
-            })  # this client sends the insert immediately; there is no .execute()
-            evaluation.saved = bool(user_id)
+            }, user_id)
         except Exception as e:
             print(f"Failed to log writing session: {str(e)}")
 

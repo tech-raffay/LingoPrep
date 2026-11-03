@@ -1,6 +1,8 @@
 """Regression tests using synthetic content; never contact external services."""
 
 import unittest
+from copy import deepcopy
+from contextlib import contextmanager
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -33,6 +35,7 @@ class Query:
     def __init__(self, database, table):
         self.database, self.name = database, table
         self.filters = []
+        self.is_single = False
 
     def select(self, fields):
         return self
@@ -45,15 +48,28 @@ class Query:
         self.filters.append(lambda row: row.get(field) in values)
         return self
 
+    def single(self):
+        self.is_single = True
+        return self
+
     def execute(self):
         if self.name == self.database.failed_table:
             raise RuntimeError("Synthetic database failure")
-        return SimpleNamespace(data=[row for row in self.database.rows[self.name]
-                                     if all(check(row) for check in self.filters)])
+        rows = deepcopy([row for row in self.database.rows[self.name]
+                         if all(check(row) for check in self.filters)])
+        return SimpleNamespace(data=(rows[0] if rows else None) if self.is_single else rows)
 
     def insert(self, row):
         self.database.writes.append(row)
         return SimpleNamespace(data=[row])
+
+
+@contextmanager
+def patch_database(service, database):
+    with patch.object(service, "get_server_client", return_value=database), patch(
+        "app.services.result_storage.get_server_client", return_value=database
+    ):
+        yield
 
 
 class FullTestValidationTests(unittest.TestCase):
@@ -66,14 +82,14 @@ class FullTestValidationTests(unittest.TestCase):
         for module, service in (("reading", reading_service), ("listening", listening_service)):
             with self.subTest(module=module):
                 self.database.rows["passages"][0]["module"] = module
-                with patch.object(service, "get_client", return_value=self.database):
+                with patch_database(service, self.database):
                     result = service.score_full_test(FullTestSubmission(answers=self.answers), user_id="user")
                 self.assertEqual(result.correct_answers, 2)
                 self.assertTrue(result.saved)
 
     def test_blank_answers_are_allowed_but_still_counted(self):
         blank = [AnswerSubmission(question_id="q1"), AnswerSubmission(question_id="q2")]
-        with patch.object(reading_service, "get_client", return_value=self.database):
+        with patch_database(reading_service, self.database):
             result = reading_service.score_full_test(FullTestSubmission(answers=blank))
         self.assertEqual(result.total_questions, 2)
         self.assertEqual(result.correct_answers, 0)
@@ -99,7 +115,7 @@ class FullTestValidationTests(unittest.TestCase):
             for service in (reading_service, listening_service):
                 self.database.rows["passages"][0]["module"] = "reading" if service is reading_service else "listening"
                 self.database.failed_table = table
-                with self.subTest(table=table, service=service.__name__), patch.object(service, "get_client", return_value=self.database):
+                with self.subTest(table=table, service=service.__name__), patch_database(service, self.database):
                     with self.assertLogs("app.services.submission_validation", level="ERROR"):
                         with self.assertRaises(TestContentUnavailable):
                             service.score_full_test(FullTestSubmission(answers=self.answers))
