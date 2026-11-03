@@ -10,7 +10,9 @@ from app.services.submission_validation import InvalidSubmission, TestContentUna
 from app.schemas.models import MCQSubmission, MCQResult, FullTestSubmission, FullTestResult
 from app.services import reading_service
 
-router = APIRouter()
+from app.services.reliable_routes import ReliableRoute
+
+router = APIRouter(route_class=ReliableRoute)
 
 
 @router.get("/passages")

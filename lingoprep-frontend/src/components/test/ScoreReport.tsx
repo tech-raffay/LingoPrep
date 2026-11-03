@@ -18,6 +18,7 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
+import RetrySave from "./RetrySave";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useExam } from "@/components/theme/ExamThemeProvider";
 import Icon from "@/components/brand/Icon";
@@ -88,6 +89,8 @@ export default function ScoreReport({
   percentage,
   facts,
   saved,
+  attemptId,
+  onSaved,
   sections,
   review,
   onRetake,
@@ -102,6 +105,8 @@ export default function ScoreReport({
   facts?: ReportFact[];
   /** Backend-confirmed save. Undefined when the backend did not say. */
   saved?: boolean;
+  attemptId?: string;
+  onSaved?: () => void;
   sections?: ReviewSection[];
   review?: ReactNode;
   onRetake: () => void;
@@ -245,6 +250,7 @@ export default function ScoreReport({
             </div>
 
             <SaveStatus signedIn={!!user} saved={saved} />
+            {user && !saved && attemptId && onSaved && <RetrySave attemptId={attemptId} onSaved={onSaved} />}
           </Reveal>
         </div>
       </section>

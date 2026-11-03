@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import api from "@/lib/api";
+import api, { resetAttempt } from "@/lib/api";
 import TestIntro from "@/components/test/TestIntro";
 import ScoreReport, { type ReviewSection } from "@/components/test/ScoreReport";
 import { useExam } from "@/components/theme/ExamThemeProvider";
@@ -85,6 +85,7 @@ export default function ReadingPage() {
   const [scorePercentage, setScorePercentage] = useState<number | null>(null);
   const [dbResults, setDbResults] = useState<any[] | null>(null);
   // Backend-confirmed: this attempt is now in the candidate's Results page.
+  const [attemptId, setAttemptId] = useState<string | undefined>(undefined);
   const [saved, setSaved] = useState<boolean | undefined>(undefined);
 
   const [timeLeft, setTimeLeft] = useState(3600);
@@ -239,6 +240,7 @@ export default function ReadingPage() {
       setScorePercentage(res.data.score_percentage);
       setBandScore(res.data.band_score);
       setDbResults(res.data.results);
+      setAttemptId(res.data.save_retry_available ? res.data.attempt_id : undefined);
       setSaved(typeof res.data.saved === "boolean" ? res.data.saved : undefined);
       setSubmitted(true);
       window.scrollTo({ top: 0 });
@@ -261,6 +263,7 @@ export default function ReadingPage() {
   };
 
   const handleReset = () => {
+    resetAttempt("reading");
     setSelectedAnswers({});
     setSubmitted(false);
     setScorePercentage(null);
@@ -268,6 +271,7 @@ export default function ReadingPage() {
     setBandScore(null);
     setDbResults(null);
     setSaved(undefined);
+    setAttemptId(undefined);
     setIsTestStarted(false);
     setActiveSectionIdx(0);
   };
@@ -426,6 +430,8 @@ export default function ReadingPage() {
         skill="reading"
         score={bandScore ?? 0}
         saved={saved}
+        attemptId={attemptId}
+        onSaved={() => setSaved(true)}
         facts={[
           { label: "Raw score", value: `${correctCount ?? 0} / ${allQuestions.length} correct` },
           { label: "Percentage", value: `${Math.round(scorePercentage ?? 0)}%` },

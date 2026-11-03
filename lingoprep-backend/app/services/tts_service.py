@@ -12,8 +12,8 @@ candidate is waiting on the play button:
      seeded tests are committed in static/audio/ (run
      `python scripts/pregenerate_audio.py` after changing a transcript), so a
      fresh deploy serves them straight from disk.
-  2. If a transcript has no file yet, `prewarm()` starts generating it in the
-     background the moment the test list is requested, long before play.
+  2. Missing files are generated on playback under shared workload limits.
+     Browsing the list does not schedule provider work.
   3. Generation runs the lines in parallel, is de-duplicated per recording,
      and writes atomically, so a half-written file is never served.
 """
@@ -203,6 +203,8 @@ async def _synthesize_line(voice: str, text: str) -> bytes:
                 async for chunk in edge_tts.Communicate(text, voice).stream():
                     if chunk["type"] == "audio":
                         audio.extend(chunk["data"])
+                        if len(audio) > 2 * 1024 * 1024:
+                            raise ValueError("Synthesized line exceeds size limit.")
                 if audio:
                     return bytes(audio)
                 last_error = RuntimeError("speech service returned no audio")
@@ -212,16 +214,27 @@ async def _synthesize_line(voice: str, text: str) -> bytes:
         raise RuntimeError(f"Could not synthesise line: {last_error}")
 
 
-async def synthesize_transcript(transcript: str, exam_type: str = "ielts", output_path: Path | None = None, seed: str = "") -> bytes:
+async def _synthesize_transcript(transcript: str, exam_type: str = "ielts", output_path: Path | None = None, seed: str = "") -> bytes:
     """
     Synthesize transcript text into authentic accented audio.
     Lines are synthesised in parallel and joined in order; pauses become
     silent frames.
     """
     segments = _segments(transcript, exam_type, seed)
-    spoken = [s for s in segments if isinstance(s, tuple)]
-    parts = iter(await asyncio.gather(*(_synthesize_line(voice, text) for voice, text in spoken)))
-    audio_bytes = b"".join(silence(s) if isinstance(s, float) else next(parts) for s in segments)
+    # Small batches bound retained line buffers. TaskGroup cancels sibling
+    # requests if any line fails; a failed job must not leave paid work running.
+    audio = bytearray()
+    for offset in range(0, len(segments), _MAX_PARALLEL_LINES):
+        batch = segments[offset:offset + _MAX_PARALLEL_LINES]
+        async with asyncio.TaskGroup() as group:
+            tasks = {index: group.create_task(_synthesize_line(*segment))
+                     for index, segment in enumerate(batch) if isinstance(segment, tuple)}
+        for index, segment in enumerate(batch):
+            part = silence(segment) if isinstance(segment, float) else tasks[index].result()
+            if len(audio) + len(part) > 16 * 1024 * 1024:
+                raise ValueError("Synthesized recording exceeds size limit.")
+            audio.extend(part)
+    audio_bytes = bytes(audio)
 
     if output_path:
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -233,6 +246,21 @@ async def synthesize_transcript(transcript: str, exam_type: str = "ielts", outpu
         os.replace(tmp_path, output_path)
 
     return audio_bytes
+
+
+async def synthesize_transcript(transcript: str, exam_type: str = "ielts", output_path: Path | None = None, seed: str = "") -> bytes:
+    """Bound synthesis work, including script-driven and background generation."""
+    from app.services.resource_limits import private_actor, workload
+    if len(transcript) > 50000:
+        raise ValueError("Transcript exceeds synthesis limit.")
+    segments = _segments(transcript, exam_type, seed)
+    if len(segments) > 200 or any(isinstance(item, tuple) and len(item[1]) > 2000 for item in segments):
+        raise ValueError("Transcript has too many or oversized segments.")
+    pauses = [item for item in segments if isinstance(item, float)]
+    if any(not 0 <= pause <= 60 for pause in pauses) or sum(pauses) > 300:
+        raise ValueError("Transcript pause duration exceeds limit.")
+    async with workload("tts", [private_actor("tts:server")]):
+        return await asyncio.wait_for(_synthesize_transcript(transcript, exam_type, output_path, seed), timeout=180)
 
 
 async def get_or_generate_audio(audio_id: str, transcript: str, exam_type: str = "ielts") -> Path:
@@ -248,6 +276,8 @@ async def get_or_generate_audio(audio_id: str, transcript: str, exam_type: str =
     if cached_path.exists() and cached_path.stat().st_size > 0:
         return cached_path
 
+    if key not in _inflight and len(_inflight) >= 2:
+        raise RuntimeError("Audio generation is busy.")
     task = _inflight.get(key)
     if task is None:
         task = asyncio.create_task(synthesize_transcript(transcript, exam_type, cached_path, seed=audio_id))

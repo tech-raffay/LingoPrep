@@ -66,18 +66,25 @@ class ListeningAudioSchema(BaseModel):
 # --- Answer Submission ---
 
 class AnswerSubmission(BaseModel):
-    question_id: str
-    selected_option_id: str = ""  # For MCQ / TFNG / YNG types
-    answer_text: str = ""  # For text-input / matching / completion types
+    question_id: str = Field(..., min_length=1, max_length=100)
+    selected_option_id: str = Field("", max_length=100)  # For MCQ / TFNG / YNG types
+    answer_text: str = Field("", max_length=2000)  # For text-input / matching / completion types
 
 
 class MCQSubmission(BaseModel):
     """Submit answers for a reading or listening passage."""
-    passage_id: str
+    passage_id: str = Field(..., min_length=1, max_length=100)
     answers: list[AnswerSubmission] = Field(..., min_length=1, max_length=200)
 
 
-class MCQResult(BaseModel):
+class AttemptResult(BaseModel):
+    """Persistence metadata supplied by the reliable submission route."""
+    attempt_id: Optional[str] = None
+    saved: bool = False
+    save_retry_available: bool = False
+
+
+class MCQResult(AttemptResult):
     passage_id: str
     total_questions: int
     correct_answers: int
@@ -91,7 +98,7 @@ class FullTestSubmission(BaseModel):
     exam_type: Literal["ielts", "toefl"] = "ielts"  # "ielts" or "toefl"
 
 
-class FullTestResult(BaseModel):
+class FullTestResult(AttemptResult):
     total_questions: int
     correct_answers: int
     score_percentage: float
@@ -120,7 +127,7 @@ class EssaySubmissionSchema(BaseModel):
         return self
 
 
-class EssayEvaluationSchema(BaseModel):
+class EssayEvaluationSchema(AttemptResult):
     overall_band: float
     task_achievement: float
     coherence_cohesion: float
@@ -155,7 +162,7 @@ class SpeakingSubmissionSchema(BaseModel):
         return self
 
 
-class SpeakingEvaluationSchema(BaseModel):
+class SpeakingEvaluationSchema(AttemptResult):
     feedback: str
     suggestions: list[str]
     assessment_type: Literal["transcript_feedback"] = "transcript_feedback"

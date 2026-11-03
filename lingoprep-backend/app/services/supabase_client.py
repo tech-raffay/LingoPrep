@@ -118,6 +118,15 @@ class SupabaseHttpClient:
     def table(self, table_name: str):
         return SupabaseTableQuery(self.url, table_name, self.headers)
 
+    def rpc(self, name: str, parameters: dict):
+        """Call a backend-owned transaction without exposing database diagnostics."""
+        try:
+            response = _http.post(f"{self.url}/rest/v1/rpc/{name}", headers=self.headers, json=parameters)
+            response.raise_for_status()
+            return response.json() if response.content else None
+        except (httpx.HTTPError, ValueError) as exc:
+            raise ServerDatabaseUnavailable("Protected database operation is unavailable.") from exc
+
 
 # Lazy singleton instance
 _client: SupabaseHttpClient | None = None

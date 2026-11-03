@@ -9,8 +9,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.services.supabase_client import ServerDatabaseUnavailable
 
+from app.services.reliable_routes import RequestSizeLimit
 from app.config import settings
-from app.routers import reading, listening, writing, users, speaking
+from app.routers import reading, listening, writing, users, speaking, attempts
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -26,6 +27,7 @@ async def protected_database_unavailable(request, exc):
     return JSONResponse(status_code=503, content={"detail": "Protected database access is unavailable."})
 
 
+app.add_middleware(RequestSizeLimit)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -44,6 +46,7 @@ app.include_router(listening.router, prefix="/api/listening", tags=["Listening"]
 app.include_router(writing.router, prefix="/api/writing", tags=["Writing"])
 app.include_router(speaking.router, prefix="/api/speaking", tags=["Speaking"])
 app.include_router(users.router, prefix="/api/users", tags=["Users"])
+app.include_router(attempts.router, prefix="/api/attempts", tags=["Attempts"])
 
 
 @app.get("/", tags=["Health"])

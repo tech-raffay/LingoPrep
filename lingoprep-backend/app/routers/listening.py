@@ -3,7 +3,7 @@ LingoPrep API — Listening Router
 Endpoints for listening audio retrieval and MCQ scoring.
 """
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
 from typing import Optional
@@ -12,7 +12,9 @@ from app.services.submission_validation import InvalidSubmission, TestContentUna
 from app.schemas.models import MCQSubmission, MCQResult, FullTestSubmission, FullTestResult
 from app.services import listening_service, tts_service
 
-router = APIRouter()
+from app.services.reliable_routes import ReliableRoute
+
+router = APIRouter(route_class=ReliableRoute)
 
 
 def _audio_response(path) -> FileResponse:
@@ -27,7 +29,6 @@ def _audio_response(path) -> FileResponse:
 
 @router.get("/audios")
 def list_audios(
-    background_tasks: BackgroundTasks,
     exam_type: Optional[str] = Query(None, description="Filter by exam type: ielts or toefl"),
     difficulty: Optional[str] = Query(None, description="Filter by difficulty: easy, medium, hard"),
 ):
@@ -36,9 +37,7 @@ def list_audios(
     for a in audios:
         a["transcript_display"] = tts_service.display_transcript(a.get("transcript") or "")
 
-    # The candidate is about to listen to these. Remember each recording's
-    # cache key, and start generating any that are missing now, so the audio
-    # is ready before they press play.
+    # Remember recording versions, but do not schedule synthesis on list reads.
     sources = [
         (a["id"], a.get("transcript") or "", a.get("exam_type") or "ielts")
         for a in sorted(audios, key=lambda a: a["id"])
@@ -46,7 +45,7 @@ def list_audios(
     for audio_id, transcript, exam in sources:
         if transcript:
             tts_service.register(audio_id, transcript, exam)
-    background_tasks.add_task(tts_service.prewarm, sources)
+    # Generate on playback; browsing the list must not schedule paid work.
 
     return {"success": True, "data": audios, "count": len(audios)}
 
@@ -88,8 +87,10 @@ async def stream_audio_file(audio_id: str):
     try:
         file_path = await tts_service.get_or_generate_audio(audio_id, transcript, exam_type)
         return _audio_response(file_path)
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to generate accented audio: {str(e)}")
+        raise HTTPException(status_code=503, detail="Audio generation is temporarily unavailable.") from e
 
 
 @router.get("/audio-info/{audio_id}")
