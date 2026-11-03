@@ -7,11 +7,14 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
 from typing import Optional
+from uuid import UUID
+import logging
 
 from app.schemas.models import MCQSubmission, MCQResult, FullTestSubmission, FullTestResult
 from app.services import listening_service, tts_service
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 def _audio_response(path) -> FileResponse:
@@ -20,7 +23,7 @@ def _audio_response(path) -> FileResponse:
     return FileResponse(
         path=str(path),
         media_type="audio/mpeg",
-        headers={"Accept-Ranges": "bytes", "Cache-Control": "public, max-age=3600"},
+        headers={"Accept-Ranges": "bytes", "Cache-Control": "no-cache", "X-Content-Type-Options": "nosniff"},
     )
 
 
@@ -35,24 +38,20 @@ def list_audios(
     for a in audios:
         a["transcript_display"] = tts_service.display_transcript(a.get("transcript") or "")
 
-    # The candidate is about to listen to these. Remember each recording's
-    # cache key, and start generating any that are missing now, so the audio
-    # is ready before they press play.
+    # Generate missing current recordings before the candidate presses play.
     sources = [
         (a["id"], a.get("transcript") or "", a.get("exam_type") or "ielts")
         for a in sorted(audios, key=lambda a: a["id"])
     ]
-    for audio_id, transcript, exam in sources:
-        if transcript:
-            tts_service.register(audio_id, transcript, exam)
     background_tasks.add_task(tts_service.prewarm, sources)
 
     return {"success": True, "data": audios, "count": len(audios)}
 
 
 @router.get("/audios/{audio_id}")
-def get_audio(audio_id: str):
+def get_audio(audio_id: UUID):
     """Get a single listening audio by ID."""
+    audio_id = str(audio_id)
     audio = listening_service.get_audio_by_id(audio_id)
     if not audio:
         raise HTTPException(status_code=404, detail=f"Audio '{audio_id}' not found")
@@ -60,20 +59,14 @@ def get_audio(audio_id: str):
 
 
 @router.get("/audio/{audio_id}")
-async def stream_audio_file(audio_id: str):
-    """Stream authentic regional accent MP3 audio for this exercise (British for IELTS, US for TOEFL)."""
-    # 1. Already cached for a transcript we have seen: serve it straight away.
-    cached_path = tts_service.known_cached_path(audio_id)
-    if cached_path:
-        return _audio_response(cached_path)
-
-    # 1b. A recording committed with the code (static/audio) needs no database.
-    on_disk = tts_service.committed_path(audio_id)
-    if on_disk:
-        return _audio_response(on_disk)
-
-    # 2. Otherwise look up the transcript (one light query, off the event loop).
-    audio_record = await run_in_threadpool(listening_service.get_audio_source, audio_id)
+async def stream_audio_file(audio_id: UUID):
+    """Serve only the fingerprint of the current stored transcript and accent."""
+    audio_id = str(audio_id)
+    try:
+        audio_record = await run_in_threadpool(listening_service.get_audio_source, audio_id)
+    except Exception as exc:
+        logger.warning("Audio metadata lookup failed (%s)", type(exc).__name__)
+        raise HTTPException(status_code=503, detail="Audio is temporarily unavailable.") from exc
     if not audio_record:
         raise HTTPException(status_code=404, detail=f"Audio exercise '{audio_id}' not found")
 
@@ -83,18 +76,20 @@ async def stream_audio_file(audio_id: str):
     if not transcript:
         raise HTTPException(status_code=400, detail="Exercise has no transcript to synthesize")
 
-    # 3. Serve the cached file, or join the generation already under way.
+    # No fallback to an older fingerprint when the current recording is missing.
     try:
         file_path = await tts_service.get_or_generate_audio(audio_id, transcript, exam_type)
         return _audio_response(file_path)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to generate accented audio: {str(e)}")
+    except Exception as exc:
+        logger.warning("Audio generation failed (%s)", type(exc).__name__)
+        raise HTTPException(status_code=503, detail="Audio is temporarily unavailable.") from exc
 
 
 @router.get("/audio-info/{audio_id}")
-def get_audio_info(audio_id: str):
+def get_audio_info(audio_id: UUID):
     """Get metadata about accent, duration, and cache status."""
-    audio_record = listening_service.get_audio_by_id(audio_id)
+    audio_id = str(audio_id)
+    audio_record = listening_service.get_audio_source(audio_id)
     if not audio_record:
         raise HTTPException(status_code=404, detail=f"Audio exercise '{audio_id}' not found")
 

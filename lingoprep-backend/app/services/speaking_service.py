@@ -3,13 +3,15 @@ LingoPrep API — Speaking Service
 Transcribes student audio via Groq Whisper and evaluates transcripts via Llama 3.
 """
 
-import os
+import asyncio
 import json
-import tempfile
-from groq import Groq
+
+from groq import Groq, AsyncGroq
 from app.config import settings
 from app.schemas.models import SpeakingSubmissionSchema, SpeakingEvaluationSchema
 from app.services.supabase_client import get_client
+
+TRANSCRIPTION_DEADLINE_SECONDS = 45
 
 EVALUATION_SYSTEM_PROMPT = """You are an expert IELTS/TOEFL speaking examiner. Evaluate the following spoken response based on the exam type.
 
@@ -54,33 +56,21 @@ def _get_groq_client() -> Groq:
     return Groq(api_key=settings.GROQ_API_KEY)
 
 
-async def transcribe_audio_file(audio_bytes: bytes, original_filename: str) -> str:
-    """
-    Upload speech audio bytes to Groq Whisper API and return raw transcription text.
-    """
-    client = _get_groq_client()
-    
-    # Securely write to a temporary file
-    temp_dir = os.path.join(os.getcwd(), "temp")
-    os.makedirs(temp_dir, exist_ok=True)
-    
-    suffix = os.path.splitext(original_filename)[1] or ".wav"
-    with tempfile.NamedTemporaryFile(dir=temp_dir, suffix=suffix, delete=False) as temp_file:
-        temp_file.write(audio_bytes)
-        temp_file_path = temp_file.name
-
-    try:
-        with open(temp_file_path, "rb") as file:
-            transcription = client.audio.transcriptions.create(
-                file=file,
+async def transcribe_audio_file(audio_bytes: bytes, extension: str, mime: str) -> str:
+    """Send validated bytes without using the caller's filename or retaining audio."""
+    if not settings.GROQ_API_KEY:
+        raise RuntimeError("Transcription provider is not configured.")
+    async def request_transcription():
+        async with AsyncGroq(api_key=settings.GROQ_API_KEY, timeout=30, max_retries=1) as client:
+            transcription = await client.audio.transcriptions.create(
+                file=(f"recording.{extension}", audio_bytes, mime),
                 model="whisper-large-v3",
                 response_format="verbose_json",
             )
-        return transcription.text
-    finally:
-        # Clean up temp file
-        if os.path.exists(temp_file_path):
-            os.remove(temp_file_path)
+            return transcription.text
+
+    # A total deadline also bounds retries; the async client does not block the loop.
+    return await asyncio.wait_for(request_transcription(), timeout=TRANSCRIPTION_DEADLINE_SECONDS)
 
 
 async def evaluate_speaking(

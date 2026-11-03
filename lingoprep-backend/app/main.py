@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.routers import reading, listening, writing, users, speaking
+from app.services.audio_upload import AudioUploadLimitMiddleware
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -19,6 +20,7 @@ app = FastAPI(
 )
 
 # CORS — allow the Next.js frontend
+app.add_middleware(AudioUploadLimitMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
