@@ -3,6 +3,8 @@ LingoPrep API — Speaking Router
 Endpoints for speaking test prompts, audio transcription, and AI-powered evaluation.
 """
 
+from app.services.ai_evaluation import InvalidEvaluation, EvaluationUnavailable
+from starlette.concurrency import run_in_threadpool
 from fastapi import APIRouter, HTTPException, UploadFile, File, Query
 from typing import Optional
 
@@ -87,5 +89,7 @@ async def evaluate_speaking(
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except RuntimeError as e:
-        raise HTTPException(status_code=503, detail=str(e))
+    except InvalidEvaluation as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
+    except EvaluationUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
