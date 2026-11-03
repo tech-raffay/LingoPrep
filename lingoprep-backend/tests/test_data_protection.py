@@ -118,7 +118,7 @@ class AuthenticationProtectionTests(unittest.IsolatedAsyncioTestCase):
                                      lexical_resource=7, grammatical_range=7, feedback="Review",
                                      suggestions=[], saved=True)
         user = AuthenticatedUser("verified", "test@example.invalid", token="verified-token")
-        with patch.object(writing, "get_client"), patch.object(
+        with patch.object(
             writing.writing_service, "evaluate_essay", new=AsyncMock(return_value=evaluation)
         ) as evaluate, patch.object(writing, "save_owned_record") as save:
             await writing.submit_essay(writing.WritingSubmitRequest(

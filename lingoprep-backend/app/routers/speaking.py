@@ -6,7 +6,7 @@ Endpoints for speaking test prompts, audio transcription, and AI-powered evaluat
 from app.services.ai_evaluation import InvalidEvaluation, EvaluationUnavailable
 from starlette.concurrency import run_in_threadpool
 from fastapi import APIRouter, HTTPException, UploadFile, File, Query
-from typing import Optional
+from typing import Optional, Literal
 
 from app.schemas.models import SpeakingSubmissionSchema, SpeakingEvaluationSchema
 from app.services import speaking_service
@@ -18,9 +18,9 @@ router = APIRouter(route_class=ReliableRoute)
 
 
 @router.get("/prompts")
-async def list_prompts(
-    exam_type: Optional[str] = Query(None, description="Filter by exam type: ielts or toefl"),
-    difficulty: Optional[str] = Query(None, description="Filter by difficulty: easy, medium, hard"),
+def list_prompts(
+    exam_type: Optional[Literal["ielts", "toefl"]] = Query(None, description="Filter by exam type: ielts or toefl"),
+    difficulty: Optional[Literal["easy", "medium", "hard"]] = Query(None, description="Filter by difficulty: easy, medium, hard"),
 ):
     """Get all speaking test prompts, optionally filtered."""
     try:
@@ -33,8 +33,8 @@ async def list_prompts(
         
         res = query.execute()
         prompts = res.data or []
-    except Exception:
-        prompts = []
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Speaking prompts are temporarily unavailable.") from exc
 
     # Fallback to static prompts if DB is empty or fails
     if not prompts:
@@ -57,6 +57,8 @@ async def list_prompts(
             }
         ]
 
+    prompts = [p for p in prompts if (not exam_type or p.get("exam_type") == exam_type)
+               and (not difficulty or p.get("difficulty") == difficulty)]
     return {"success": True, "data": prompts, "count": len(prompts)}
 
 

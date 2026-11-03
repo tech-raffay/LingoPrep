@@ -8,53 +8,9 @@ from fastapi import APIRouter, HTTPException, Depends
 from app.services.supabase_client import get_client
 from app.dependencies.auth import get_current_user as verify_user, AuthenticatedUser
 
+from app.services.statistics import load_sessions, enrich_sessions, summarise_exam, slim_session, number
+
 router = APIRouter()
-
-MODULES = ("listening", "reading", "writing", "speaking")
-
-
-def _summarise_modules(sessions: list[dict]) -> dict:
-    """Per-skill breakdown for the results page: how many attempts, the
-    average, and the first and latest estimate (oldest → newest), plus the
-    criterion sub-scores of the latest attempt where the module records them
-    (writing and speaking)."""
-    out = {}
-    for module in MODULES:
-        rows = sorted(
-            (s for s in sessions if s.get("module") == module),
-            key=lambda s: s.get("created_at") or "",
-        )
-        scores = [float(s.get("band_score") or 0) for s in rows]
-        latest = rows[-1] if rows else None
-        out[module] = {
-            "count": len(rows),
-            # Two decimals: the frontend applies each exam's own rounding rule
-            # (IELTS rounds to the nearest half band, so 6.25 must stay 6.25).
-            "avg": round(sum(scores) / len(scores), 2) if scores else 0,
-            "first": scores[0] if scores else None,
-            "latest": scores[-1] if scores else None,
-            "latest_at": latest.get("created_at") if latest else None,
-            "latest_sub_scores": ((latest.get("details") or {}).get("sub_scores") if latest else None),
-        }
-    return out
-
-
-def _slim_session(s: dict) -> dict:
-    """A history row without the heavy details payload (essays, answers)."""
-    details = s.get("details") or {}
-    return {
-        "id": s.get("id"),
-        "module": s.get("module"),
-        "score": s.get("score"),
-        "max_score": s.get("max_score"),
-        "percentage": s.get("percentage"),
-        "band_score": s.get("band_score"),
-        "created_at": s.get("created_at"),
-        "exam_type": s.get("exam_type"),
-        "passage_title": s.get("passage_title"),
-        "task_type": details.get("task_type"),
-        "is_full_test": details.get("is_full_test", False),
-    }
 
 
 @router.get("/me")
@@ -66,8 +22,8 @@ def get_current_user_profile(user: AuthenticatedUser = Depends(verify_user)):
         client = get_client(user.token)
         res = client.table("profiles").select("*").eq("id", user.id).single().execute()
         profile_data = res.data or {}
-    except Exception:
-        profile_data = {}
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Profile is temporarily unavailable.") from exc
 
     return {
         "success": True,
@@ -76,7 +32,7 @@ def get_current_user_profile(user: AuthenticatedUser = Depends(verify_user)):
             "email": user.email,
             "full_name": profile_data.get("full_name") or user.full_name or "Student",
             "target_exam": profile_data.get("target_exam", "ielts"),
-            "target_score": float(profile_data.get("target_score") or 7.0),
+            "target_score": number(profile_data.get("target_score"), 120),
         },
     }
 
@@ -96,23 +52,11 @@ def get_all_sessions(user: AuthenticatedUser = Depends(verify_user)):
         )
         sessions = res.data or []
 
-        # Enrich with passage titles
-        for session in sessions:
-            if session.get("passage_id"):
-                passage_res = (
-                    client.table("passages")
-                    .select("title")
-                    .eq("id", session["passage_id"])
-                    .single()
-                    .execute()
-                )
-                session["passage_title"] = (
-                    passage_res.data.get("title", "") if passage_res.data else ""
-                )
+        sessions = enrich_sessions(client, sessions)
 
         return {"success": True, "data": sessions, "count": len(sessions)}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=503, detail="History is temporarily unavailable.") from e
 
 
 @router.delete("/sessions/{session_id}")
@@ -131,7 +75,7 @@ def delete_session(session_id: str, user: AuthenticatedUser = Depends(verify_use
         )
         deleted = res.data or []
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=503, detail="History is temporarily unavailable.") from e
     if not deleted:
         raise HTTPException(status_code=404, detail="That result was not found, or is not yours to delete.")
     return {"success": True, "deleted": len(deleted)}
@@ -139,149 +83,19 @@ def delete_session(session_id: str, user: AuthenticatedUser = Depends(verify_use
 
 @router.get("/stats")
 def get_user_stats(user: AuthenticatedUser = Depends(verify_user)):
-    """Get aggregated stats for the dashboard of the authenticated user."""
+    """Summarize owned history, keeping unknown exams and missing grades explicit."""
     try:
         client = get_client(user.token)
-        res = client.table("session_logs").select("*").eq("user_id", user.id).execute()
-        sessions = res.data or []
-
-        # Separate into ielts and toefl sessions
-        ielts_sessions = []
-        toefl_sessions = []
-
-        for s in sessions:
-            details = s.get("details") or {}
-            exam_type = details.get("exam_type")
-
-            # If not in details, try to fetch from passage:
-            if not exam_type and s.get("passage_id"):
-                try:
-                    passage_res = client.table("passages").select("exam_type").eq("id", s["passage_id"]).single().execute()
-                    if passage_res.data:
-                        exam_type = passage_res.data.get("exam_type", "ielts")
-                except Exception:
-                    pass
-
-            if not exam_type:
-                exam_type = "ielts"  # fallback
-
-            s["exam_type"] = exam_type
-            if exam_type == "toefl":
-                toefl_sessions.append(s)
-            else:
-                ielts_sessions.append(s)
-
-        # IELTS Averages
-        ielts_total = len(ielts_sessions)
-        ielts_avg_pct = sum(s.get("percentage", 0) for s in ielts_sessions) / ielts_total if ielts_total > 0 else 0
-        ielts_reading = [s for s in ielts_sessions if s.get("module") == "reading"]
-        ielts_listening = [s for s in ielts_sessions if s.get("module") == "listening"]
-        ielts_writing = [s for s in ielts_sessions if s.get("module") == "writing"]
-        ielts_speaking = [s for s in ielts_sessions if s.get("module") == "speaking"]
-
-        ielts_reading_avg = sum(s.get("band_score", 0) for s in ielts_reading) / len(ielts_reading) if ielts_reading else 0
-        ielts_listening_avg = sum(s.get("band_score", 0) for s in ielts_listening) / len(ielts_listening) if ielts_listening else 0
-        ielts_writing_avg = sum(s.get("band_score", 0) for s in ielts_writing) / len(ielts_writing) if ielts_writing else 0
-        ielts_speaking_avg = sum(s.get("band_score", 0) for s in ielts_speaking) / len(ielts_speaking) if ielts_speaking else 0
-
-        ielts_active_modules = [b for b in [ielts_reading_avg, ielts_listening_avg, ielts_writing_avg, ielts_speaking_avg] if b > 0]
-        ielts_overall = round(sum(ielts_active_modules) / len(ielts_active_modules), 1) if ielts_active_modules else 0
-
-        # TOEFL Averages
-        toefl_total = len(toefl_sessions)
-        toefl_avg_pct = sum(s.get("percentage", 0) for s in toefl_sessions) / toefl_total if toefl_total > 0 else 0
-        toefl_reading = [s for s in toefl_sessions if s.get("module") == "reading"]
-        toefl_listening = [s for s in toefl_sessions if s.get("module") == "listening"]
-        toefl_writing = [s for s in toefl_sessions if s.get("module") == "writing"]
-        toefl_speaking = [s for s in toefl_sessions if s.get("module") == "speaking"]
-
-        toefl_reading_avg = sum(s.get("band_score", 0) for s in toefl_reading) / len(toefl_reading) if toefl_reading else 0
-        toefl_listening_avg = sum(s.get("band_score", 0) for s in toefl_listening) / len(toefl_listening) if toefl_listening else 0
-        toefl_writing_avg = sum(s.get("band_score", 0) for s in toefl_writing) / len(toefl_writing) if toefl_writing else 0
-        toefl_speaking_avg = sum(s.get("band_score", 0) for s in toefl_speaking) / len(toefl_speaking) if toefl_speaking else 0
-
-        toefl_overall = round(toefl_reading_avg + toefl_listening_avg + toefl_writing_avg + toefl_speaking_avg, 1)
-
-        # Active Track determination
-        active_track = "ielts"
-        try:
-            profile_res = client.table("profiles").select("target_exam").eq("id", user.id).single().execute()
-            if profile_res.data:
-                active_track = profile_res.data.get("target_exam", "ielts")
-        except Exception:
-            pass
-
-        if active_track == "toefl":
-            flat_total = toefl_total
-            flat_avg_pct = toefl_avg_pct
-            flat_overall = toefl_overall
-            flat_reading = toefl_reading_avg
-            flat_listening = toefl_listening_avg
-            flat_writing = toefl_writing_avg
-            flat_speaking = toefl_speaking_avg
-        else:
-            flat_total = ielts_total
-            flat_avg_pct = ielts_avg_pct
-            flat_overall = ielts_overall
-            flat_reading = ielts_reading_avg
-            flat_listening = ielts_listening_avg
-            flat_writing = ielts_writing_avg
-            flat_speaking = ielts_speaking_avg
-
-        # Recent sessions
-        recent = sorted(sessions, key=lambda s: s.get("created_at", ""), reverse=True)[:10]
-        for s in recent:
-            if s.get("passage_id"):
-                try:
-                    p_res = client.table("passages").select("title, exam_type").eq("id", s["passage_id"]).single().execute()
-                    if p_res.data:
-                        s["passage_title"] = p_res.data.get("title", "")
-                        if not s.get("details"):
-                            s["details"] = {}
-                        if not s["details"].get("exam_type"):
-                            s["details"]["exam_type"] = p_res.data.get("exam_type", "ielts")
-                except Exception:
-                    pass
-
-        by_date = lambda s: s.get("created_at", "")
-        recent_ielts = sorted(ielts_sessions, key=by_date, reverse=True)[:10]
-        recent_toefl = sorted(toefl_sessions, key=by_date, reverse=True)[:10]
-
-        return {
-            "success": True,
-            "data": {
-                "active_track": active_track,
-                "total_sessions": flat_total,
-                "average_percentage": round(flat_avg_pct, 1),
-                "overall_band": flat_overall,
-                "reading_avg": round(flat_reading, 1),
-                "listening_avg": round(flat_listening, 1),
-                "writing_avg": round(flat_writing, 1),
-                "speaking_avg": round(flat_speaking, 1),
-                "ielts": {
-                    "modules": _summarise_modules(ielts_sessions),
-                    "recent_sessions": [_slim_session(s) for s in recent_ielts],
-                    "total_sessions": ielts_total,
-                    "average_percentage": round(ielts_avg_pct, 1),
-                    "overall_band": ielts_overall,
-                    "reading_avg": round(ielts_reading_avg, 1),
-                    "listening_avg": round(ielts_listening_avg, 1),
-                    "writing_avg": round(ielts_writing_avg, 1),
-                    "speaking_avg": round(ielts_speaking_avg, 1),
-                },
-                "toefl": {
-                    "modules": _summarise_modules(toefl_sessions),
-                    "recent_sessions": [_slim_session(s) for s in recent_toefl],
-                    "total_sessions": toefl_total,
-                    "average_percentage": round(toefl_avg_pct, 1),
-                    "overall_band": toefl_overall,
-                    "reading_avg": round(toefl_reading_avg, 1),
-                    "listening_avg": round(toefl_listening_avg, 1),
-                    "writing_avg": round(toefl_writing_avg, 1),
-                    "speaking_avg": round(toefl_speaking_avg, 1),
-                },
-                "recent_sessions": recent,
-            },
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        sessions = enrich_sessions(client, load_sessions(client, user.id))
+        profile = client.table("profiles").select("target_exam").eq("id", user.id).single().execute().data or {}
+        active_track = "toefl" if profile.get("target_exam") == "toefl" else "ielts"
+        summaries = {exam: summarise_exam([s for s in sessions if s["exam_type"] == exam], exam)
+                     for exam in ("ielts", "toefl")}
+        recent = sorted(sessions, key=lambda row: (row.get("created_at") or "", row.get("id") or ""), reverse=True)[:10]
+        return {"success": True, "data": {
+            **summaries[active_track], **summaries, "active_track": active_track,
+            "unclassified_sessions": sum(s["exam_type"] is None for s in sessions),
+            "recent_sessions": [slim_session(s) for s in recent],
+        }}
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Statistics are temporarily unavailable.") from exc
