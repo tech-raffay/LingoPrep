@@ -26,7 +26,7 @@ Browser roles can read only public prompt columns, cannot write prompts, and can
 
 `/health` is process liveness. `/ready` returns 503 when required configuration is absent and 200 when configuration is present; its explicit `configuration_only` scope does not prove database, provider or migration availability. It never returns keys or calls a paid provider. Deployment smoke checks must verify real dependencies separately.
 
-Application shutdown cancels and awaits owned audio tasks, then closes the pooled database HTTP client. Restarting the application lifespan reopens the pool. Shared disk cache retention, cross-worker synthesis coordination, PR #3 audio integration and scheduled PR #5 private-checkpoint cleanup remain deployment responsibilities.
+Application shutdown cancels and awaits owned audio tasks, then closes the pooled database HTTP client. Restarting the application lifespan reopens the pool. Audio path/cache protections are included in the reviewed integration. Shared disk retention, cross-worker synthesis coordination and scheduled private-checkpoint cleanup remain deployment responsibilities.
 
 ## Local verification
 
@@ -37,8 +37,11 @@ From `lingoprep-backend`:
 .\venv\Scripts\python.exe tests/run_database_protection.py --pg-bin 'C:\Program Files\PostgreSQL\18\bin' --maintenance
 ```
 
-Local result: 68 backend tests passed; disposable PostgreSQL checks and the frontend production build passed.
-
-The unit/API suite uses mocked providers and database transports; real audio decoding is local. The SQL runner creates its own disposable cluster and shuts it down in `finally`. It tests fresh/repeated setup, preservation of old unlabeled rows, read restrictions, private-column denial and rejected browser writes. The frontend was also checked with `npm run build`.
+The combined unit/API suite uses mocked providers and database transports; real
+audio decoding is local. The SQL runner creates its own disposable cluster and
+shuts it down in `finally`. It tests fresh/repeated setup, preservation of old
+unlabeled rows, read restrictions, private-column denial and rejected browser
+writes. Run both it and `npm run build` for every release candidate; a unit-test
+pass is not a substitute for staging the migrations against PostgreSQL.
 
 No production migration, paid evaluation or production write was performed. Progress charts, stored report pages, exam-version redesign, admin content authoring and full deployment parity remain separate backlog items (APP-00/01/05/06/09).

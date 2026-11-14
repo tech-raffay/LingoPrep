@@ -86,6 +86,12 @@ class ReliableRoute(APIRoute):
             submission = path in SUBMISSIONS and request.method == "POST"
             transcription = path == "/api/speaking/transcribe" and request.method == "POST"
             if path.startswith("/api/listening/audio/") and request.method == "GET":
+                # Reject malformed cache identifiers before authentication,
+                # quota storage, database lookups, or filesystem access.
+                try:
+                    UUID(path.rsplit("/", 1)[-1])
+                except (ValueError, AttributeError):
+                    raise HTTPException(422, "Audio ID must be a UUID.")
                 user = await get_optional_user(request.headers.get("authorization"))
                 actors = [private_actor("ip:" + (request.client.host if request.client else "unknown"))]
                 if user:
@@ -183,27 +189,54 @@ class RequestSizeLimit:
             self.active_uploads -= 1
 
     async def bounded_request(self, scope, receive, send):
-        limit = 11 * 1024 * 1024 if application_path(scope) == "/api/speaking/transcribe" else 128 * 1024
-        chunks = bytearray()
+        if application_path(scope) == "/api/speaking/transcribe":
+            # Read dynamically so deployment overrides and regression tests use
+            # the same single source of truth as the file-level validator.
+            from app.services.audio_upload import MAX_REQUEST_BYTES
+            limit = MAX_REQUEST_BYTES
+        else:
+            limit = 128 * 1024
+        headers = dict(scope.get("headers", []))
+        declared_length = headers.get(b"content-length")
+        if declared_length is not None:
+            try:
+                length = int(declared_length)
+                if length < 0:
+                    raise ValueError
+            except (TypeError, ValueError):
+                return await JSONResponse(
+                    {"detail": "Invalid content length."}, status_code=400
+                )(scope, receive, send)
+            if length > limit:
+                return await JSONResponse(
+                    {"detail": "Request is too large."}, status_code=413
+                )(scope, receive, send)
+        async def read_body():
+            chunks = bytearray()
+            while True:
+                message = await receive()
+                if message["type"] == "http.disconnect":
+                    return None, False
+                chunk = message.get("body", b"")
+                if len(chunks) + len(chunk) > limit:
+                    return None, True
+                chunks.extend(chunk)
+                if not message.get("more_body", False):
+                    return bytes(chunks), False
+
         try:
-            async with asyncio.timeout(30):
-                while True:
-                    message = await receive()
-                    if message["type"] == "http.disconnect":
-                        return
-                    chunk = message.get("body", b"")
-                    if len(chunks) + len(chunk) > limit:
-                        return await JSONResponse({"detail": "Request is too large."}, status_code=413)(scope, receive, send)
-                    chunks.extend(chunk)
-                    if not message.get("more_body", False):
-                        break
-        except TimeoutError:
+            body, too_large = await asyncio.wait_for(read_body(), timeout=30)
+        except asyncio.TimeoutError:
             return await JSONResponse({"detail": "Upload timed out."}, status_code=408)(scope, receive, send)
+        if too_large:
+            return await JSONResponse({"detail": "Request is too large."}, status_code=413)(scope, receive, send)
+        if body is None:
+            return
         delivered = False
         async def bounded_receive():
             nonlocal delivered
             if not delivered:
                 delivered = True
-                return {"type": "http.request", "body": bytes(chunks), "more_body": False}
+                return {"type": "http.request", "body": body, "more_body": False}
             return await receive()
         return await self.app(scope, bounded_receive, send)

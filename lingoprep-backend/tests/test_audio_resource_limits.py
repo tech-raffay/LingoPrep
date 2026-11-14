@@ -100,7 +100,7 @@ class AudioWorkloadTests(unittest.IsolatedAsyncioTestCase):
             finally:
                 cancelled.set()
         with isolated_attempts() as database, patch.object(tts_service, "_synthesize_line", side_effect=line):
-            with self.assertRaises(ExceptionGroup):
+            with self.assertRaisesRegex(ValueError, "synthetic failure"):
                 await tts_service.synthesize_transcript("failure\npending")
             self.assertTrue(cancelled.is_set())
             self.assertEqual(database.releases, 1)

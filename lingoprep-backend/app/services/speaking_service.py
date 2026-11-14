@@ -6,10 +6,11 @@ Transcribes student audio via Groq Whisper and evaluates transcripts via Llama 3
 import asyncio
 from groq import AsyncGroq
 
-TRANSCRIPTION_DEADLINE_SECONDS = 45
 from app.config import settings
 from app.schemas.models import SpeakingSubmissionSchema, SpeakingEvaluationSchema
 from app.services.ai_evaluation import request_evaluation
+
+TRANSCRIPTION_DEADLINE_SECONDS = 45
 
 async def transcribe_audio_file(audio_bytes: bytes, extension: str, mime: str) -> str:
     """Send validated bytes without using the caller's filename or retaining audio."""

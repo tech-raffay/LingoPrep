@@ -78,7 +78,6 @@ async def transcribe_audio(file: UploadFile = File(...)):
         raise HTTPException(status_code=503, detail="Transcription is temporarily unavailable.") from exc
 
 
-
 from app.dependencies.auth import get_optional_user, AuthenticatedUser
 from fastapi import Depends
 

@@ -1,55 +1,9 @@
 """Bound uploads before multipart parsing and recognize supported containers."""
 
 from fastapi import HTTPException, UploadFile
-from starlette.formparsers import MultiPartException
-from starlette.responses import JSONResponse
 
 MAX_AUDIO_BYTES = 10 * 1024 * 1024
 MAX_REQUEST_BYTES = MAX_AUDIO_BYTES + 1024 * 1024  # Multipart fields and headers.
-
-
-class AudioUploadLimitMiddleware:
-    """Count actual bytes, including chunked bodies, before they reach the parser."""
-
-    def __init__(self, app):
-        self.app = app
-
-    async def __call__(self, scope, receive, send):
-        if scope["type"] != "http" or scope["path"].rstrip("/") != "/api/speaking/transcribe":
-            return await self.app(scope, receive, send)
-
-        headers = dict(scope.get("headers", []))
-        if b"content-length" in headers:
-            try:
-                length = int(headers[b"content-length"])
-                if length < 0:
-                    raise ValueError
-            except ValueError:
-                return await JSONResponse({"detail": "Invalid content length."}, status_code=400)(scope, receive, send)
-            if length > MAX_REQUEST_BYTES:
-                return await JSONResponse({"detail": "Audio upload is too large."}, status_code=413)(scope, receive, send)
-
-        received = 0
-        exceeded = False
-
-        async def limited_receive():
-            nonlocal received, exceeded
-            message = await receive()
-            if message["type"] == "http.request":
-                received += len(message.get("body", b""))
-                if received > MAX_REQUEST_BYTES:
-                    exceeded = True
-                    # MultiPartException makes Starlette close already-spooled
-                    # files. It normally becomes 400; limited_send maps it to 413.
-                    raise MultiPartException("Audio upload is too large.")
-            return message
-
-        async def limited_send(message):
-            if exceeded and message["type"] == "http.response.start":
-                message = {**message, "status": 413}
-            await send(message)
-
-        await self.app(scope, limited_receive, limited_send)
 
 
 def audio_format(data: bytes, content_type: str | None) -> tuple[str, str]:

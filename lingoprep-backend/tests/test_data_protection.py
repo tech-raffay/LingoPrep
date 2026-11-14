@@ -21,6 +21,10 @@ from test_full_test_validation import ContentDatabase, patch_database
 class ContentProtectionTests(unittest.TestCase):
     def test_list_and_detail_responses_exclude_answer_keys(self):
         database = ContentDatabase()
+        passage_id = "11111111-1111-1111-1111-111111111111"
+        database.rows["passages"][0]["id"] = passage_id
+        for question in database.rows["questions"]:
+            question["passage_id"] = passage_id
         database.rows["questions"][0].update({
             "question_text": "Choose a building", "explanation": "SECRET explanation",
             "correct_option_id": "SECRET option", "future_answer_key": "SECRET future",
@@ -38,7 +42,7 @@ class ContentProtectionTests(unittest.TestCase):
         ):
             for module, path in (("reading", "passages"), ("listening", "audios")):
                 database.rows["passages"][0]["module"] = module
-                for suffix in (path, f"{path}/p1"):
+                for suffix in (path, f"{path}/{passage_id}"):
                     with self.subTest(module=module, path=suffix):
                         response = api.get(f"/api/{module}/{suffix}")
                         self.assertEqual(response.status_code, 200)

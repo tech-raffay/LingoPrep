@@ -1,6 +1,6 @@
 # Persistence and resource limits
 
-This change addresses audit B12 (duplicate/non-atomic persistence) and the remaining request-budget and workload portions of B05/B11. It builds on PR #4. PR #3's UUID/path validation, cache versioning and managed pruning must also be integrated; this branch does not replace that PR. The upload recognition helper and asynchronous transcription implementation are reused from PR #3 so duration and admission limits can be tested here.
+This change addresses audit B12 (duplicate/non-atomic persistence) and the remaining request-budget and workload portions of B05/B11. The reviewed integration includes the audio branch's UUID/path validation, cache versioning, managed pruning, upload recognition and asynchronous transcription together with these duration and admission limits.
 
 ## Learner behaviour
 
@@ -12,7 +12,7 @@ This change addresses audit B12 (duplicate/non-atomic persistence) and the remai
 
 ## Deployment order
 
-1. Integrate the answer/record protections and authentication contracts from PRs #1, #2 and #4. Preserve and integrate PR #3's audio protections when resolving the overlapping audio files.
+1. Deploy the reviewed combined backend; its answer/record, authentication and audio protections are interdependent and should not be split into partial deployments.
 2. Apply `migration_persistence_resource_limits.sql` after `migration_protect_answers_and_records.sql`, using an administrative SQL connection. It is incremental and repeatable. Do not run the destructive `schema.sql` bootstrap against production.
 3. Configure the backend-only `SUPABASE_SERVICE_ROLE_KEY` and a random `RESOURCE_LIMIT_SECRET` of at least 32 characters. Use the same secret on every worker and keep it stable across service-key rotation. Do not put either secret in frontend environment variables. Generate the resource secret with a cryptographic generator, not a memorable password.
 4. Install `requirements.txt`. `imageio-ffmpeg` supplies the decoder on supported platforms. Alternatively configure `FFMPEG_BINARY` with an installed executable path. Audio validation returns 503 if no decoder is available; it never silently skips duration checks.
@@ -55,7 +55,7 @@ Save retries use the verified account quota. Playback through a native audio ele
 - TTS: 50,000 transcript characters, 200 segments, 2,000 characters per spoken segment, 60 seconds per pause and 300 seconds total pauses, 180-second total synthesis deadline, 2 MiB per generated line and 16 MiB per recording. Small batches bound retained output and cancel sibling requests on failure.
 - Listing listening exercises no longer starts background synthesis. Pregenerate normal content before deployment; a missing recording may require generation on first playback. The script-driven synthesis path uses the same shared limits.
 
-These are application safeguards, not a complete host memory/disk quota or denial-of-service defence. Cache-disk retention remains managed by PR #3's explicit pruning workflow. TTS deduplication is still process-local; separate workers can synthesize the same missing file concurrently within the shared job limit. Preserve PR #3's unique temporary-file writes on integration.
+These are application safeguards, not a complete host memory/disk quota or denial-of-service defence. Cache-disk retention uses the explicit manifest pruning workflow in `AUDIO_HANDLING.md`. TTS deduplication is still process-local; separate workers can synthesize the same missing file concurrently within the shared job limit. Unique temporary files and atomic replacement protect concurrent cache writes.
 
 ## Local verification
 
