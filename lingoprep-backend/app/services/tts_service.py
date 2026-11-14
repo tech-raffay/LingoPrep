@@ -12,8 +12,8 @@ candidate is waiting on the play button:
      seeded tests are committed in static/audio/ (run
      `python scripts/pregenerate_audio.py` after changing a transcript), so a
      fresh deploy serves them straight from disk.
-  2. If a transcript has no file yet, `prewarm()` starts generating it in the
-     background the moment the test list is requested, long before play.
+  2. Missing files are generated on playback under shared workload limits.
+     Browsing the list does not schedule provider work.
   3. Generation runs the lines in parallel, is de-duplicated per recording,
      and writes atomically, so a half-written file is never served.
 """
@@ -22,6 +22,9 @@ import asyncio
 import hashlib
 import os
 import re
+import tempfile
+import time
+from uuid import UUID
 from pathlib import Path
 
 import edge_tts
@@ -74,9 +77,6 @@ VOICE_MAP = {
 _SPEAKER_LINE = re.compile(r"^([A-Za-z0-9\s\.\-,']+?)\s*(?:\((m|f)\))?:\s*(.*)$")
 _PAUSE_LINE = re.compile(r"^\[pause\s+(\d+(?:\.\d+)?)\]$", re.IGNORECASE)
 
-# audio_id -> cache key, filled whenever a transcript is seen (test list,
-# stream request), so the stream endpoint can usually skip the database.
-_known_keys: dict[str, str] = {}
 # audio_id key -> the task generating it, so concurrent requests share one.
 _inflight: dict[str, asyncio.Task] = {}
 _background: set[asyncio.Task] = set()
@@ -89,45 +89,68 @@ def _exam_key(exam_type: str | None) -> str:
 
 def audio_key(audio_id: str, transcript: str, exam_type: str = "ielts") -> str:
     """Cache key for a recording: changes whenever its transcript or accent does."""
+    audio_id = validate_audio_id(audio_id)
     digest = hashlib.sha1(
         f"{_AUDIO_VERSION}|{_exam_key(exam_type)}|{transcript}".encode("utf-8")
     ).hexdigest()[:10]
     return f"{audio_id}-{digest}"
 
 
-def register(audio_id: str, transcript: str, exam_type: str = "ielts") -> str:
-    """Remember the current cache key for a recording and return it."""
-    key = audio_key(audio_id, transcript, exam_type)
-    _known_keys[audio_id] = key
-    return key
+def validate_audio_id(audio_id: str) -> str:
+    """Canonical UUIDs prevent path separators and glob patterns in filenames."""
+    try:
+        return str(UUID(str(audio_id)))
+    except (ValueError, AttributeError, TypeError) as exc:
+        raise ValueError("Audio ID must be a UUID.") from exc
 
 
-def known_cached_path(audio_id: str) -> Path | None:
-    """The cached file for a recording we have already seen, if it exists."""
-    key = _known_keys.get(audio_id)
-    if not key:
-        return None
-    path = AUDIO_CACHE_DIR / f"{key}.mp3"
-    return path if path.exists() and path.stat().st_size > 0 else None
+def cache_path(filename: str) -> Path:
+    """Resolve one cache filename and reject links or paths outside the root."""
+    if not filename or Path(filename).name != filename or any(c in filename for c in "/\\:*?[]"):
+        raise ValueError("Invalid audio cache filename.")
+    root = AUDIO_CACHE_DIR.resolve()
+    candidate = root / filename
+    if candidate.is_symlink() or candidate.resolve().parent != root:
+        raise ValueError("Audio cache path is outside the cache directory.")
+    return candidate
 
 
-def committed_path(audio_id: str) -> Path | None:
-    """The newest file for this recording in the cache directory, whatever
-    its fingerprint (the pregenerate script keeps exactly one per recording)."""
-    files = sorted(AUDIO_CACHE_DIR.glob(f"{audio_id}-*.mp3"), key=lambda p: p.stat().st_mtime)
-    files = [p for p in files if p.stat().st_size > 0]
-    return files[-1] if files else None
+def atomic_cache_write(path: Path, content: bytes) -> None:
+    """Unique temporary files prevent concurrent workers sharing a .part file."""
+    target = cache_path(path.name)
+    if path.resolve() != target:
+        raise ValueError("Audio output must be inside the cache directory.")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(dir=target.parent, suffix=".part", delete=False) as output:
+            temporary = Path(output.name)
+            output.write(content)
+        # Recheck before replacing in case the destination changed during generation.
+        for attempt in range(5):
+            try:
+                os.replace(temporary, cache_path(target.name))
+                break
+            except PermissionError:
+                # Windows can briefly deny replacement while another worker
+                # resolves/opens the same destination. Never truncate it in place.
+                if os.name != "nt" or attempt == 4:
+                    raise
+                time.sleep(0.01 * (2 ** attempt))
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
 
 
 def get_audio_file_path(audio_id: str, transcript: str = "", exam_type: str = "ielts") -> Path:
     """Path of the cached audio file for this recording's current transcript."""
-    return AUDIO_CACHE_DIR / f"{audio_key(audio_id, transcript, exam_type)}.mp3"
+    return cache_path(f"{audio_key(audio_id, transcript, exam_type)}.mp3")
 
 
 def is_audio_cached(audio_id: str, transcript: str = "", exam_type: str = "ielts") -> bool:
     """Check if the audio file has already been generated and cached."""
     p = get_audio_file_path(audio_id, transcript, exam_type)
-    return p.exists() and p.stat().st_size > 0
+    return p.is_file() and p.stat().st_size > 0
 
 
 def get_accent_info(exam_type: str = "ielts") -> dict:
@@ -203,6 +226,8 @@ async def _synthesize_line(voice: str, text: str) -> bytes:
                 async for chunk in edge_tts.Communicate(text, voice).stream():
                     if chunk["type"] == "audio":
                         audio.extend(chunk["data"])
+                        if len(audio) > 2 * 1024 * 1024:
+                            raise ValueError("Synthesized line exceeds size limit.")
                 if audio:
                     return bytes(audio)
                 last_error = RuntimeError("speech service returned no audio")
@@ -212,27 +237,58 @@ async def _synthesize_line(voice: str, text: str) -> bytes:
         raise RuntimeError(f"Could not synthesise line: {last_error}")
 
 
-async def synthesize_transcript(transcript: str, exam_type: str = "ielts", output_path: Path | None = None, seed: str = "") -> bytes:
+async def _synthesize_transcript(transcript: str, exam_type: str = "ielts", output_path: Path | None = None, seed: str = "") -> bytes:
     """
     Synthesize transcript text into authentic accented audio.
     Lines are synthesised in parallel and joined in order; pauses become
     silent frames.
     """
     segments = _segments(transcript, exam_type, seed)
-    spoken = [s for s in segments if isinstance(s, tuple)]
-    parts = iter(await asyncio.gather(*(_synthesize_line(voice, text) for voice, text in spoken)))
-    audio_bytes = b"".join(silence(s) if isinstance(s, float) else next(parts) for s in segments)
+    # Small batches bound retained line buffers. TaskGroup cancels sibling
+    # requests if any line fails; a failed job must not leave paid work running.
+    audio = bytearray()
+    for offset in range(0, len(segments), _MAX_PARALLEL_LINES):
+        batch = segments[offset:offset + _MAX_PARALLEL_LINES]
+        tasks = {index: asyncio.create_task(_synthesize_line(*segment))
+                 for index, segment in enumerate(batch) if isinstance(segment, tuple)}
+        try:
+            await asyncio.gather(*tasks.values())
+        except BaseException:
+            # gather does not cancel sibling tasks when one fails. Stop and
+            # await them explicitly so no provider work escapes a failed job.
+            for task in tasks.values():
+                if not task.done():
+                    task.cancel()
+            await asyncio.gather(*tasks.values(), return_exceptions=True)
+            raise
+        for index, segment in enumerate(batch):
+            part = silence(segment) if isinstance(segment, float) else tasks[index].result()
+            if len(audio) + len(part) > 16 * 1024 * 1024:
+                raise ValueError("Synthesized recording exceeds size limit.")
+            audio.extend(part)
+    audio_bytes = bytes(audio)
 
+    if not audio_bytes:
+        raise ValueError("Transcript produced no audio.")
     if output_path:
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        # Write to a temp file and rename, so a request arriving mid-write can
-        # never be served a truncated recording.
-        tmp_path = output_path.with_name(output_path.name + ".part")
-        with open(tmp_path, "wb") as f:
-            f.write(audio_bytes)
-        os.replace(tmp_path, output_path)
+        atomic_cache_write(output_path, audio_bytes)
 
     return audio_bytes
+
+
+async def synthesize_transcript(transcript: str, exam_type: str = "ielts", output_path: Path | None = None, seed: str = "") -> bytes:
+    """Bound synthesis work, including script-driven and background generation."""
+    from app.services.resource_limits import private_actor, workload
+    if len(transcript) > 50000:
+        raise ValueError("Transcript exceeds synthesis limit.")
+    segments = _segments(transcript, exam_type, seed)
+    if len(segments) > 200 or any(isinstance(item, tuple) and len(item[1]) > 2000 for item in segments):
+        raise ValueError("Transcript has too many or oversized segments.")
+    pauses = [item for item in segments if isinstance(item, float)]
+    if any(not 0 <= pause <= 60 for pause in pauses) or sum(pauses) > 300:
+        raise ValueError("Transcript pause duration exceeds limit.")
+    async with workload("tts", [private_actor("tts:server")]):
+        return await asyncio.wait_for(_synthesize_transcript(transcript, exam_type, output_path, seed), timeout=180)
 
 
 async def get_or_generate_audio(audio_id: str, transcript: str, exam_type: str = "ielts") -> Path:
@@ -243,11 +299,14 @@ async def get_or_generate_audio(audio_id: str, transcript: str, exam_type: str =
     if not transcript:
         raise ValueError(f"No transcript provided to generate audio for {audio_id}")
 
-    key = register(audio_id, transcript, exam_type)
-    cached_path = AUDIO_CACHE_DIR / f"{key}.mp3"
-    if cached_path.exists() and cached_path.stat().st_size > 0:
+    audio_id = validate_audio_id(audio_id)
+    key = audio_key(audio_id, transcript, exam_type)
+    cached_path = get_audio_file_path(audio_id, transcript, exam_type)
+    if cached_path.is_file() and cached_path.stat().st_size > 0:
         return cached_path
 
+    if key not in _inflight and len(_inflight) >= 2:
+        raise RuntimeError("Audio generation is busy.")
     task = _inflight.get(key)
     if task is None:
         task = asyncio.create_task(synthesize_transcript(transcript, exam_type, cached_path, seed=audio_id))
@@ -280,3 +339,14 @@ async def prewarm(items: list[tuple[str, str, str]]) -> None:
     task = asyncio.create_task(_prewarm_run(missing))
     _background.add(task)
     task.add_done_callback(_background.discard)
+
+
+async def shutdown_audio_tasks() -> None:
+    """Cancel and await process-owned synthesis before closing shared clients."""
+    tasks = set(_inflight.values()) | set(_background)
+    for task in tasks:
+        task.cancel()
+    if tasks:
+        await asyncio.gather(*tasks, return_exceptions=True)
+    _inflight.clear()
+    _background.clear()

@@ -21,7 +21,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import Image from "next/image";
-import api from "@/lib/api";
+import api, { resetAttempt } from "@/lib/api";
 import { jumpToTop } from "@/lib/scroll";
 import { gapContext } from "@/lib/gapContext";
 import TestIntro from "@/components/test/TestIntro";
@@ -112,6 +112,7 @@ export default function ListeningPage() {
   const [correctCount, setCorrectCount] = useState<number | null>(null);
   const [scorePercentage, setScorePercentage] = useState<number | null>(null);
   const [dbResults, setDbResults] = useState<Record<string, unknown>[] | null>(null);
+  const [attemptId, setAttemptId] = useState<string | undefined>(undefined);
   const [saved, setSaved] = useState<boolean | undefined>(undefined);
 
   const questionRefs = useRef<Record<string, HTMLElement | null>>({});
@@ -376,6 +377,7 @@ export default function ListeningPage() {
       setScorePercentage(res.data.score_percentage);
       setBandScore(res.data.band_score);
       setDbResults(res.data.results);
+      setAttemptId(res.data.save_retry_available ? res.data.attempt_id : undefined);
       setSaved(typeof res.data.saved === "boolean" ? res.data.saved : undefined);
       setSubmitted(true);
       setIsReviewPeriod(false);
@@ -403,6 +405,7 @@ export default function ListeningPage() {
   }, [isReviewPeriod, submitted, reviewTimeLeft]);
 
   const handleReset = () => {
+    resetAttempt("listening");
     setAnswers({});
     setSubmitted(false);
     setScorePercentage(null);
@@ -410,6 +413,7 @@ export default function ListeningPage() {
     setBandScore(null);
     setDbResults(null);
     setSaved(undefined);
+    setAttemptId(undefined);
     setIsReviewPeriod(false);
     setReviewTimeLeft(120);
     setStarted({});
@@ -564,6 +568,8 @@ export default function ListeningPage() {
         total={allQuestions.length}
         percentage={scorePercentage ?? 0}
         saved={saved}
+        attemptId={attemptId}
+        onSaved={() => setSaved(true)}
         sections={sections}
         onRetake={() => { handleReset(); window.scrollTo({ top: 0 }); }}
       />

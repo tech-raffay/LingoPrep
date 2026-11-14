@@ -8,7 +8,8 @@ round trips for a single IELTS listening test). Each round trip was slow, and
 with a new connection per query the backend could run out of memory.
 """
 
-from app.services.supabase_client import get_client
+from app.services.supabase_client import get_server_client
+from app.schemas.public_content import PUBLIC_QUESTION_COLUMNS, PUBLIC_OPTION_COLUMNS, public_question
 
 
 def _option_view(o: dict) -> dict:
@@ -16,20 +17,19 @@ def _option_view(o: dict) -> dict:
         "id": str(o["id"]),
         "text": o["option_text"],
         "label": o["option_label"],
-        "is_correct": o["is_correct"],
     }
 
 
-def attach_questions(passages: list[dict], reading_defaults: bool = False) -> list[dict]:
-    """Attach ordered questions (with ordered options and correct_option_id)
+def attach_questions(passages: list[dict]) -> list[dict]:
+    """Attach ordered public questions and options, without grading keys,
     to each passage, in place. Returns the same list."""
     if not passages:
         return passages
-    client = get_client()
+    client = get_server_client()
 
     passage_ids = [p["id"] for p in passages]
     questions = (
-        client.table("questions").select("*").in_("passage_id", passage_ids).execute().data
+        client.table("questions").select(PUBLIC_QUESTION_COLUMNS).in_("passage_id", passage_ids).execute().data
         or []
     )
     questions.sort(key=lambda q: (q.get("sort_order") or 0))
@@ -38,7 +38,7 @@ def attach_questions(passages: list[dict], reading_defaults: bool = False) -> li
     question_ids = [q["id"] for q in questions]
     if question_ids:
         options = (
-            client.table("options").select("*").in_("question_id", question_ids).execute().data
+            client.table("options").select(PUBLIC_OPTION_COLUMNS).in_("question_id", question_ids).execute().data
             or []
         )
     options.sort(key=lambda o: (o.get("sort_order") or 0))
@@ -49,16 +49,9 @@ def attach_questions(passages: list[dict], reading_defaults: bool = False) -> li
 
     questions_by_p: dict[str, list[dict]] = {pid: [] for pid in passage_ids}
     for q in questions:
-        if reading_defaults:
-            # New columns default sensibly even if the migration has not run.
-            q.setdefault("question_type", "multiple_choice")
-            q.setdefault("question_group_label", "")
-            q.setdefault("correct_answer_text", "")
-            q.setdefault("question_data", {})
         opts = options_by_q.get(q["id"], [])
+        q = public_question(q)
         q["options"] = [_option_view(o) for o in opts]
-        correct = next((o for o in opts if o["is_correct"]), None)
-        q["correct_option_id"] = str(correct["id"]) if correct else ""
         questions_by_p.setdefault(q["passage_id"], []).append(q)
 
     for p in passages:

@@ -3,20 +3,24 @@ LingoPrep API — Speaking Router
 Endpoints for speaking test prompts, audio transcription, and AI-powered evaluation.
 """
 
+from app.services.ai_evaluation import InvalidEvaluation, EvaluationUnavailable
+from starlette.concurrency import run_in_threadpool
 from fastapi import APIRouter, HTTPException, UploadFile, File, Query
-from typing import Optional
+from typing import Optional, Literal
 
 from app.schemas.models import SpeakingSubmissionSchema, SpeakingEvaluationSchema
 from app.services import speaking_service
 from app.services.supabase_client import get_client
 
-router = APIRouter()
+from app.services.reliable_routes import ReliableRoute
+
+router = APIRouter(route_class=ReliableRoute)
 
 
 @router.get("/prompts")
-async def list_prompts(
-    exam_type: Optional[str] = Query(None, description="Filter by exam type: ielts or toefl"),
-    difficulty: Optional[str] = Query(None, description="Filter by difficulty: easy, medium, hard"),
+def list_prompts(
+    exam_type: Optional[Literal["ielts", "toefl"]] = Query(None, description="Filter by exam type: ielts or toefl"),
+    difficulty: Optional[Literal["easy", "medium", "hard"]] = Query(None, description="Filter by difficulty: easy, medium, hard"),
 ):
     """Get all speaking test prompts, optionally filtered."""
     try:
@@ -29,8 +33,8 @@ async def list_prompts(
         
         res = query.execute()
         prompts = res.data or []
-    except Exception:
-        prompts = []
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Speaking prompts are temporarily unavailable.") from exc
 
     # Fallback to static prompts if DB is empty or fails
     if not prompts:
@@ -53,20 +57,25 @@ async def list_prompts(
             }
         ]
 
+    prompts = [p for p in prompts if (not exam_type or p.get("exam_type") == exam_type)
+               and (not difficulty or p.get("difficulty") == difficulty)]
     return {"success": True, "data": prompts, "count": len(prompts)}
 
 
 @router.post("/transcribe")
 async def transcribe_audio(file: UploadFile = File(...)):
     """Transcribe user speaking recording using Groq Whisper."""
+    from app.services.audio_upload import read_audio_upload
+    from app.services.audio_duration import validate_audio_duration
     try:
-        audio_bytes = await file.read()
-        transcript = await speaking_service.transcribe_audio_file(audio_bytes, file.filename)
+        audio_bytes, extension, mime = await read_audio_upload(file)
+        await run_in_threadpool(validate_audio_duration, audio_bytes, extension)
+        transcript = await speaking_service.transcribe_audio_file(audio_bytes, extension, mime)
         return {"success": True, "transcript": transcript}
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Transcription is temporarily unavailable.") from exc
 
 
 from app.dependencies.auth import get_optional_user, AuthenticatedUser
@@ -87,5 +96,7 @@ async def evaluate_speaking(
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except RuntimeError as e:
-        raise HTTPException(status_code=503, detail=str(e))
+    except InvalidEvaluation as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
+    except EvaluationUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e

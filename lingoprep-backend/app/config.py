@@ -23,6 +23,10 @@ class Settings:
     # Supabase
     SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
     SUPABASE_KEY: str = os.getenv("SUPABASE_KEY", "")
+    # Backend only. Never use this key in browser configuration.
+    SUPABASE_SERVICE_ROLE_KEY: str = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+    # Keep stable across workers and service-key rotation (at least 32 random bytes).
+    RESOURCE_LIMIT_SECRET: str = os.getenv("RESOURCE_LIMIT_SECRET", "")
 
     # Groq (Llama 3)
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")

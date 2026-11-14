@@ -2,8 +2,8 @@
 LingoPrep API — Pydantic Schemas (Request/Response Models)
 """
 
-from pydantic import BaseModel, Field
-from typing import Optional
+from pydantic import BaseModel, Field, ConfigDict, model_validator
+from typing import Optional, Literal
 from datetime import datetime
 from enum import Enum
 
@@ -39,8 +39,6 @@ class MCQQuestionSchema(BaseModel):
     id: str
     question_text: str
     options: list[MCQOptionSchema]
-    correct_option_id: str
-    explanation: Optional[str] = None
     difficulty: Difficulty
 
 
@@ -68,18 +66,25 @@ class ListeningAudioSchema(BaseModel):
 # --- Answer Submission ---
 
 class AnswerSubmission(BaseModel):
-    question_id: str
-    selected_option_id: str = ""  # For MCQ / TFNG / YNG types
-    answer_text: str = ""  # For text-input / matching / completion types
+    question_id: str = Field(..., min_length=1, max_length=100)
+    selected_option_id: str = Field("", max_length=100)  # For MCQ / TFNG / YNG types
+    answer_text: str = Field("", max_length=2000)  # For text-input / matching / completion types
 
 
 class MCQSubmission(BaseModel):
     """Submit answers for a reading or listening passage."""
-    passage_id: str
-    answers: list[AnswerSubmission]
+    passage_id: str = Field(..., min_length=1, max_length=100)
+    answers: list[AnswerSubmission] = Field(..., min_length=1, max_length=200)
 
 
-class MCQResult(BaseModel):
+class AttemptResult(BaseModel):
+    """Persistence metadata supplied by the reliable submission route."""
+    attempt_id: Optional[str] = None
+    saved: bool = False
+    save_retry_available: bool = False
+
+
+class MCQResult(AttemptResult):
     passage_id: str
     total_questions: int
     correct_answers: int
@@ -89,11 +94,11 @@ class MCQResult(BaseModel):
 
 class FullTestSubmission(BaseModel):
     """Submit answers for a full IELTS/TOEFL exam."""
-    answers: list[AnswerSubmission]
-    exam_type: Optional[str] = "ielts"  # "ielts" or "toefl"
+    answers: list[AnswerSubmission] = Field(..., min_length=1, max_length=200)
+    exam_type: Literal["ielts", "toefl"] = "ielts"  # "ielts" or "toefl"
 
 
-class FullTestResult(BaseModel):
+class FullTestResult(AttemptResult):
     total_questions: int
     correct_answers: int
     score_percentage: float
@@ -107,13 +112,22 @@ class FullTestResult(BaseModel):
 # --- Writing Module ---
 
 class EssaySubmissionSchema(BaseModel):
-    prompt: str
-    essay_text: str = Field(..., min_length=50)
+    model_config = ConfigDict(str_strip_whitespace=True)
+    prompt: str = Field(..., min_length=1, max_length=4000)
+    essay_text: str = Field(..., min_length=50, max_length=20000)
     exam_type: ExamType
-    task_type: Optional[str] = None  # e.g., "task1", "task2" for IELTS
+    task_type: Optional[str] = Field(None, max_length=40)  # e.g., "task1", "task2" for IELTS
 
 
-class EssayEvaluationSchema(BaseModel):
+    @model_validator(mode="after")
+    def validate_task(self):
+        allowed = {"ielts": {"1", "2", "task1", "task2"}, "toefl": {"1", "2", "3", "task1", "task2", "task3"}}
+        if self.task_type is not None and self.task_type not in allowed[self.exam_type.value]:
+            raise ValueError("Unsupported writing task for this exam.")
+        return self
+
+
+class EssayEvaluationSchema(AttemptResult):
     overall_band: float
     task_achievement: float
     coherence_cohesion: float
@@ -133,23 +147,28 @@ class EssayEvaluationSchema(BaseModel):
 # --- Speaking Module ---
 
 class SpeakingSubmissionSchema(BaseModel):
-    prompt: str
-    transcript: str = Field(..., min_length=10)
+    model_config = ConfigDict(str_strip_whitespace=True)
+    prompt: str = Field(..., min_length=1, max_length=4000)
+    transcript: str = Field(..., min_length=10, max_length=12000)
     exam_type: ExamType
-    task_type: Optional[str] = None  # e.g., "part1", "part2", "independent", "integrated"
+    task_type: Optional[str] = Field(None, max_length=40)  # e.g., "part1", "part2", "independent", "integrated"
 
 
-class SpeakingEvaluationSchema(BaseModel):
-    overall_band: float
-    pronunciation_fluency: float
-    grammar: float
-    lexical_resource: float
-    coherence_structure: float
+    @model_validator(mode="after")
+    def validate_task(self):
+        allowed = {"ielts": {"part1", "part2", "part3"}, "toefl": {"independent", "integrated", "listen_repeat", "interview"}}
+        if self.task_type is not None and self.task_type not in allowed[self.exam_type.value]:
+            raise ValueError("Unsupported speaking task for this exam.")
+        return self
+
+
+class SpeakingEvaluationSchema(AttemptResult):
     feedback: str
     suggestions: list[str]
-    # True only when the attempt was stored against a signed-in user, so the
-    # score report can say "Saved to your results" truthfully.
-    saved: bool = False
+    assessment_type: Literal["transcript_feedback"] = "transcript_feedback"
+    overall_band: None = None
+    pronunciation_fluency: None = None
+    saved: Literal[False] = False
 
 
 # --- Session Logs ---
